@@ -1,0 +1,67 @@
+# ── Node / 前端 ──
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+.npm/
+.pnpm-store/
+
+# ── Rust / Tauri ──
+target/
+src-tauri/target/
+src-tauri/gen/
+
+# ── 日志与运行时数据 ──
+*.log
+zerotick_debug.log
+logs/
+
+# 用户数据（勿入库）
+device_history.json
+settings.json
+
+# ── 调试符号与临时文件 ──
+*.pdb
+*.ilk
+*.exp
+*.obj
+*.o
+*.tmp
+*.temp
+*.bak
+**/*.rs.bk
+
+# ── 环境变量与密钥 ──
+.env
+.env.*
+!.env.example
+*.pem
+credentials.json
+
+# ── IDE / 编辑器 ──
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.swp
+*.swo
+*~
+*.code-workspace
+
+# Cursor 本地工作区（Agent 约定见 AGENTS.md）
+.cursor/
+
+# ── 操作系统 ──
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# ── 测试 / 覆盖率 ──
+coverage/
+*.profraw

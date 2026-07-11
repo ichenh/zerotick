@@ -1,0 +1,32 @@
+{
+  "name": "zerotick",
+  "private": true,
+  "version": "0.1.4",
+  "description": "Lightweight Windows diagnostics for USB/Bluetooth disconnects, BSOD tracing, and one-click repair",
+  "homepage": "https://github.com/ichenh/zerotick#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ichenh/zerotick.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ichenh/zerotick/issues"
+  },
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "predev": "node scripts/prepare-dev.mjs",
+    "ensure-icons": "node scripts/ensure-icons.mjs",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "vite": "^6"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2"
+  }
+}

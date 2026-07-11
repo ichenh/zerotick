@@ -1,0 +1,115 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version
+        id: version
+        shell: pwsh
+        run: |
+          $v = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "tag=v$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Package version: $v"
+
+      - name: Skip if release tag already exists
+        id: gate
+        shell: pwsh
+        run: |
+          git fetch --tags --force
+          $tag = "${{ steps.version.outputs.tag }}"
+          git rev-parse "refs/tags/$tag" 2>$null | Out-Null
+          if ($LASTEXITCODE -eq 0) {
+            "skip=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            Write-Host "Tag $tag already exists — skip build and release."
+          } else {
+            "skip=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            Write-Host "Tag $tag not found — will build and publish."
+          }
+
+      - name: Setup Node.js
+        if: steps.gate.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Rust
+        if: steps.gate.outputs.skip != 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.82
+
+      - name: Rust cache
+        if: steps.gate.outputs.skip != 'true'
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        if: steps.gate.outputs.skip != 'true'
+        run: npm ci
+
+      - name: Ensure app icons
+        if: steps.gate.outputs.skip != 'true'
+        run: node scripts/ensure-icons.mjs
+
+      - name: Test
+        if: steps.gate.outputs.skip != 'true'
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Build installers (Tauri)
+        if: steps.gate.outputs.skip != 'true'
+        run: npm run tauri build
+
+      - name: Prepare release notes
+        if: steps.gate.outputs.skip != 'true'
+        run: node scripts/extract-changelog.mjs ${{ steps.version.outputs.version }} > release-notes.md
+
+      - name: Collect bundle artifacts
+        if: steps.gate.outputs.skip != 'true'
+        shell: pwsh
+        run: |
+          $bundle = "src-tauri/target/release/bundle"
+          if (-not (Test-Path $bundle)) { throw "Bundle directory not found: $bundle" }
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+          Get-ChildItem -Path $bundle -Recurse -Include *.exe,*.msi | ForEach-Object {
+            Copy-Item $_.FullName -Destination release-assets/
+            Write-Host "Asset: $($_.Name)"
+          }
+          if (-not (Get-ChildItem release-assets)) { throw "No .exe or .msi artifacts found" }
+
+      - name: Create GitHub Release
+        if: steps.gate.outputs.skip != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ZeroTick ${{ steps.version.outputs.tag }}
+          body_path: release-notes.md
+          files: release-assets/*
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZeroTick</title>
+  </head>
+  <body>
+    <div id="app" class="shell">
+      <nav class="nav" aria-label="Main navigation">
+        <div class="nav-brand">
+          <div class="nav-logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M12 3v4M12 17v4M3 12h4M17 12h4" stroke-linecap="round" />
+              <circle cx="12" cy="12" r="4" />
+            </svg>
+          </div>
+          <div class="nav-brand-text">
+            <span class="nav-app-name">ZeroTick</span>
+            <span id="app-version" class="nav-version"></span>
+          </div>
+        </div>
+
+        <div class="nav-items">
+          <button class="nav-item active" type="button" data-page="overview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+            <span data-i18n="nav.overview">Overview</span>
+          </button>
+          <button class="nav-item" type="button" data-page="diagnostics">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+              <path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M12 3c4 0 7 2.5 9 6.5S16 21 12 21 3 16.5 3 9.5 8 3 12 3z" />
+            </svg>
+            <span data-i18n="nav.diagnostics">Diagnostics</span>
+          </button>
+          <button class="nav-item" type="button" data-page="ports">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+              <path d="M4 7h16M4 12h10M4 17h16" stroke-linecap="round" />
+            </svg>
+            <span data-i18n="nav.ports">Ports</span>
+          </button>
+          <button class="nav-item" type="button" data-page="settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+            </svg>
+            <span data-i18n="nav.settings">Settings</span>
+          </button>
+        </div>
+      </nav>
+
+      <div class="main">
+        <header class="topbar">
+          <div class="topbar-title">
+            <h1 id="page-title" data-i18n="pages.overview.title">Overview</h1>
+            <p id="page-desc" class="topbar-desc" data-i18n="pages.overview.desc">—</p>
+          </div>
+          <div class="status-chip" id="engine-status">
+            <span class="status-dot"></span>
+            <span class="status-text" data-i18n="status.init">Initializing…</span>
+          </div>
+        </header>
+
+        <div id="toast" class="infobar hidden" role="alert"></div>
+
+        <div class="pages">
+          <section id="page-overview" class="page active">
+            <div class="toolbar">
+              <span class="toolbar-hint" data-i18n="overview.hint">—</span>
+              <div class="toolbar-actions">
+                <button id="btn-export-json" class="btn btn-subtle" type="button" data-i18n="overview.exportJson">Export JSON</button>
+                <button id="btn-export-csv" class="btn btn-subtle" type="button" data-i18n="overview.exportCsv">Export CSV</button>
+                <button id="btn-clear-history" class="btn btn-subtle" type="button" data-i18n="overview.clearHistory">Clear history</button>
+              </div>
+            </div>
+            <div class="card card-fill">
+              <div class="card-header">
+                <h2 data-i18n="overview.eventsTitle">Device events</h2>
+                <span class="card-meta" data-i18n="overview.eventsMeta">Newest first</span>
+              </div>
+              <ul id="timeline" class="event-list"></ul>
+              <p id="timeline-empty" class="empty-state hidden" data-i18n="overview.empty">—</p>
+            </div>
+          </section>
+
+          <section id="page-diagnostics" class="page">
+            <div class="diag-grid">
+              <article class="card">
+                <div class="card-header">
+                  <h2 data-i18n="diag.bluetooth.title">Bluetooth</h2>
+                  <button id="btn-bluetooth" class="btn btn-default" type="button" data-i18n="diag.bluetooth.scan">Scan</button>
+                </div>
+                <p class="card-desc" data-i18n="diag.bluetooth.desc">—</p>
+                <div id="bluetooth-result" class="result-panel result-idle">
+                  <p class="result-empty" data-i18n="diag.bluetooth.idle">—</p>
+                </div>
+              </article>
+
+              <article class="card">
+                <div class="card-header">
+                  <h2 data-i18n="diag.bsod.title">BSOD</h2>
+                  <button id="btn-bsod" class="btn btn-default" type="button" data-i18n="diag.bsod.scan">Scan</button>
+                </div>
+                <p class="card-desc" data-i18n="diag.bsod.desc">—</p>
+                <div id="bsod-result" class="result-panel result-idle">
+                  <p class="result-empty" data-i18n="diag.bsod.idle">—</p>
+                </div>
+              </article>
+
+              <article class="card card-span">
+                <div class="card-header">
+                  <h2 data-i18n="diag.repair.title">Repair</h2>
+                  <button id="btn-repair" class="btn btn-accent" type="button" data-i18n="diag.repair.run">Run</button>
+                </div>
+                <p class="card-desc" data-i18n="diag.repair.desc">—</p>
+                <div id="repair-admin-hint" class="info-banner hidden"></div>
+                <div id="repair-result" class="result-panel result-idle">
+                  <p class="result-empty" data-i18n="diag.repair.idle">—</p>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section id="page-ports" class="page">
+            <div class="toolbar">
+              <span class="toolbar-hint" id="ports-hint">—</span>
+              <div class="toolbar-actions">
+                <button id="btn-scan-ports" class="btn btn-default" type="button" data-i18n="ports.scan">Scan ports</button>
+                <button id="btn-release-all-ports" class="btn btn-accent" type="button" disabled data-i18n="ports.releaseAll">Release all</button>
+              </div>
+            </div>
+            <div id="excluded-ranges" class="reserved-ports"></div>
+            <div class="card card-fill">
+              <ul id="port-list" class="port-table">
+                <li class="empty-state" data-i18n="ports.empty">—</li>
+              </ul>
+            </div>
+          </section>
+
+          <section id="page-settings" class="page">
+            <form id="settings-form" class="settings-layout">
+              <section class="settings-group card">
+                <h2 class="settings-group-title" data-i18n="settings.groupMonitor">Monitoring</h2>
+                <div class="settings-group-body">
+                <label class="field">
+                  <span class="field-label" data-i18n="settings.threshold">Threshold</span>
+                  <div class="field-control">
+                    <input id="set-threshold" type="number" min="100" max="10000" step="50" />
+                    <span class="field-unit" data-i18n="units.ms">ms</span>
+                  </div>
+                </label>
+                <label class="field">
+                  <span class="field-label" data-i18n="settings.trayRecovery">Tray recovery</span>
+                  <div class="field-control">
+                    <input id="set-tray-recovery" type="number" min="5" max="600" step="5" />
+                    <span class="field-unit" data-i18n="units.sec">sec</span>
+                  </div>
+                </label>
+                <label class="field">
+                  <span class="field-label" data-i18n="settings.bluetoothPoll">Bluetooth poll</span>
+                  <div class="field-control">
+                    <input id="set-bluetooth-poll" type="number" min="15" max="300" step="15" />
+                    <span class="field-unit" data-i18n="units.sec">sec</span>
+                  </div>
+                </label>
+                </div>
+              </section>
+
+              <section class="settings-group card">
+                <h2 class="settings-group-title" data-i18n="settings.groupData">History</h2>
+                <div class="settings-group-body">
+                <label class="field">
+                  <span class="field-label" data-i18n="settings.historyMax">History</span>
+                  <div class="field-control">
+                    <input id="set-history-max" type="number" min="50" max="2000" step="50" />
+                    <span class="field-unit" data-i18n="units.count">items</span>
+                  </div>
+                </label>
+                <label class="field">
+                  <span class="field-label" data-i18n="settings.timelineMax">Timeline</span>
+                  <div class="field-control">
+                    <input id="set-timeline-max" type="number" min="10" max="500" step="10" />
+                    <span class="field-unit" data-i18n="units.count">items</span>
+                  </div>
+                </label>
+                </div>
+              </section>
+
+              <section class="settings-group card">
+                <h2 class="settings-group-title" data-i18n="settings.groupGeneral">General</h2>
+                <div class="settings-group-body">
+                <label class="field">
+                  <span class="field-label" data-i18n="settings.locale">Display language</span>
+                  <div class="field-control">
+                    <select id="set-locale" class="field-select"></select>
+                  </div>
+                </label>
+                <div class="field">
+                  <span class="field-label" data-i18n="settings.nativeNotify">Notifications when minimized</span>
+                  <div class="field-control">
+                    <label class="toggle-switch">
+                      <input id="set-native-notify" type="checkbox" />
+                      <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                    </label>
+                  </div>
+                </div>
+                <div class="field">
+                  <span class="field-label" data-i18n="settings.launchStartup">Start at sign-in</span>
+                  <div class="field-control">
+                    <label class="toggle-switch">
+                      <input id="set-launch-startup" type="checkbox" />
+                      <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                    </label>
+                  </div>
+                </div>
+                </div>
+              </section>
+
+              <div class="settings-footer">
+                <button id="btn-save-settings" class="btn btn-accent" type="submit" data-i18n="settings.save">Save</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
