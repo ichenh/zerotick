@@ -20,7 +20,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -50,9 +50,9 @@ jobs:
 
       - name: Setup Node.js
         if: steps.gate.outputs.skip != 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Setup Rust
@@ -61,7 +61,7 @@ jobs:
 
       - name: Rust cache
         if: steps.gate.outputs.skip != 'true'
-        uses: swatinem/rust-cache@v2
+        uses: swatinem/rust-cache@v2.9.1
         with:
           workspaces: src-tauri
 
@@ -100,7 +100,7 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.gate.outputs.skip != 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: ZeroTick ${{ steps.version.outputs.tag }}
