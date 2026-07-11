@@ -39,8 +39,8 @@ jobs:
         run: |
           git fetch --tags --force
           $tag = "${{ steps.version.outputs.tag }}"
-          git rev-parse "refs/tags/$tag" 2>$null | Out-Null
-          if ($LASTEXITCODE -eq 0) {
+          $matched = git tag -l $tag
+          if ($matched) {
             "skip=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
             Write-Host "Tag $tag already exists — skip build and release."
           } else {
@@ -58,8 +58,6 @@ jobs:
       - name: Setup Rust
         if: steps.gate.outputs.skip != 'true'
         uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: 1.82
 
       - name: Rust cache
         if: steps.gate.outputs.skip != 'true'
