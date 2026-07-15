@@ -68,8 +68,10 @@ Advanced mode keeps the same workflow while exposing device instance IDs, PIDs, 
 
 Download the latest package from [GitHub Releases](https://github.com/ichenh/zerotick/releases/latest):
 
-- `ZeroTick_*_x64-setup.exe` — NSIS installer, recommended for most users
-- `ZeroTick_*_x64_en-US.msi` — MSI package for managed or manual deployment
+- `ZeroTick_*_x64-setup.exe` — recommended for most users; the installer lets you choose whether to install for the current user or everyone on the PC
+- `ZeroTick_*_x64_en-US.msi` — intended for IT-managed deployment; most users do not need this file
+
+> GitHub release installers are currently not code-signed. Most systems can install them normally, but Windows may show **Unknown publisher** or a Microsoft Defender SmartScreen warning depending on local policy and file reputation. Download ZeroTick only from this repository's Releases page. Each release includes `SHA256SUMS.txt`; compare it with `Get-FileHash .\ZeroTick_*.exe -Algorithm SHA256` when you need to verify file integrity. Advanced users can also verify its GitHub build provenance with `gh attestation verify .\ZeroTick_*.exe --repo ichenh/zerotick`.
 
 ZeroTick supports Windows 10/11 x64 and uses Microsoft Edge WebView2. WebView2 is already present on most supported Windows installations; the installer can bootstrap it when needed.
 

@@ -68,8 +68,10 @@ Windows 的很多问题来得毫无征兆：Wi-Fi 或蓝牙模块突然消失、
 
 前往 [GitHub Releases](https://github.com/ichenh/zerotick/releases/latest) 下载最新安装包：
 
-- `ZeroTick_*_x64-setup.exe`：NSIS 安装程序，推荐普通用户使用
-- `ZeroTick_*_x64_en-US.msi`：适合集中部署或手动安装的 MSI 包
+- `ZeroTick_*_x64-setup.exe`：推荐普通用户下载；安装时可选择“仅为当前用户”或“为这台电脑的所有用户”
+- `ZeroTick_*_x64_en-US.msi`：用于 IT 管理和集中部署，普通用户无需下载
+
+> GitHub Release 中的安装包目前尚未进行代码签名。多数系统可以正常安装，但 Windows 是否显示“未知发布者”或 Microsoft Defender SmartScreen 提示，仍取决于本机策略和文件信誉。请只从本仓库的 Releases 页面下载 ZeroTick。每个版本都会附带 `SHA256SUMS.txt`；如需核对文件完整性，可运行 `Get-FileHash .\ZeroTick_*.exe -Algorithm SHA256` 并比较结果。高级用户还可运行 `gh attestation verify .\ZeroTick_*.exe --repo ichenh/zerotick` 验证 GitHub 构建来源。
 
 ZeroTick 支持 Windows 10/11 x64，并使用 Microsoft Edge WebView2。大多数受支持的 Windows 系统已经包含 WebView2；缺失时安装程序可以引导安装。
 

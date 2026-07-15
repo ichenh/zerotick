@@ -9,8 +9,8 @@ ZeroTick 是面向普通用户的 Windows 设备与系统故障诊断工具（Ta
 ## 版本策略
 
 ```
-v0.2.0  ← 当前版本
-v0.2.1  ← 下一版常规开发（patch）
+v0.2.1  ← 当前版本
+v0.2.2  ← 下一版常规开发（patch）
 …
 v0.3.0  ← 仅用户明确确认后才升 minor
 ```
@@ -21,9 +21,9 @@ v0.3.0  ← 仅用户明确确认后才升 minor
 
 推送到 `main` 后由 [`.github/workflows/release.yml`](.github/workflows/release.yml) 自动发版：
 
-1. 读取 `package.json` 的 `version`（如 `0.2.0`）
-2. 若远程已存在同名标签 `v0.2.0`，**跳过**（避免重复发布）
-3. 否则：测试 → `npm run tauri build` → 上传 NSIS `.exe` 与 MSI 到 **GitHub Releases**，并创建标签 `v{version}`
+1. 读取 `package.json` 的 `version`（如 `0.2.1`）
+2. 若远程已存在同名标签 `v0.2.1`，**跳过**（避免重复发布）
+3. 否则：测试 → `npm run tauri build` → 生成 SHA-256 清单与 GitHub 构建来源证明 → 上传 NSIS `.exe`、MSI 和 `SHA256SUMS.txt` 到 **GitHub Releases**，并创建标签 `v{version}`
 4. Release 说明来自 `CHANGELOG.md` 中对应 `## [x.y.z]` 段落（`scripts/extract-changelog.mjs`）
 
 **发版前人工检查清单**

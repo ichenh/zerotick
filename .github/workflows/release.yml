@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 concurrency:
   group: release-${{ github.repository }}
@@ -103,6 +105,18 @@ jobs:
             Write-Host "Asset: $($_.Name)"
           }
           if (-not (Get-ChildItem release-assets)) { throw "No .exe or .msi artifacts found" }
+          $checksumLines = Get-ChildItem release-assets -File | Sort-Object Name | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          }
+          $checksumLines | Set-Content release-assets/SHA256SUMS.txt -Encoding ascii
+          Write-Host "Asset: SHA256SUMS.txt"
+
+      - name: Attest release artifacts
+        if: steps.gate.outputs.skip != 'true'
+        uses: actions/attest@v4
+        with:
+          subject-path: release-assets/*
 
       - name: Create GitHub Release
         if: steps.gate.outputs.skip != 'true'
