@@ -1,8 +1,8 @@
 {
   "name": "zerotick",
   "private": true,
-  "version": "0.1.4",
-  "description": "Lightweight Windows diagnostics for USB/Bluetooth disconnects, BSOD tracing, and one-click repair",
+  "version": "0.2.0",
+  "description": "Approachable Windows diagnostics and repair for network, audio, USB storage, Bluetooth, drivers, BSODs, and ports",
   "homepage": "https://github.com/ichenh/zerotick#readme",
   "repository": {
     "type": "git",
@@ -17,9 +17,12 @@
     "predev": "node scripts/prepare-dev.mjs",
     "ensure-icons": "node scripts/ensure-icons.mjs",
     "dev": "vite",
-    "build": "vite build",
+    "check:i18n": "node scripts/check-locales.mjs",
+    "check:release": "node scripts/check-release.mjs",
+    "build": "npm run check:i18n && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:dev:admin": "node scripts/tauri-dev-admin.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",

@@ -5,4 +5,5 @@ pub mod device_path;
 pub mod elevated;
 pub mod guid;
 pub mod logging;
+pub mod powershell;
 pub mod wmi_runner;

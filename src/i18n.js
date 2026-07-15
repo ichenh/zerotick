@@ -1,6 +1,7 @@
 import en from "./locales/en.js";
 import zhCN from "./locales/zh-CN.js";
-import { packs } from "./locales/packs.js";
+import { packs, terminology } from "./locales/packs.js";
+import { currentLocalePatches } from "./locales/current-patches.js";
 
 /** @typedef {Record<string, unknown>} LocaleBundle */
 
@@ -23,10 +24,30 @@ export function deepMerge(base, patch) {
   return out;
 }
 
-const bundles = {
+const COMPLETE_TRANSLATED_LOCALES = ["zh-TW", "ja", "ko", "de"];
+
+export const bundles = {
   en,
   "zh-CN": zhCN,
-  ...packs,
+  ...Object.fromEntries(
+    COMPLETE_TRANSLATED_LOCALES.map((locale) => [
+      locale,
+      deepMerge(
+        deepMerge(packs[locale] ?? {}, { terms: terminology[locale] ?? {} }),
+        currentLocalePatches[locale] ?? {},
+      ),
+    ]),
+  ),
+};
+
+const LEGACY_KEY_ALIASES = {
+  "toolkit.ok": "diag.bluetooth.ok",
+  "toolkit.warn": "diag.bluetooth.warn",
+  "toolkit.unknown": "diag.bluetooth.unknown",
+  "toolkit.bluetooth.idle": "diag.bluetooth.idle",
+  "toolkit.bluetooth.radioCount": "diag.bluetooth.radioCount",
+  "toolkit.bluetooth.issues": "diag.bluetooth.issues",
+  "toolkit.bluetooth.noIssues": "diag.bluetooth.noIssues",
 };
 
 export const LOCALE_OPTIONS = [
@@ -36,29 +57,6 @@ export const LOCALE_OPTIONS = [
   { code: "ja", label: "日本語" },
   { code: "ko", label: "한국어" },
   { code: "de", label: "Deutsch" },
-  { code: "fr", label: "Français" },
-  { code: "es", label: "Español" },
-  { code: "pt-BR", label: "Português (Brasil)" },
-  { code: "ru", label: "Русский" },
-  { code: "ar", label: "العربية" },
-  { code: "hi", label: "हिन्दी" },
-  { code: "it", label: "Italiano" },
-  { code: "nl", label: "Nederlands" },
-  { code: "pl", label: "Polski" },
-  { code: "tr", label: "Türkçe" },
-  { code: "vi", label: "Tiếng Việt" },
-  { code: "th", label: "ไทย" },
-  { code: "id", label: "Bahasa Indonesia" },
-  { code: "cs", label: "Čeština" },
-  { code: "da", label: "Dansk" },
-  { code: "fi", label: "Suomi" },
-  { code: "nb", label: "Norsk Bokmål" },
-  { code: "sv", label: "Svenska" },
-  { code: "uk", label: "Українська" },
-  { code: "he", label: "עברית" },
-  { code: "ms", label: "Bahasa Melayu" },
-  { code: "ro", label: "Română" },
-  { code: "hu", label: "Magyar" },
 ];
 
 let currentLocale = "zh-CN";
@@ -96,8 +94,13 @@ export function getLocale() {
 }
 
 export function t(key, params) {
-  const val = getPath(dict, key) ?? getPath(en, key) ?? key;
-  return interpolate(val, params);
+  const alias = LEGACY_KEY_ALIASES[key];
+  const val = getPath(dict, key)
+    ?? (alias ? getPath(dict, alias) : undefined)
+    ?? getPath(en, key)
+    ?? key;
+  if (typeof val !== "string" && typeof val !== "number") return String(key);
+  return interpolate(String(val), params);
 }
 
 function applyToElement(el) {

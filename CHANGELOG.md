@@ -7,9 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-15
+
 ### Added
 
-- GitHub Actions：CI（测试与构建检查）+ Release（推送 `main` 自动打标签并发布 NSIS/MSI 安装包）
+- 新增网络诊断、网速测试、DNS 刷新、VPN/代理识别与代理程序溯源。
+- 新增音频输入/输出管理、默认设备切换、音量与静音控制、独占模式和音频服务修复。
+- 新增 USB 存储设备聚合、加密/未解锁状态、读卡器空插槽识别、程序占用检测、整体安全弹出及快速/完全格式化。
+- 新增设备与驱动面板、硬件改动扫描和常见设备管理器问题说明。
+- 新增蓝牙设备重连与安全移除流程，以及蓝牙服务和驱动诊断。
+- 新增蓝屏原因归纳、WinDbg/事件日志证据和可执行修复建议。
+- 新增普通模式与高级模式分层，并开放各诊断模块的扫描参数。
+- 新增 GitHub Actions CI 与 NSIS/MSI 自动发布流程。
+
+### Changed
+
+- 全面重构 Windows 原生风格界面、面板信息层级、按钮布局、应用图标与行业术语。
+- 将扫描流程拆分为并行原生查询并增加超时控制，减少 PowerShell 串行等待。
+- 将错误码和日志化输出改为普通用户可理解的原因、影响和处理步骤；高级模式保留原始证据。
+- 语言选择仅展示已经具备完整词条并通过占位符校验的语言。
+
+### Fixed
+
+- 修复“全面体检”无响应以及部分面板重复扫描、扫描状态不清晰的问题。
+- 修复音频独占策略权限错误缺少清晰提示的问题。
+- 修复带锁移动硬盘、虚拟光驱和多卡读卡器被错误拆分，以及整体弹出结果重复或误报失败的问题。
+- 修复可访问卷被误判为离线、容量文案容易误导及程序占用来源不明确的问题。
+- 修复代理存在时无法显示相关程序、设置页顺序不合理和多处文案未本地化的问题。
+
+### Security
+
+- 为格式化和蓝牙设备移除增加明确的破坏性操作确认。
+- 收紧 Tauri 前端权限并启用内容安全策略。
 
 ## [0.1.4] - 2026-07-11
 
@@ -117,7 +146,8 @@ CLI 版核心诊断模块。
 
 项目初始化。
 
-[Unreleased]: https://github.com/ichenh/zerotick/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/ichenh/zerotick/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/ichenh/zerotick/compare/v0.1.4...v0.2.0
 [0.1.4]: https://github.com/ichenh/zerotick/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/ichenh/zerotick/compare/v0.1.1...v0.1.3
 [0.1.1]: https://github.com/ichenh/zerotick/compare/v0.1.0...v0.1.1

@@ -43,8 +43,14 @@ jobs:
       - name: Ensure app icons
         run: node scripts/ensure-icons.mjs
 
+      - name: Validate release metadata
+        run: npm run check:release
+
       - name: Build frontend
         run: npm run build
+
+      - name: Rust lint
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 
       - name: Rust tests
         run: cargo test --manifest-path src-tauri/Cargo.toml

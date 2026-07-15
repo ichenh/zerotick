@@ -31,12 +31,51 @@
             </svg>
             <span data-i18n="nav.overview">Overview</span>
           </button>
-          <button class="nav-item" type="button" data-page="diagnostics">
+          <button class="nav-item" type="button" data-page="network">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-              <path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round" />
-              <path d="M12 3c4 0 7 2.5 9 6.5S16 21 12 21 3 16.5 3 9.5 8 3 12 3z" />
+              <circle cx="12" cy="12" r="9" />
+              <path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" stroke-linecap="round" />
             </svg>
-            <span data-i18n="nav.diagnostics">Diagnostics</span>
+            <span data-i18n="nav.network">Network</span>
+          </button>
+          <button class="nav-item" type="button" data-page="audio">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+              <path d="M12 4v16M8 8v8M16 6v12M4 10v4M20 9v6" stroke-linecap="round" />
+            </svg>
+            <span data-i18n="nav.audio">Audio</span>
+          </button>
+          <button class="nav-item" type="button" data-page="usb">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+              <rect x="7" y="2" width="10" height="6" rx="1" />
+              <path d="M12 8v8M9 16h6v6H9z" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span data-i18n="nav.usb">USB</span>
+          </button>
+          <button class="nav-item" type="button" data-page="bluetooth">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+              <path d="M7 7l10 10M17 7 7 17M12 3v18" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span data-i18n="nav.bluetooth">Bluetooth</span>
+          </button>
+          <button class="nav-item" type="button" data-page="devices">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+              <rect x="5" y="5" width="14" height="14" rx="2" />
+              <path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3M9 9h6v6H9z" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span data-i18n="nav.devices">Devices</span>
+          </button>
+          <button class="nav-item" type="button" data-page="bsod">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+              <path d="M12 8v5M12 16h.01" stroke-linecap="round" />
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke-linejoin="round" />
+            </svg>
+            <span data-i18n="nav.bsod">BSOD</span>
+          </button>
+          <button class="nav-item" type="button" data-page="repair">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+              <path d="M14.7 6.3a4 4 0 0 0-5.66 5.66l-5 5a2 2 0 0 0 2.83 2.83l5-5a4 4 0 0 0 5.66-5.66l-1.5 1.5M9.3 17.7a4 4 0 0 0 5.66-5.66l5-5a2 2 0 0 0-2.83-2.83l-5 5a4 4 0 0 0-5.66 5.66l1.5-1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span data-i18n="nav.repair">Repair</span>
           </button>
           <button class="nav-item" type="button" data-page="ports">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
@@ -62,7 +101,7 @@
           </div>
           <div class="status-chip" id="engine-status">
             <span class="status-dot"></span>
-            <span class="status-text" data-i18n="status.init">Initializing…</span>
+            <span class="status-text" data-i18n="status.connecting">Connecting…</span>
           </div>
         </header>
 
@@ -70,14 +109,15 @@
 
         <div class="pages">
           <section id="page-overview" class="page active">
-            <div class="toolbar">
-              <span class="toolbar-hint" data-i18n="overview.hint">—</span>
+            <div class="toolbar toolbar-end">
               <div class="toolbar-actions">
+                <button id="btn-full-scan" class="btn btn-accent" type="button" data-i18n="overview.fullScan">Full check</button>
                 <button id="btn-export-json" class="btn btn-subtle" type="button" data-i18n="overview.exportJson">Export JSON</button>
                 <button id="btn-export-csv" class="btn btn-subtle" type="button" data-i18n="overview.exportCsv">Export CSV</button>
                 <button id="btn-clear-history" class="btn btn-subtle" type="button" data-i18n="overview.clearHistory">Clear history</button>
               </div>
             </div>
+            <div id="health-overview" class="health-overview hidden" aria-live="polite"></div>
             <div class="card card-fill">
               <div class="card-header">
                 <h2 data-i18n="overview.eventsTitle">Device events</h2>
@@ -88,47 +128,117 @@
             </div>
           </section>
 
-          <section id="page-diagnostics" class="page">
-            <div class="diag-grid">
-              <article class="card">
-                <div class="card-header">
-                  <h2 data-i18n="diag.bluetooth.title">Bluetooth</h2>
-                  <button id="btn-bluetooth" class="btn btn-default" type="button" data-i18n="diag.bluetooth.scan">Scan</button>
-                </div>
-                <p class="card-desc" data-i18n="diag.bluetooth.desc">—</p>
-                <div id="bluetooth-result" class="result-panel result-idle">
-                  <p class="result-empty" data-i18n="diag.bluetooth.idle">—</p>
-                </div>
-              </article>
+          <section id="page-network" class="page">
+            <div class="toolbar toolbar-end">
+              <div class="toolbar-actions">
+                <button id="btn-network-scan" class="btn btn-default" type="button" data-i18n="toolkit.scan">Scan</button>
+                <button id="btn-network-speed" class="btn btn-default" type="button" data-i18n="toolkit.network.speedTest">Speed test</button>
+                <button id="btn-network-flush" class="btn btn-default" type="button" data-i18n="toolkit.network.flushDns">Flush DNS</button>
+                <button id="btn-network-repair" class="btn btn-accent" type="button" data-i18n="toolkit.repair">Repair</button>
+              </div>
+            </div>
+            <div class="card card-fill">
+              <div id="network-result" class="result-panel result-idle">
+                <p class="result-empty" data-i18n="toolkit.network.idle">—</p>
+              </div>
+            </div>
+          </section>
 
-              <article class="card">
-                <div class="card-header">
-                  <h2 data-i18n="diag.bsod.title">BSOD</h2>
-                  <button id="btn-bsod" class="btn btn-default" type="button" data-i18n="diag.bsod.scan">Scan</button>
-                </div>
-                <p class="card-desc" data-i18n="diag.bsod.desc">—</p>
-                <div id="bsod-result" class="result-panel result-idle">
-                  <p class="result-empty" data-i18n="diag.bsod.idle">—</p>
-                </div>
-              </article>
+          <section id="page-audio" class="page">
+            <div class="toolbar toolbar-end">
+              <div class="toolbar-actions">
+                <button id="btn-audio-scan" class="btn btn-default" type="button" data-i18n="toolkit.scan">Scan</button>
+                <button id="btn-audio-repair" class="btn btn-accent" type="button" data-i18n="toolkit.repair">Repair</button>
+              </div>
+            </div>
+            <div class="card card-fill">
+              <div id="audio-result" class="result-panel result-idle">
+                <p class="result-empty" data-i18n="toolkit.audio.idle">—</p>
+              </div>
+            </div>
+          </section>
 
-              <article class="card card-span">
-                <div class="card-header">
-                  <h2 data-i18n="diag.repair.title">Repair</h2>
-                  <button id="btn-repair" class="btn btn-accent" type="button" data-i18n="diag.repair.run">Run</button>
-                </div>
-                <p class="card-desc" data-i18n="diag.repair.desc">—</p>
-                <div id="repair-admin-hint" class="info-banner hidden"></div>
-                <div id="repair-result" class="result-panel result-idle">
-                  <p class="result-empty" data-i18n="diag.repair.idle">—</p>
-                </div>
-              </article>
+          <section id="page-usb" class="page">
+            <div class="toolbar toolbar-end">
+              <div class="toolbar-actions">
+                <button id="btn-usb-scan" class="btn btn-default" type="button" data-i18n="toolkit.scan">Scan</button>
+                <button id="btn-usb-repair" class="btn btn-accent" type="button" data-i18n="toolkit.repair">Repair</button>
+              </div>
+            </div>
+            <div class="card card-fill">
+              <div id="usb-result" class="result-panel result-idle">
+                <p class="result-empty" data-i18n="toolkit.usb.idle">—</p>
+              </div>
+            </div>
+          </section>
+
+          <section id="page-bluetooth" class="page">
+            <div class="toolbar toolbar-end">
+              <div class="toolbar-actions">
+                <button id="btn-bluetooth-scan" class="btn btn-default" type="button" data-i18n="toolkit.scan">Scan</button>
+                <button id="btn-bluetooth-repair" class="btn btn-accent" type="button" data-i18n="toolkit.repair">Repair</button>
+              </div>
+            </div>
+            <div class="card card-fill">
+              <div id="bluetooth-result" class="result-panel result-idle">
+                <p class="result-empty" data-i18n="toolkit.bluetooth.idle">—</p>
+              </div>
+            </div>
+          </section>
+
+          <section id="page-devices" class="page">
+            <div class="toolbar toolbar-end">
+              <div class="toolbar-actions">
+                <button id="btn-devices-scan" class="btn btn-default" type="button" data-i18n="toolkit.scan">Scan</button>
+                <button id="btn-devices-rescan" class="btn btn-accent" type="button" data-i18n="toolkit.devices.rescan">Scan for hardware changes</button>
+              </div>
+            </div>
+            <div class="card card-fill">
+              <div id="devices-result" class="result-panel result-idle">
+                <p class="result-empty" data-i18n="toolkit.devices.idle">—</p>
+              </div>
+            </div>
+          </section>
+
+          <section id="page-bsod" class="page">
+            <div class="toolbar toolbar-end">
+              <div class="toolbar-actions">
+                <button id="btn-bsod" class="btn btn-default" type="button" data-i18n="diag.bsod.scan">Scan</button>
+              </div>
+            </div>
+            <div class="card card-fill">
+              <div id="bsod-result" class="result-panel result-idle">
+                <p class="result-empty" data-i18n="diag.bsod.idle">—</p>
+              </div>
+            </div>
+          </section>
+
+          <section id="page-repair" class="page">
+            <div class="toolbar toolbar-end">
+              <div class="toolbar-actions">
+                <button id="btn-repair" class="btn btn-accent" type="button" data-i18n="diag.repair.run">Run</button>
+              </div>
+            </div>
+            <div id="repair-admin-hint" class="info-banner hidden"></div>
+            <div class="card card-fill">
+              <div id="repair-result" class="result-panel result-idle">
+                <p class="result-empty" data-i18n="diag.repair.idle">—</p>
+              </div>
             </div>
           </section>
 
           <section id="page-ports" class="page">
-            <div class="toolbar">
-              <span class="toolbar-hint" id="ports-hint">—</span>
+            <div class="toolbar port-toolbar">
+              <div class="toolbar-actions port-toolbar-left">
+                <label class="port-sort-label">
+                  <span data-i18n="ports.sort">Sort</span>
+                  <select id="port-sort" class="field-select port-sort-select">
+                    <option value="port" data-i18n="ports.sortPort">By port</option>
+                    <option value="category" data-i18n="ports.sortCategory">By category</option>
+                    <option value="releasable" data-i18n="ports.sortReleasable">Releasable first</option>
+                  </select>
+                </label>
+              </div>
               <div class="toolbar-actions">
                 <button id="btn-scan-ports" class="btn btn-default" type="button" data-i18n="ports.scan">Scan ports</button>
                 <button id="btn-release-all-ports" class="btn btn-accent" type="button" disabled data-i18n="ports.releaseAll">Release all</button>
@@ -144,53 +254,6 @@
 
           <section id="page-settings" class="page">
             <form id="settings-form" class="settings-layout">
-              <section class="settings-group card">
-                <h2 class="settings-group-title" data-i18n="settings.groupMonitor">Monitoring</h2>
-                <div class="settings-group-body">
-                <label class="field">
-                  <span class="field-label" data-i18n="settings.threshold">Threshold</span>
-                  <div class="field-control">
-                    <input id="set-threshold" type="number" min="100" max="10000" step="50" />
-                    <span class="field-unit" data-i18n="units.ms">ms</span>
-                  </div>
-                </label>
-                <label class="field">
-                  <span class="field-label" data-i18n="settings.trayRecovery">Tray recovery</span>
-                  <div class="field-control">
-                    <input id="set-tray-recovery" type="number" min="5" max="600" step="5" />
-                    <span class="field-unit" data-i18n="units.sec">sec</span>
-                  </div>
-                </label>
-                <label class="field">
-                  <span class="field-label" data-i18n="settings.bluetoothPoll">Bluetooth poll</span>
-                  <div class="field-control">
-                    <input id="set-bluetooth-poll" type="number" min="15" max="300" step="15" />
-                    <span class="field-unit" data-i18n="units.sec">sec</span>
-                  </div>
-                </label>
-                </div>
-              </section>
-
-              <section class="settings-group card">
-                <h2 class="settings-group-title" data-i18n="settings.groupData">History</h2>
-                <div class="settings-group-body">
-                <label class="field">
-                  <span class="field-label" data-i18n="settings.historyMax">History</span>
-                  <div class="field-control">
-                    <input id="set-history-max" type="number" min="50" max="2000" step="50" />
-                    <span class="field-unit" data-i18n="units.count">items</span>
-                  </div>
-                </label>
-                <label class="field">
-                  <span class="field-label" data-i18n="settings.timelineMax">Timeline</span>
-                  <div class="field-control">
-                    <input id="set-timeline-max" type="number" min="10" max="500" step="10" />
-                    <span class="field-unit" data-i18n="units.count">items</span>
-                  </div>
-                </label>
-                </div>
-              </section>
-
               <section class="settings-group card">
                 <h2 class="settings-group-title" data-i18n="settings.groupGeneral">General</h2>
                 <div class="settings-group-body">
@@ -218,12 +281,129 @@
                     </label>
                   </div>
                 </div>
+                <div class="field">
+                  <span class="field-label" data-i18n="settings.runAsAdmin">Run as administrator</span>
+                  <div class="field-control">
+                    <label class="toggle-switch">
+                      <input id="set-run-as-admin" type="checkbox" />
+                      <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                    </label>
+                  </div>
+                </div>
+                <label class="field">
+                  <span class="field-label" data-i18n="settings.closeToTray">Close behavior</span>
+                  <div class="field-control">
+                    <select id="set-close-tray" class="field-select">
+                      <option value="1" data-i18n="settings.closeToTrayOn">Minimize to tray</option>
+                      <option value="0" data-i18n="settings.closeToTrayOff">Quit completely</option>
+                    </select>
+                  </div>
+                </label>
+                <div class="field">
+                  <span class="field-label-wrap">
+                    <span class="field-label" data-i18n="settings.advancedDisplay">Show advanced details</span>
+                    <span class="field-help" data-i18n="settings.advancedDisplayHint">Device IDs, services, error codes, and low-level diagnostics</span>
+                  </span>
+                  <div class="field-control">
+                    <label class="toggle-switch">
+                      <input id="set-advanced-display" type="checkbox" />
+                      <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                    </label>
+                  </div>
+                </div>
                 </div>
               </section>
 
-              <div class="settings-footer">
-                <button id="btn-save-settings" class="btn btn-accent" type="submit" data-i18n="settings.save">Save</button>
-              </div>
+              <section class="settings-group card advanced-only">
+                <h2 class="settings-group-title" data-i18n="settings.groupMonitor">Monitoring</h2>
+                <div class="settings-group-body">
+                <label class="field">
+                  <span class="field-label" data-i18n="settings.threshold">Threshold</span>
+                  <div class="field-control">
+                    <input id="set-threshold" type="number" min="100" max="10000" step="50" />
+                    <span class="field-unit" data-i18n="units.ms">ms</span>
+                  </div>
+                </label>
+                <label class="field">
+                  <span class="field-label" data-i18n="settings.trayRecovery">Tray recovery</span>
+                  <div class="field-control">
+                    <input id="set-tray-recovery" type="number" min="5" max="600" step="5" />
+                    <span class="field-unit" data-i18n="units.sec">sec</span>
+                  </div>
+                </label>
+                <label class="field">
+                  <span class="field-label-wrap">
+                    <span class="field-label" data-i18n="settings.fullScanTimeout">Full scan item timeout</span>
+                    <span class="field-help" data-i18n="settings.fullScanTimeoutHint">Maximum wait for each module during a full health check</span>
+                  </span>
+                  <div class="field-control">
+                    <input id="set-full-scan-timeout" type="number" min="10" max="120" step="5" />
+                    <span class="field-unit" data-i18n="units.sec">sec</span>
+                  </div>
+                </label>
+                <label class="field">
+                  <span class="field-label-wrap">
+                    <span class="field-label" data-i18n="settings.systemQueryTimeout">Windows query timeout</span>
+                    <span class="field-help" data-i18n="settings.systemQueryTimeoutHint">Used by network, audio, USB, device, and service scans</span>
+                  </span>
+                  <div class="field-control">
+                    <input id="set-system-query-timeout" type="number" min="5" max="120" step="5" />
+                    <span class="field-unit" data-i18n="units.sec">sec</span>
+                  </div>
+                </label>
+                <label class="field">
+                  <span class="field-label-wrap">
+                    <span class="field-label" data-i18n="settings.networkTestTimeout">Network test timeout</span>
+                    <span class="field-help" data-i18n="settings.networkTestTimeoutHint">Maximum wait for connection and download speed tests</span>
+                  </span>
+                  <div class="field-control">
+                    <input id="set-network-test-timeout" type="number" min="10" max="120" step="5" />
+                    <span class="field-unit" data-i18n="units.sec">sec</span>
+                  </div>
+                </label>
+                <label class="field">
+                  <span class="field-label-wrap">
+                    <span class="field-label" data-i18n="settings.bluetoothPoll">Bluetooth poll</span>
+                    <span class="field-help" data-i18n="settings.bluetoothPollHint">Background interval for checking adapter and connection changes</span>
+                  </span>
+                  <div class="field-control">
+                    <input id="set-bluetooth-poll" type="number" min="15" max="300" step="15" />
+                    <span class="field-unit" data-i18n="units.sec">sec</span>
+                  </div>
+                </label>
+                <label class="field">
+                  <span class="field-label-wrap">
+                    <span class="field-label" data-i18n="settings.bsodDebuggerTimeout">BSOD analysis timeout</span>
+                    <span class="field-help" data-i18n="settings.bsodDebuggerTimeoutHint">Maximum time allowed for WinDbg to analyze one dump</span>
+                  </span>
+                  <div class="field-control">
+                    <input id="set-bsod-debugger-timeout" type="number" min="30" max="300" step="15" />
+                    <span class="field-unit" data-i18n="units.sec">sec</span>
+                  </div>
+                </label>
+                </div>
+              </section>
+
+              <section class="settings-group card advanced-only">
+                <h2 class="settings-group-title" data-i18n="settings.groupData">History</h2>
+                <div class="settings-group-body">
+                <label class="field">
+                  <span class="field-label" data-i18n="settings.historyMax">History</span>
+                  <div class="field-control">
+                    <input id="set-history-max" type="number" min="50" max="2000" step="50" />
+                    <span class="field-unit" data-i18n="units.count">items</span>
+                  </div>
+                </label>
+                <label class="field">
+                  <span class="field-label" data-i18n="settings.timelineMax">Timeline</span>
+                  <div class="field-control">
+                    <input id="set-timeline-max" type="number" min="10" max="500" step="10" />
+                    <span class="field-unit" data-i18n="units.count">items</span>
+                  </div>
+                </label>
+                </div>
+              </section>
+
             </form>
           </section>
         </div>

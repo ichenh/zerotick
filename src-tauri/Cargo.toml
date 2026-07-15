@@ -1,6 +1,6 @@
 [package]
 name = "zerotick"
-version = "0.1.4"
+version = "0.2.0"
 description = "ZeroTick — Windows 系统故障诊断与实时追踪桌面软件"
 authors = ["ZeroTick Contributors"]
 license = "MIT"
@@ -33,6 +33,7 @@ windows = { version = "0.62", features = [
     "Win32_Security",
     "Win32_Graphics_Gdi",
     "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Shell",
     "Win32_Devices_DeviceAndDriverInstallation",
     "Win32_System_Console",
     "Win32_System_Com",
@@ -46,7 +47,16 @@ windows = { version = "0.62", features = [
     "Win32_System_SystemServices",
     "Win32_System_Diagnostics_ToolHelp",
     "Win32_System_Threading",
+    "Win32_System_IO",
+    "Win32_System_Ioctl",
+    "Win32_UI_Shell",
+    "Win32_UI_Shell_PropertiesSystem",
+    "Win32_Globalization",
+    "Win32_Media_Audio",
+    "Win32_Media_Audio_Endpoints",
     "Win32_Storage_FileSystem",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Variant",
 ] }
 
 # 异步任务调度
@@ -60,6 +70,7 @@ tokio = { version = "1", features = [
 
 chrono = { version = "0.4", features = ["clock", "std", "serde"] }
 wmi = "0.14"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls-native-roots"] }
 
 # 后端日志（文件 + stderr，不依赖前端）
 owo-colors = "4"

@@ -22,8 +22,22 @@ pub struct AppSettings {
     pub native_notifications: bool,
     /// 登录 Windows 时自动启动
     pub launch_at_startup: bool,
+    /// 关闭主窗口时驻留托盘（false = 完全退出）
+    pub close_to_tray: bool,
+    /// 启动时请求管理员权限（UAC 提升）
+    pub run_as_admin: bool,
+    /// 显示设备实例、服务状态和错误码等底层信息
+    pub advanced_display: bool,
     /// 蓝牙 WMI 轮询间隔（秒），空闲时降低 CPU 占用
     pub bluetooth_poll_secs: u64,
+    /// 全面体检中每个面板允许等待的时间（秒）
+    pub full_scan_timeout_secs: u64,
+    /// PowerShell / WMI 系统查询允许等待的时间（秒）
+    pub system_query_timeout_secs: u64,
+    /// 网络测速整体超时（秒）
+    pub network_test_timeout_secs: u64,
+    /// WinDbg / DbgEng 单个蓝屏转储分析超时（秒）
+    pub bsod_debugger_timeout_secs: u64,
     /// 界面语言（BCP 47，如 zh-CN、en）
     pub locale: String,
 }
@@ -37,7 +51,14 @@ impl Default for AppSettings {
             timeline_display_max: 80,
             native_notifications: true,
             launch_at_startup: false,
+            close_to_tray: true,
+            run_as_admin: false,
+            advanced_display: false,
             bluetooth_poll_secs: 60,
+            full_scan_timeout_secs: 25,
+            system_query_timeout_secs: 20,
+            network_test_timeout_secs: 20,
+            bsod_debugger_timeout_secs: 90,
             locale: "zh-CN".into(),
         }
     }
@@ -59,6 +80,18 @@ impl AppSettings {
         }
         if !(15..=300).contains(&self.bluetooth_poll_secs) {
             return Err("蓝牙轮询间隔须在 15–300 秒之间".into());
+        }
+        if !(10..=120).contains(&self.full_scan_timeout_secs) {
+            return Err("全面体检单项超时须在 10–120 秒之间".into());
+        }
+        if !(5..=120).contains(&self.system_query_timeout_secs) {
+            return Err("Windows 系统查询超时须在 5–120 秒之间".into());
+        }
+        if !(10..=120).contains(&self.network_test_timeout_secs) {
+            return Err("网络测速超时须在 10–120 秒之间".into());
+        }
+        if !(30..=300).contains(&self.bsod_debugger_timeout_secs) {
+            return Err("蓝屏调试分析超时须在 30–300 秒之间".into());
         }
         if !crate::i18n::is_supported(&self.locale) {
             return Err(format!("不支持的语言: {}", self.locale));
@@ -115,8 +148,8 @@ fn load_from_file(path: &PathBuf) -> Result<AppSettings, String> {
 }
 
 fn persist(path: &PathBuf, settings: &AppSettings) -> Result<(), String> {
-    let json = serde_json::to_string_pretty(settings)
-        .map_err(|e| format!("序列化设置失败: {e}"))?;
+    let json =
+        serde_json::to_string_pretty(settings).map_err(|e| format!("序列化设置失败: {e}"))?;
     fs::write(path, json).map_err(|e| format!("写入设置失败: {e}"))
 }
 
@@ -131,8 +164,20 @@ mod tests {
 
     #[test]
     fn rejects_invalid_threshold() {
-        let mut s = AppSettings::default();
-        s.transient_threshold_ms = 50;
+        let s = AppSettings {
+            transient_threshold_ms: 50,
+            ..AppSettings::default()
+        };
         assert!(s.validate().is_err());
+    }
+
+    #[test]
+    fn older_settings_receive_new_scan_defaults() {
+        let settings: AppSettings = serde_json::from_str(r#"{"locale":"zh-CN"}"#).unwrap();
+        assert_eq!(settings.full_scan_timeout_secs, 25);
+        assert_eq!(settings.system_query_timeout_secs, 20);
+        assert_eq!(settings.network_test_timeout_secs, 20);
+        assert_eq!(settings.bsod_debugger_timeout_secs, 90);
+        settings.validate().unwrap();
     }
 }

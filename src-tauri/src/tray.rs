@@ -110,6 +110,11 @@ fn tint_icon(base: &Image<'static>, r: f32, g: f32, b: f32) -> Image<'static> {
     Image::new_owned(rgba, base.width(), base.height())
 }
 
+/// 向前端同步当前托盘监控状态（启动时调用，不改变图标）
+pub fn sync_frontend_status(app: &AppHandle) {
+    emit_status(app, TrayLevel::Normal, "normal");
+}
+
 fn emit_status(app: &AppHandle, level: TrayLevel, reason_id: &str) {
     let _ = app.emit(
         "tray-status",

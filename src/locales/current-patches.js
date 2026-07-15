@@ -1,0 +1,2615 @@
+// Generated from the current English UI copy, with reviewed terminology corrections.
+export const currentLocalePatches = {
+  "zh-TW": {
+    "nav": {
+      "network": "網絡",
+      "audio": "音頻",
+      "usb": "USB 存儲",
+      "bluetooth": "Bluetooth",
+      "devices": "設備和驅動程式",
+      "bsod": "BSOD",
+      "repair": "維修"
+    },
+    "pages": {
+      "network": {
+        "title": "網絡",
+        "desc": "檢查網路存取、速度、DNS、VPN 和網路服務問題"
+      },
+      "audio": {
+        "title": "音頻",
+        "desc": "管理揚聲器和麥克風，並檢查常見聲音問題"
+      },
+      "usb": {
+        "title": "USB 存儲",
+        "desc": "偵測、解鎖、檢查應用程式使用情況並安全地彈出可移動存儲"
+      },
+      "bluetooth": {
+        "title": "Bluetooth",
+        "desc": "檢查缺失Bluetooth、連線失敗、服務問題"
+      },
+      "devices": {
+        "title": "設備和驅動程式",
+        "desc": "尋找遺失、停用或有驅動程式問題的常見設備"
+      },
+      "bsod": {
+        "title": "BSOD 蹤跡",
+        "desc": "查看藍色畫面記錄，解釋可能的原因，並建議後續步驟"
+      },
+      "repair": {
+        "title": "一鍵修復",
+        "desc": "恢復不健康的Windows服務並檢查USB省電問題"
+      }
+    },
+    "toolkit": {
+      "scan": "檢查",
+      "repair": "維修",
+      "ok": "健康",
+      "warn": "發現問題",
+      "unknown": "未知",
+      "empty": "無數據",
+      "loading": "工作中…",
+      "technicalDetails": "高級信息",
+      "recommendedActions": "依序嘗試這些步驟",
+      "verdict": {
+        "ok": "健康",
+        "warn": "需要注意",
+        "crit": "需要採取行動"
+      },
+      "network": {
+        "hint": "檢查適配器、路由器路徑、DNS、關鍵網路服務",
+        "idle": "點選檢查查看網路狀態",
+        "speedTest": "速度測試",
+        "flushDns": "齊平 DNS",
+        "gateway": "預設網關",
+        "adapters": "有源適配器",
+        "reachable": "可達",
+        "unreachable": "無法到達",
+        "servicesTitle": "網路服務",
+        "speedTesting": "測試速度...",
+        "speedDone": "速度測試完成",
+        "speedMbps": "下載速度",
+        "speedBytes": "已下載",
+        "speedDuration": "持續時間",
+        "vpnTitle": "VPN / 代理",
+        "vpnStatus": "狀態",
+        "vpnActive": "已連接",
+        "proxyActive": "偵測到系統代理",
+        "vpnInactive": "未偵測到",
+        "vpnConnections": "系統VPN",
+        "vpnAdapters": "虛擬適配器",
+        "vpnActiveHint": "流量可能會經過 VPN 隧道或代理；速度和閘道結果可能無法反映直接寬頻連線。",
+        "proxy": "代理模式",
+        "proxyAddress": "代理配置",
+        "proxyProvider": "代理申請",
+        "proxyProviderUnknown": "未找到偵聽此代理連接埠的本機應用程式。它可能是遠端代理、PAC 腳本或已退出的應用程式留下的配置。",
+        "proxySource": {
+          "manual": "Windows 手動代理",
+          "pac": "PAC 自動配置",
+          "environment": "環境變數"
+        },
+        "proxyEvidence": {
+          "listener": "監聽代理端口",
+          "related_process": "可能相關；港口關聯未確認"
+        },
+        "proxyMode": {
+          "manual": "手動系統代理",
+          "pac": "自動設定腳本(PAC)",
+          "environment": "代理環境變數",
+          "combined": "多個代理配置"
+        },
+        "speedError": {
+          "curl_missing": "Windows curl.exe 不可用，因此安全速度測試無法運作。",
+          "launch_failed": "速度測試過程無法啟動。",
+          "proxy_dns": "配置的代理位址無法解析。檢查 VPN 或代理程式配置。",
+          "dns": "無法解析速度測試伺服器名稱。檢查DNS和VPN連接。",
+          "connect": "無法連接到速度測試伺服器。 VPN、代理程式或防火牆可能會阻止它。",
+          "timeout": "速度測試逾時。檢查VPN穩定性或暫時切換路由重試。",
+          "tls": "安全連線憑證或 TLS 驗證失敗。檢查VPN HTTPS檢查和系統時鐘。",
+          "redirect": "速度測試伺服器回傳了太多重定向。檢查代理或強制門戶。",
+          "transfer": "傳輸過程中連線中斷。檢查 VPN 穩定性並重試。",
+          "server": "速度測試伺服器拒絕了請求。稍後重試或切換 VPN 路由。",
+          "empty": "伺服器未傳回測試資料。",
+          "unknown": "速度測試失敗。檢查VPN、代理程式、防火牆和網路連線。"
+        },
+        "guide": {
+          "okTitle": "基本網路路徑健康",
+          "okSummary": "Windows 找到一個活動適配器，且未發現核心服務或預設閘道有明顯問題。",
+          "noAdapterTitle": "Windows 找不到可用的網路介面卡",
+          "noAdapterSummary": "這通常不是密碼問題。適配器可能已停用，其驅動程式可能已發生故障，或無線模組可能已消失。",
+          "noAdapterStep1": "開啟裝置和驅動程式並檢查網路設備狀態。",
+          "noAdapterStep2": "掃描硬體更改，以便 Windows 可以重新發現適配器。",
+          "noAdapterStep3": "如果仍然遺失，請完全關閉並檢查飛航模式和任何無線開關。",
+          "gatewayTitle": "適配器處於活動狀態，但路由器無法存取",
+          "gatewaySummary": "可能的原因是 Wi-Fi 訊號、佈線、路由器或網路登錄，而不是公共 DNS。",
+          "gatewayStep1": "斷開並重新連接 Wi-Fi，或重新拔插網路線。",
+          "gatewayStep2": "檢查其他設備是否可以使用相同網路。",
+          "gatewayStep3": "按一下修復恢復網路服務，然後再次掃描。",
+          "serviceTitle": "Windows 網路服務不健康",
+          "serviceSummary": "適配器存在，但位址、DNS 或網路感知服務無法正常運作。",
+          "serviceStep1": "按一下「修復」即可恢復相關服務。",
+          "serviceStep2": "如果重新啟動後仍然存在，請暫時退出第三方VPN或安全軟體並重試。"
+        }
+      },
+      "audio": {
+        "hint": "檢查揚聲器、耳機、麥克風和 Windows 音訊服務",
+        "idle": "點選掃描列出音訊設備",
+        "outputTitle": "輸出",
+        "inputTitle": "輸入",
+        "devicesTitle": "設備",
+        "noDevices": "未找到音訊設備",
+        "noOutputDevices": "未找到輸出設備",
+        "noInputDevices": "未找到輸入設備",
+        "default": "預設",
+        "setDefault": "設定預設值",
+        "volume": "體積",
+        "mute": "靜音",
+        "unmute": "取消靜音",
+        "volumeUnavailable": "端點音量控制對此設備不可用",
+        "advanced": "高階音訊功能",
+        "allowExclusive": "允許應用程式獨佔控制",
+        "allowExclusiveHint": "專業音訊應用程式可以繞過共享混音器，暫時阻止其他播放。",
+        "exclusivePriority": "給予獨佔模式應用程式優先權",
+        "exclusivePriorityHint": "僅適用於獨佔控制；請求可以搶佔活動的共享流。",
+        "modeAdminHint": "這是 Windows 設備策略，需要管理員存取權；ZeroTick 驗證每次變更後的結果。",
+        "modeAdminRequired": "更改獨佔模式策略需要管理員存取權限。在“設定”中啟用“以管理員身份執行”，重新啟動並重試。",
+        "modeAccessDenied": "Windows 拒絕存取此裝置的獨佔模式策略。確認ZeroTick是以管理員身份運作；如果仍然失敗，驅動程式可能只允許更改 Windows 更多聲音設定。",
+        "modeEndpointMissing": "此音訊設備已斷開連接或已更改。再次掃描，然後重試。",
+        "modeVerifyFailed": "Windows 接受了操作，但裝置驅動程式沒有保留新的獨佔模式策略。檢查Windows更多聲音設定中的設備。",
+        "modeInterfaceUnavailable": "Windows音訊設備介面目前不可用。確認 Windows 音訊服務正在運行，然後重試。",
+        "modeChangeFailed": "Windows 音訊介面或裝置驅動程式不接受此變更。重試，或如果繼續，請使用 Windows 更多聲音設定。",
+        "category": {
+          "speakers": "揚聲器",
+          "headphones": "耳機",
+          "digital": "數位輸出",
+          "microphone": "麥克風",
+          "headset": "耳機",
+          "line": "線",
+          "other": "其他"
+        },
+        "servicesTitle": "音訊服務",
+        "guide": {
+          "okTitle": "音訊設備可用",
+          "okSummary": "Windows 音訊服務運作正常，並且已列舉輸入/輸出端點。",
+          "serviceTitle": "音訊服務運作不正常",
+          "serviceSummary": "硬體可能仍然存在，但 Windows 目前無法建立播放或錄製串流。",
+          "serviceStep1": "按一下「修復」以恢復 Windows 音訊服務。",
+          "serviceStep2": "修復後重新開啟正在播放或錄音的應用程式。",
+          "noDeviceTitle": "Windows 找不到任何音訊端點",
+          "noDeviceSummary": "當揚聲器和麥克風一起消失時，通常的原因是音訊驅動程式、裝置已停用或擴充座斷開連接。",
+          "noDeviceStep1": "檢查耳機、顯示器或底座連接。",
+          "noDeviceStep2": "開啟裝置和驅動程式並檢查相關錯誤。",
+          "noDeviceStep3": "如果修復無法恢復它們，請安裝 PC 製造商提供的音訊驅動程式。"
+        }
+      },
+      "usb": {
+        "hint": "安全彈出 USB 快閃磁碟機和外部磁碟，無需強制進程關閉",
+        "idle": "點選檢查查看USB儲存狀態",
+        "drivesTitle": "連接的實體儲存設備",
+        "noDrives": "未找到已安裝的 USB 儲存磁碟區",
+        "notDetectedByWindows": "Windows 未偵測到 USB 儲存硬體。重新連接，嘗試另一個 USB 端口，或按一下修復以重新初始化即插即用服務。",
+        "noMountedVolume": "USB 儲存硬體已偵測到，但沒有可用的磁碟機號碼。檢查磁碟管理中是否有離線、未分割或未指派的磁碟。",
+        "capacitySummary": "{label} ({letter}) · {filesystem} · 二手 {used} GB / {total} GB 總計 · {free} GB 可用",
+        "hardwareTitle": "USB Windows 偵測到的儲存硬體",
+        "scanLock": "檢查設備使用情況",
+        "unlock": "解鎖設備",
+        "unlockOpened": "打開{letter}：。依照Windows提示解鎖，然後再掃描。",
+        "eject": "安全彈出",
+        "ejectDevice": "彈出整個設備",
+        "format": "格式{letter}：",
+        "formatTitle": "格式化可移動磁碟區{letter}：",
+        "formatIntro": "格式化會刪除該磁碟區上的每個檔案。驗證磁碟機號碼並確保重要檔案已備份。",
+        "formatTarget": "目標：{letter}：·{label}·{size} GB·目前為{filesystem}",
+        "formatMode": "格式類型",
+        "quickFormat": "快速格式化",
+        "quickFormatHint": "刪除檔案系統索引，通常速度很快。舊資料在被覆蓋之前可能仍然可恢復。",
+        "fullFormat": "完整格式",
+        "fullFormatHint": "檢查每個扇區並覆蓋現有資料。可能需要幾個小時。請勿拔出磁碟、休眠 PC 或關閉 ZeroTick。",
+        "fullFormatDanger": "高風險操作：完整格式寫入整個磁碟區，使復原極為困難。較大的磁碟需要更長的時間。",
+        "filesystem": "檔案系統",
+        "filesystemHint": {
+          "NTFS": "最適合 Windows 使用，具有大檔案、權限和日誌功能。",
+          "exFAT": "最適合在 Windows、macOS 和普通設備之間交換大型檔案。",
+          "FAT32": "與舊裝置相容，但單一檔案限制為 4 GB。"
+        },
+        "volumeLabel": "卷標",
+        "volumeLabelPlaceholder": "例如：備份磁碟機",
+        "backupConfirmed": "我驗證了磁碟機代號並備份了每個重要文件",
+        "typeDriveLetter": "鍵入 {letter} 以確認完整格式",
+        "typeDriveLetterPlaceholder": "類型磁碟機代號 {letter}",
+        "cancelFormat": "取消",
+        "confirmQuickFormat": "確認快速格式化",
+        "confirmFullFormat": "確認完整格式",
+        "formattingQuick": "快速格式化{letter}:.請勿拔掉裝置插頭...",
+        "formattingFull": "完全格式化{letter}:.這可能需要幾個小時；請勿拔掉設備插頭...",
+        "formatComplete": "{letter}：已格式化",
+        "formatFailed": "格式化未完成。音量可能不變。關閉使用它的應用程式並以管理員身份重試。",
+        "formatNotUsb": "ZeroTick 停止格式化，因為此磁碟機代號不再屬於 USB 儲存體。再次掃描。",
+        "formatSystemBlocked": "ZeroTick 從不格式化系統或啟動磁碟區。",
+        "formatVolumeMissing": "磁碟機號碼已變更或裝置已中斷連線。再次掃描並重試。",
+        "formatInvalidLabel": "卷標太長或包含不支援的字元。",
+        "ejecting": "安全彈出…",
+        "noRelatedProcesses": "未找到可能使用此裝置的應用程式。您可以繼續彈出整個設備； Windows 將進行最終檢查。",
+        "relatedProcessesHint": "這些應用程式可能正在使用該裝置。排除ZeroTick自身的檢查過程；Windows仍在彈出時做出最終決定。",
+        "requestClose": "安全關閉應用程式",
+        "manualOnly": "手動關閉",
+        "usageCheckFailed": "使用情形檢查未完成。重試，或使用安全彈出來獲得 Windows 的最終決定。",
+        "cardReader": {
+          "slot": "插槽 {n}",
+          "emptySlot": "未插入卡",
+          "emptySlotDetail": "{letter} · 讀卡機插槽正常，目前未插入記憶卡",
+          "noLetter": "無磁碟符",
+          "slotIssueDetail": "Windows 偵測到插槽或卡，但無法讀取。如果重新插入不起作用，請檢查接觸不良、卡片損壞或不支援的格式。",
+          "ready": "已連接 · {n} 卡就緒",
+          "partiallyReady": "部分可用：{ready} 卡已就緒，{issues} 插槽需要注意",
+          "needsAttention": "偵測到記憶卡但需要注意",
+          "empty": "讀卡機已連接·未插入卡",
+          "ejectAll": "安全彈出所有",
+          "ejectingAll": "安全彈出所有記憶卡...",
+          "ejectAllComplete": "該裝置中的每張記憶卡均已安全彈出",
+          "ejectAllPartial": "某些記憶卡無法彈出。檢查受影響的插槽以了解詳細資訊。"
+        },
+        "closeResult": {
+          "requested": "應用程式被要求正常關閉。在彈出設備之前確認任何儲存提示。",
+          "protected": "這是一個關鍵的Windows過程。 ZeroTick不會終止它；在拔掉插頭之前儲存您的工作並重新啟動 Windows。",
+          "no_window": "此程序沒有可以安全關閉的視窗。按名稱退出； ZeroTick 不會強制終止它。",
+          "not_found": "應用程式已退出。再次檢查或嘗試安全彈出。"
+        },
+        "access": {
+          "ready": "已解鎖並準備就緒",
+          "mounted": "已安裝並準備就緒",
+          "locked": "被偵測到；需解鎖",
+          "lockedHint": "Windows 偵測到設備，但其內容仍處於加密或鎖定狀態。在解鎖之前無法檢查文件使用情況。",
+          "offline": "未安裝（Windows 標記為離線）",
+          "unpartitioned": "未分區",
+          "no_drive_letter": "無磁碟符",
+          "no_media": "未偵測到媒體",
+          "unavailable": "暫時不可用",
+          "unavailableHint": "Windows 已指派磁碟機號，但尚無法讀取內容。設備可能需要解鎖、加密或有檔案系統問題。",
+          "unknown": "偵測到；掛載狀態未知"
+        },
+        "ejectBusy": "此磁碟區仍在使用中。停止複製、同步、備份、下載和媒體播放；關閉該磁碟機的檔案和檔案資源管理器窗口，然後重試安全彈出。",
+        "ejectPermission": "Windows 拒絕磁碟區或裝置操作。以管理員身份執行 ZeroTick，然後重試安全彈出。",
+        "ejectVetoed": "Windows 阻止安全刪除：{reason} ({name})。解決該問題，然後重試安全性彈出。",
+        "ejectFailed": "安全移除停止在{stage}階段。該設備未被強行彈出。",
+        "ejectBlockedShort": "設備未彈出。查看設備下方顯示的原因。",
+        "stage": {
+          "flush": "快取刷新",
+          "lock": "音量鎖",
+          "dismount": "批量卸載",
+          "pnp": "Windows 設備移除"
+        },
+        "veto": {
+          "pending_close": "手柄仍在關閉",
+          "windows_app": "應用程式正在使用該設備",
+          "windows_service": "Windows 服務正在使用該設備",
+          "outstanding_open": "檔案或磁碟區句柄保持開啟狀態",
+          "device": "另一個設備依賴它",
+          "driver": "驅動程式阻止刪除",
+          "illegal_request": "設備拒絕了刪除請求",
+          "insufficient_power": "設備電量不足",
+          "non_disableable": "該裝置無法安全停用",
+          "legacy_device": "舊設備阻止刪除",
+          "legacy_driver": "舊驅動程式阻止刪除",
+          "insufficient_rights": "需要管理員權限",
+          "unknown": "Windows並沒有提供具體的否決理由",
+          "unknownSource": "來源不明"
+        },
+        "servicesTitle": "即插即用服務",
+        "guide": {
+          "readyTitle": "USB 儲存就緒",
+          "readySummary": "Windows 找到硬體和磁碟區。使用 在拔下插頭之前檢查設備使用情況並安全彈出。",
+          "emptyTitle": "未連接 USB 存儲",
+          "emptySummary": "這是正常狀態。插入閃存驅動器或外部磁碟並再次掃描。",
+          "driverTitle": "USB儲存裝置有驅動程式問題",
+          "driverSummary": "Windows 可以看到硬件，但其當前驅動程式或裝置狀態阻止正常安裝。",
+          "driverStep1": "嘗試另一個 USB 連接埠並避免使用電源不足的集線器。",
+          "driverStep2": "按一下“修復”，然後掃描“裝置和驅動程式”中的硬體變更。",
+          "lockedTitle": "設備已連接但未解鎖",
+          "lockedSummary": "硬體和磁碟機號碼已存在，但 Windows 尚無法讀取檔案。這不是缺少驅動程序，並且不應格式化磁碟。",
+          "lockedStep1": "按一下「解鎖裝置」並依照 Windows 提示或裝置畫面進行操作。",
+          "lockedStep2": "解鎖後，請再次掃描，然後再檢查相關應用程式或彈出。",
+          "cardIssueTitle": "已連接讀卡器，但無法讀取記憶卡",
+          "cardIssueSummary": "空插槽明確標示為未插入卡片。此警告僅在偵測到媒體但無法讀取時使用，通常是由於接觸不良、卡片損壞、加密或不支援的檔案系統。",
+          "cardIssueStep1": "安全彈出其他正常的卡，然後重新插入受影響的卡。",
+          "cardIssueStep2": "嘗試另一個插槽或讀卡器，看看問題是否出在卡片或插槽。",
+          "cardIssueStep3": "請勿初始化或格式化包含重要資料的卡片。進階模式顯示磁碟編號和原始狀態。",
+          "noVolumeTitle": "找到硬件，但無法存取其內容",
+          "noVolumeSummary": "設備可能需要解鎖，或者可能處於離線狀態、未分區、缺少磁碟機號碼或使用不可讀取的檔案系統。",
+          "noVolumeStep1": "請勿格式化包含重要資料的磁碟。",
+          "noVolumeStep2": "開啟 Windows 磁碟管理並檢查其狀態。",
+          "noVolumeStep3": "如果顯示RAW或未初始化，請在更改分區之前恢復資料。"
+        }
+      },
+      "bluetooth": {
+        "hint": "設備狀態和重新連接/刪除操作在右側保持可見",
+        "idle": "點選掃描列出 Bluetooth 設備",
+        "connected": "已連接",
+        "disconnected": "未連接",
+        "devicesTitle": "配對設備",
+        "noDevices": "未找到 Bluetooth 週邊",
+        "radio": "Bluetooth 轉接器",
+        "radioCount": "{n} 設備",
+        "issues": "問題",
+        "noIssues": "沒有問題",
+        "reconnect": "重新連接",
+        "remove": "刪除",
+        "unknownDevice": "Bluetooth 裝置",
+        "removeConfirmTitle": "移除「{name}」？",
+        "removeConfirmSummary": "ZeroTick 將從 Windows 移除此裝置執行個體，而不只是中斷目前連線。",
+        "removeConfirmRisk": "目前的連線與配對資訊可能會遺失，之後可能需要在 Windows 設定中重新配對。",
+        "removeConfirmHint": "僅建議在重新連線與 Bluetooth 修復均無效時使用。",
+        "removeCancel": "取消",
+        "removeConfirm": "移除裝置",
+        "issue": {
+          "driver_error": "{name}的驅動程式無法正常運作",
+          "no_radio": "未找到 {adapter}",
+          "bthserv_not_running": "{service} 未運行",
+          "bthserv_status_unknown": "無法讀取{service}的狀態",
+          "bthserv_disabled": "{service} 已停用",
+          "bthserv_missing": "{service} 找不到",
+          "unknown": "Bluetooth工作不正常，但Windows沒有提供更具體的原因"
+        },
+        "guide": {
+          "okTitle": "Bluetooth模組正常",
+          "okSummary": "Windows 找到了 Bluetooth 轉接器，並且沒有明顯的支援服務問題。",
+          "noRadioTitle": "Bluetooth模組從Windows中消失",
+          "noRadioSummary": "這不是配對問題。驅動程式崩潰、模組斷電或飛行模式的可能性更大。",
+          "noRadioStep1": "開啟裝置和驅動程式並掃描硬體變更。",
+          "noRadioStep2": "關閉飛航模式，然後完全關閉 30 秒並開啟。",
+          "noRadioStep3": "如果仍然遺失，請安裝 PC 製造商提供的 Bluetooth 和晶片組驅動程式。",
+          "problemTitle": "Bluetooth 驅動程式或支援服務有問題",
+          "problemSummary": "Windows 仍然可以看到適配器，但發現、配對或重新連接可能會失敗。",
+          "problemStep1": "按一下修復以恢復 Bluetooth 支援服務。",
+          "problemStep2": "如果一台裝置仍然失敗，請將其移除並在 Windows 中重新配對。"
+        }
+      },
+      "devices": {
+        "idle": "檢查Windows是否辨識常用設備，驅動是否報錯",
+        "rescan": "掃描硬體更改",
+        "rescanDone": "Windows 完成硬體掃描，ZeroTick 再次檢查結果。",
+        "rescanAdmin": "Windows 拒絕硬體掃描。以管理員身份執行 ZeroTick 並重試。",
+        "rescanFailed": "硬體掃描未完成。啟用原始結果的高級詳細資訊。",
+        "problemsTitle": "需要注意的設備",
+        "noProblems": "未發現裝置管理員錯誤。",
+        "class": {
+          "network": "網路適配器",
+          "display": "顯示設備",
+          "camera": "相機",
+          "bluetooth": "Bluetooth",
+          "usb": "USB 控制器",
+          "other": "其他設備"
+        },
+        "reason": {
+          "cannot_start": "設備無法啟動。通常需要重新啟動驅動程式、完整的電源循環或製造商驅動程式更新。",
+          "disabled": "設備已停用。在裝置管理員中確認並啟用它。",
+          "driver_missing": "未安裝可用的驅動程式。首選 PC 或硬體製造商提供的官方驅動程式。",
+          "driver_load_failed": "Windows 無法載入該裝置所需的驅動程式。",
+          "device_reported_problem": "設備報告故障。如果重新連接或完整的電源循環沒有幫助，則驅動程式或硬體可能有故障。",
+          "other": "Windows 回報設備問題。啟用進階詳細資訊以查看裝置管理員代碼。"
+        },
+        "guide": {
+          "okTitle": "常用設備和驅動程式看起來很健康",
+          "okSummary": "未發現裝置管理員錯誤。零相機或 Bluetooth 計數可能僅僅意味著該 PC 沒有此類硬體。",
+          "problemTitle": "Windows 發現裝置或驅動程式問題",
+          "problemSummary": "設備管理器程式碼翻譯如下；原始程式碼僅在進階模式下顯示。",
+          "problemStep1": "先掃描硬體變化，看看Windows是否恢復。",
+          "problemStep2": "如果仍然存在，請遵循裝置建議並首選 PC 製造商的驅動程式。",
+          "missingTitle": "Windows 看不到基本的硬體類別",
+          "missingSummary": "所有網路適配器或顯示設備均遺失，這可能表示驅動程式崩潰、裝置停用或模組斷開連接。",
+          "missingStep1": "掃描硬體變更以重新枚舉裝置。",
+          "missingStep2": "完全關閉並重新上電，而不是僅僅重新啟動。",
+          "missingStep3": "如果仍然遺失，請安裝 PC 製造商提供的晶片組和裝置驅動程式。"
+        }
+      },
+      "services": {
+        "issues": "問題",
+        "noIssues": "沒有問題",
+        "onDemand": "按需（空閒）",
+        "label": {
+          "audio": "Windows 音訊",
+          "audio_endpoint": "音訊端點產生器",
+          "bluetooth": "Bluetooth 支持",
+          "plugplay": "即插即用",
+          "dns": "DNS 用戶端",
+          "dhcp": "DHCP客戶端",
+          "network": "網路位置感知"
+        },
+        "issue": {
+          "not_running": "{name} 未運作（狀態={state}）",
+          "disabled": "{name} 已停用",
+          "missing": "{name} 找不到 ({service})",
+          "status_unknown": "無法讀取 {name} 狀態"
+        }
+      },
+      "repairResult": {
+        "restarted": "服務已恢復",
+        "noneRestarted": "無需服務恢復",
+        "failed": "不合格項目",
+        "adminBanner": "需要管理員：右鍵點選 ZeroTick → 以管理員身分執行",
+        "rechecked": "修復完成並自動再次檢查目前狀態。",
+        "needsAttention": "修復已運行，但某些項目仍需要手動注意。原始詳細資訊在高級模式下可用。"
+      }
+    },
+    "status": {
+      "connecting": "正在連接…"
+    },
+    "tray": {
+      "reason": {
+        "normal": "監控正常",
+        "transient_hw": "瞬間斷開",
+        "device_reconnect": "設備已重新連接",
+        "device_arrival": "設備已連接",
+        "device_remove": "設備已斷開連接",
+        "unknown": "狀態已更改",
+        "repair_done": "修復完成",
+        "repair_admin": "需要管理員權限",
+        "repair_partial": "修復不完整",
+        "bluetooth_issue": "Bluetooth問題"
+      }
+    },
+    "overview": {
+      "fullScan": "全面檢查",
+      "fullScanning": "檢查網路、音訊、USB、Bluetooth 和裝置驅動程式...",
+      "healthTitle": "電腦健康概述",
+      "checkFailed": "此檢查未完成；開啟對應的面板並重試",
+      "healthOverall": {
+        "ok": "未發現明顯問題",
+        "warn": "一些需要注意的事項",
+        "crit": "問題需要採取行動"
+      },
+      "health": {
+        "ok": "當前狀態健康",
+        "networkMissing": "Windows 發現沒有活動的網路介面卡",
+        "networkIssue": "網路路徑或服務有問題",
+        "audioMissing": "未找到音訊輸入或輸出",
+        "audioIssue": "音訊服務有問題",
+        "usbIssue": "USB儲存驅動程式有問題",
+        "bluetoothMissing": "Windows找不到Bluetooth模組",
+        "bluetoothIssue": "Bluetooth 驅動程式或服務有問題",
+        "devicesMissing": "缺少重要的硬體類",
+        "devicesIssue": "{n} 發現設備錯誤"
+      }
+    },
+    "diag": {
+      "bluetooth": {
+        "issue": {
+          "driver_error": "{name}的驅動程式無法正常運作",
+          "no_radio": "未找到 {adapter}",
+          "bthserv_not_running": "{service} 未運行",
+          "bthserv_status_unknown": "無法讀取{service}的狀態",
+          "bthserv_disabled": "{service} 已停用",
+          "bthserv_missing": "{service} 找不到"
+        }
+      },
+      "services": {
+        "title": "系統服務",
+        "scan": "掃描",
+        "desc": "檢查音訊、Bluetooth、即插即用和網路相關的 Windows 服務",
+        "idle": "點選掃描查看服務狀態",
+        "loading": "掃描中…",
+        "ok": "服務健康",
+        "warn": "發現問題",
+        "unknown": "未知",
+        "list": "服務狀態",
+        "issues": "問題",
+        "noIssues": "沒有問題",
+        "label": {
+          "audio": "Windows 音訊",
+          "audio_endpoint": "音訊端點產生器",
+          "bluetooth": "Bluetooth 支持",
+          "plugplay": "即插即用",
+          "dns": "DNS 用戶端",
+          "dhcp": "DHCP 用戶端",
+          "network": "網路位置感知"
+        },
+        "issue": {
+          "not_running": "{name} 未運作（狀態={state}）",
+          "disabled": "{name} 已停用",
+          "missing": "{name} 找不到 ({service})",
+          "status_unknown": "無法讀取{name}狀態"
+        }
+      },
+      "bsod": {
+        "faultingModule": "故障模組證據",
+        "debugger": "調試器引擎",
+        "failureBucket": "失敗桶",
+        "stackSummary": "按鍵呼叫堆疊",
+        "dumpTime": "發生於",
+        "rootCause": "根本原因分析",
+        "errorTypeAnalysis": "錯誤類型分析",
+        "rootCauseUnknown": "轉儲不包含足以識別特定根本原因的偵錯器模組或呼叫堆疊證據。",
+        "moduleEvidenceAnalysis": "WinDbg/DbgEng 在 !analyze -v 和呼叫堆疊中辨識出模組 {module}。錯誤類型上下文：{analysis}",
+        "analysis": {
+          "irql_not_less_or_equal": "核心模式程式碼以提升的中斷等級存取無效記憶體。常見類別包括驅動程式、不穩定記憶體和超頻。",
+          "kmode_exception_not_handled": "內核模式代碼引發了未處理的異常。驅動程式、安全軟體或虛擬化衝突是常見的類別。",
+          "system_service_exception": "系統服務引發異常。損壞的驅動程式或系統檔案是常見的類別。",
+          "page_fault_in_nonpaged_area": "存取了無效的非分頁記憶體。驅動程式、記憶體或儲存故障是可能的類別。",
+          "system_thread_exception_not_handled": "系統執行緒引發了未處理的例外狀況。圖形、儲存和網路驅動程式是常見的類別。",
+          "kernel_data_inpage_error": "所需的核心資料無法讀入記憶體。儲存媒體、電纜或儲存驅動程式是常見的類別。",
+          "driver_irql_not_less_or_equal": "驅動程式以較高的中斷等級存取了無效記憶體。此停止代碼指示與驅動程式相關的錯誤類型，而不是特定驅動程式本身。",
+          "critical_process_died": "關鍵系統流程意外終止。驅動程式、損壞的系統檔案、儲存或惡意軟體都是可能的類別。",
+          "critical_structure_corruption": "關鍵核心資料已損壞。驅動程式、記憶體或儲存硬體都是可能的類別。",
+          "dpc_watchdog_violation": "延遲過程呼叫超出了其時間限制。韌體、儲存、網路或其他驅動程式停頓是常見的類別。",
+          "kernel_security_check_failure": "內核完整性檢查失敗。驅動程式越界存取或記憶體損壞都是可能的類別。",
+          "driver_power_state_failure": "設備未完成電源狀態轉換。睡眠、喚醒、USB、圖形或其他裝置驅動程式是常見類別。",
+          "unknown": "記錄了故障轉儲，但可用的停止代碼資訊不足以更精確地對錯誤進行分類。"
+        },
+        "confidence": {
+          "module": "藍色畫面記錄辨識出與崩潰相關的模組，因此可信度比較高。",
+          "code": "錯誤類型已知，但具體驅動程式或硬體原因尚未確認。",
+          "limited": "可用記錄有限，尚無法確認具體原因。"
+        },
+        "repairs": "建議的系統檢查",
+        "noFixes": "無法自動修復",
+        "runRepairs": "運作建議的系統檢查",
+        "historicalRepairHint": "這是一個歷史轉儲。這些操作檢查當前系統；他們無法證明最初的崩潰原因已解決。",
+        "adminRequired": "DISM、SFC、CHKDSK 和設備重新掃描需要管理員權限。以管理員身份執行 ZeroTick 並重試。",
+        "repairing": "正在修復…",
+        "repairingHint": "系統修復正在按順序運行。這可能需要幾分鐘；保持應用程式開啟。",
+        "noRepairResults": "未回傳修復結果",
+        "repairComplete": "BSOD 修復工作流程完成",
+        "fix": {
+          "scan_devices": "重新掃描即插即用設備並刷新故障設備狀態",
+          "check_image": "使用 DISM 修復 Windows 組件存儲",
+          "chkdsk_scan": "掃描並修復系統磁碟機上的檔案系統錯誤",
+          "sfc_verify": "使用SFC掃描並修復損壞的系統文件",
+          "review_faulting_driver": "在確認其設備和供應商後更新或回滾WinDbg識別的驅動程式"
+        }
+      },
+      "repair": {
+        "desc": "診斷相關服務，僅恢復異常項，檢查USB電源配置",
+        "idle": "健康服務不變；僅恢復已停止或待處理的服務",
+        "loading": "在後台診斷和恢復...",
+        "adminHint": "可能需要管理員權限才能恢復異常服務",
+        "repaired": "服務已恢復",
+        "noneRepaired": "無需服務恢復",
+        "healthy": "已經健康",
+        "noneHealthy": "無健康服務結果",
+        "usbConfig": "USB 電源配置",
+        "usbConfigItem": "{device} · 實例 {instance} · {count} 介面使用增強型電源管理",
+        "noUsbConfig": "未找到增強型 USB 電源管理配置",
+        "summary": {
+          "ok_clean": "診斷完成；服務正常，無 USB 電源配置需注意",
+          "ok_power_configs": "檢查完成：{n} USB 設備使用可能影響穩定性的省電設置",
+          "needs_admin": "服務無法恢復 — 以管理員身分執行 ZeroTick",
+          "usb_scan_error": "業務診斷完成，但USB設定檢查失敗",
+          "service_errors": "{n} 服務復原作業失敗",
+          "unknown": "操作完成；查看目前狀態"
+        }
+      }
+    },
+    "ports": {
+      "sort": "排序",
+      "sortPort": "按端口",
+      "sortCategory": "依類別",
+      "sortReleasable": "先發布",
+      "releaseConn": "清晰連接",
+      "message": {
+        "time_wait_releasable": "殘留連線 — 可以嘗試手動釋放（管理員）",
+        "residual_releasable": "半封閉連接—可嘗試手動釋放"
+      }
+    },
+    "settings": {
+      "bluetoothPollHint": "檢查適配器和連線變更的後台間隔",
+      "fullScanTimeout": "全掃描項目逾時",
+      "fullScanTimeoutHint": "完整運作狀況檢查期間每個模組的最長等待時間",
+      "systemQueryTimeout": "Windows 查詢逾時",
+      "systemQueryTimeoutHint": "由網路、音訊、USB、設備和服務掃描使用",
+      "networkTestTimeout": "網路測試逾時",
+      "networkTestTimeoutHint": "連接測試伺服器並下載樣本資料的最長等待時間",
+      "bsodDebuggerTimeout": "BSOD 分析逾時",
+      "bsodDebuggerTimeoutHint": "WinDbg 可用於分析一次轉儲的最長時間",
+      "closeToTray": "關閉主視窗時",
+      "closeToTrayOn": "最小化到托盤（繼續運行）",
+      "closeToTrayOff": "完全退出應用程式",
+      "runAsAdmin": "以管理員身份執行",
+      "advancedDisplay": "高級模式",
+      "advancedDisplayHint": "顯示掃描調整、裝置實例、PID、服務狀態、原始錯誤和偵錯器證據"
+    },
+    "events": {
+      "category": {
+        "usb": "USB",
+        "bluetooth": "Bluetooth",
+        "unknown": "未知"
+      },
+      "msg": {
+        "transient": "設備短暫斷開連接並在 {ms} 毫秒內恢復",
+        "reconnect": "{ms} 毫秒斷開連接後設備恢復",
+        "arrival": "已連接設備",
+        "remove": "設備已斷開連接",
+        "unknown": "設備狀態改變"
+      }
+    },
+    "toast": {
+      "saveFailed": "設定未儲存，請再試一次。",
+      "clearFailed": "歷史記錄未清除，請再試一次。",
+      "repairFailed": "修復未完成。請重試；若持續失敗，請以系統管理員身分執行 ZeroTick。",
+      "elevateFailed": "ZeroTick 無法以管理員身分重新啟動。右鍵單擊它並選擇以管理員身份運行。",
+      "exportComplete": "歷史匯出",
+      "transientSimple": "{name} 短暫斷開並已恢復",
+      "bsodSimple": "發現最近的藍色畫面記錄。開啟 BSOD 面板進行分析和後續步驟。",
+      "processEnded": "使用此連接埠結束程序",
+      "speedResult": "速度 {speed} Mbps ({ms} 毫秒)",
+      "speedResultSimple": "目前下載速度約為{speed} Mbps",
+      "dnsFlushed": "DNS 快取已刷新",
+      "repairDone": "修復完成",
+      "audioDefault": "預設音訊輸出已更新",
+      "audioInputDefault": "預設麥克風已更新",
+      "audioMode": "音訊獨佔模式更新",
+      "usbEjected": "彈出{letter}：",
+      "btReconnect": "Bluetooth 嘗試重新連接",
+      "btRemoved": "Bluetooth 設備已刪除",
+      "connReleased": "殘留連接已清除"
+    },
+    "errors": {
+      "tauriTimeout": "Tauri IPC 逾時。重試或重新啟動應用程式。",
+      "notTauri": "使用 npm run tauri dev 運行 — 不要在瀏覽器中開啟 Vite URL。",
+      "exportCancelled": "匯出已取消",
+      "operationFailed": "操作未完成。請再試一次。",
+      "detectionFailed": "檢查未完成。重試；如果仍然失敗，請啟用高級模式以查看原因。",
+      "permissionDenied": "Windows 拒絕了此操作。以管理員身份執行 ZeroTick 並重試。",
+      "timeout": "Windows 回應時間太長。請重試，或視需要重新啟動電腦。",
+      "technicalContext": "操作：{context}",
+      "rawDetail": "原始錯誤"
+    }
+  },
+  "ja": {
+    "nav": {
+      "network": "ネットワーク",
+      "audio": "オーディオ",
+      "usb": "USB ストレージ",
+      "bluetooth": "Bluetooth",
+      "devices": "デバイスとドライバー",
+      "bsod": "BSOD",
+      "repair": "修理"
+    },
+    "pages": {
+      "network": {
+        "title": "ネットワーク",
+        "desc": "インターネット アクセス、速度、DNS、VPN、およびネットワーク サービスの問題を確認します"
+      },
+      "audio": {
+        "title": "オーディオ",
+        "desc": "スピーカーとマイクを管理し、一般的な音声の問題をチェックする"
+      },
+      "usb": {
+        "title": "USB ストレージ",
+        "desc": "アプリの使用状況を検出、ロック解除、確認し、リムーバブル ストレージを安全に取り出します"
+      },
+      "bluetooth": {
+        "title": "Bluetooth",
+        "desc": "Bluetooth の欠落、接続障害、サービスの問題を確認してください"
+      },
+      "devices": {
+        "title": "デバイスとドライバー",
+        "desc": "不足している、無効になっている、またはドライバーに問題がある一般的なデバイスを検索します"
+      },
+      "bsod": {
+        "title": "BSOD トレース",
+        "desc": "ブルー スクリーンの記録を確認し、考えられる原因を説明し、次のステップを提案します"
+      },
+      "repair": {
+        "title": "ワンクリック修復",
+        "desc": "異常な Windows サービスを回復し、USB の省電力の問題を確認します"
+      }
+    },
+    "toolkit": {
+      "scan": "チェック",
+      "repair": "修理",
+      "ok": "健康",
+      "warn": "問題が見つかりました",
+      "unknown": "不明",
+      "empty": "データなし",
+      "loading": "作業中…",
+      "technicalDetails": "詳細情報",
+      "recommendedActions": "次の手順を順番に試してください",
+      "verdict": {
+        "ok": "健康",
+        "warn": "注意が必要です",
+        "crit": "アクションが必要です"
+      },
+      "network": {
+        "hint": "アダプター、ルーターのパス、DNS、および主要なネットワーク サービスを確認してください",
+        "idle": "「チェック」をクリックしてネットワークのステータスを確認します",
+        "speedTest": "速度テスト",
+        "flushDns": "DNS をフラッシュ",
+        "gateway": "デフォルト ゲートウェイ",
+        "adapters": "アクティブなアダプター",
+        "reachable": "到達可能",
+        "unreachable": "到達不能",
+        "servicesTitle": "ネットワーク サービス",
+        "speedTesting": "テスト速度…",
+        "speedDone": "速度テストが完了しました",
+        "speedMbps": "ダウンロード速度",
+        "speedBytes": "ダウンロード済み",
+        "speedDuration": "期間",
+        "vpnTitle": "VPN / プロキシ",
+        "vpnStatus": "ステータス",
+        "vpnActive": "接続されました",
+        "proxyActive": "システム プロキシが検出されました",
+        "vpnInactive": "検出されませんでした",
+        "vpnConnections": "システム VPN",
+        "vpnAdapters": "仮想アダプター",
+        "vpnActiveHint": "トラフィックは VPN トンネルまたはプロキシを通過する可能性があります。速度とゲートウェイの結果は、直接のブロードバンド接続を反映していない可能性があります。",
+        "proxy": "プロキシ モード",
+        "proxyAddress": "プロキシ構成",
+        "proxyProvider": "プロキシ アプリケーション",
+        "proxyProviderUnknown": "このプロキシ ポートでリッスンしているローカル アプリケーションが見つかりませんでした。それは、リモート プロキシ、PAC スクリプト、または終了したアプリによって残された構成である可能性があります。",
+        "proxySource": {
+          "manual": "Windows 手動プロキシ",
+          "pac": "PAC 自動構成",
+          "environment": "環境変数"
+        },
+        "proxyEvidence": {
+          "listener": "プロキシ ポートでリッスンしています",
+          "related_process": "関連している可能性があります。ポートの関連付けが確認されていません"
+        },
+        "proxyMode": {
+          "manual": "手動システム プロキシ",
+          "pac": "自動構成スクリプト (PAC)",
+          "environment": "プロキシ環境変数",
+          "combined": "複数のプロキシ構成"
+        },
+        "speedError": {
+          "curl_missing": "Windows curl.exe が利用できないため、安全な速度テストを実行できません。",
+          "launch_failed": "速度テスト プロセスを開始できませんでした。",
+          "proxy_dns": "設定されたプロキシ アドレスを解決できませんでした。 VPN またはプロキシ構成を確認してください。",
+          "dns": "速度テスト サーバー名を解決できませんでした。 DNS と VPN の接続を確認してください。",
+          "connect": "速度テスト サーバーに接続できませんでした。 VPN、プロキシ、またはファイアウォールがブロックしている可能性があります。",
+          "timeout": "速度テストがタイムアウトしました。 VPN の安定性を確認するか、一時的にルートを切り替えて再試行してください。",
+          "tls": "安全な接続が証明書または TLS 検証に失敗しました。 VPN HTTPS 検査とシステムクロックを確認してください。",
+          "redirect": "速度テスト サーバーが返したリダイレクトが多すぎます。プロキシまたはキャプティブ ポータルを確認します。",
+          "transfer": "転送中に接続が中断されました。 VPN の安定性を確認して再試行してください。",
+          "server": "速度テスト サーバーはリクエストを拒否しました。後で再試行するか、VPN ルートを切り替えてください。",
+          "empty": "サーバーはテスト データを返しませんでした。",
+          "unknown": "速度テストに失敗しました。 VPN、プロキシ、ファイアウォール、およびネットワーク接続を確認してください。"
+        },
+        "guide": {
+          "okTitle": "基本的なネットワーク パスは正常です",
+          "okSummary": "Windows はアクティブなアダプターを見つけましたが、コア サービスまたはデフォルト ゲートウェイに明らかな問題は見つかりませんでした。",
+          "noAdapterTitle": "Windows 使用可能なネットワーク アダプターが見つかりません",
+          "noAdapterSummary": "これは通常、パスワードの問題ではありません。アダプターが無効になっているか、ドライバーが失敗しているか、ワイヤレス モジュールが消えている可能性があります。",
+          "noAdapterStep1": "「デバイスとドライバー」を開き、ネットワーク デバイスの状態を確認します。",
+          "noAdapterStep2": "Windows がアダプターを再検出できるように、ハードウェアの変更をスキャンします。",
+          "noAdapterStep3": "それでも見つからない場合は、完全にシャットダウンし、機内モードとワイヤレス スイッチを確認してください。",
+          "gatewayTitle": "アダプターはアクティブですが、ルーターに到達できません",
+          "gatewaySummary": "おそらく原因は、パブリック DNS ではなく、Wi-Fi 信号、ケーブル配線、ルーター、またはネットワーク サインインです。",
+          "gatewayStep1": "Wi-Fi を切断して再接続するか、ネットワーク ケーブルを抜き差しします。",
+          "gatewayStep2": "別のデバイスが同じネットワークを使用できるかどうかを確認します。",
+          "gatewayStep3": "「修復」をクリックしてネットワーク サービスを回復し、再度スキャンします。",
+          "serviceTitle": "Windows ネットワーク サービスが正常ではありません",
+          "serviceSummary": "アダプターは存在しますが、アドレス、DNS、またはネットワーク認識サービスが正常に動作していません。",
+          "serviceStep1": "「修復」をクリックして関連サービスを回復します。",
+          "serviceStep2": "再起動後も問題が解決しない場合は、サードパーティの VPN またはセキュリティ ソフトウェアを一時的に終了して、再試行してください。"
+        }
+      },
+      "audio": {
+        "hint": "スピーカー、ヘッドフォン、マイク、Windows オーディオ サービスを確認してください",
+        "idle": "「スキャン」をクリックしてオーディオ デバイスを一覧表示します",
+        "outputTitle": "出力",
+        "inputTitle": "入力",
+        "devicesTitle": "デバイス",
+        "noDevices": "オーディオ デバイスが見つかりません",
+        "noOutputDevices": "出力デバイスが見つかりません",
+        "noInputDevices": "入力デバイスが見つかりません",
+        "default": "デフォルト",
+        "setDefault": "デフォルトを設定",
+        "volume": "ボリューム",
+        "mute": "ミュート",
+        "unmute": "ミュートを解除",
+        "volumeUnavailable": "このデバイスではエンドポイント ボリューム コントロールを使用できません",
+        "advanced": "高度なオーディオ機能",
+        "allowExclusive": "アプリに排他制御を許可する",
+        "allowExclusiveHint": "プロオーディオ アプリは共有ミキサーをバイパスし、他の再生を一時的にブロックする可能性があります。",
+        "exclusivePriority": "排他モードのアプリに優先順位を与える",
+        "exclusivePriorityHint": "排他制御でのみ使用可能。リクエストはアクティブな共有ストリームをプリエンプトできます。",
+        "modeAdminHint": "これは Windows デバイス ポリシーであり、管理者アクセスが必要です。 ZeroTick は、変更のたびに結果を検証します。",
+        "modeAdminRequired": "排他モード ポリシーを変更するには、管理者アクセスが必要です。 [設定] で [管理者として実行] を有効にし、再起動して再試行します。",
+        "modeAccessDenied": "Windows は、このデバイスの排他モード ポリシーへのアクセスを拒否しました。 ZeroTick が管理者として実行されていることを確認します。それでも失敗する場合、このドライバーは Windows その他のサウンド設定の変更のみを許可する可能性があります。",
+        "modeEndpointMissing": "このオーディオ デバイスは切断されたか、変更されました。再度スキャンしてから再試行してください。",
+        "modeVerifyFailed": "Windows は操作を受け入れましたが、デバイス ドライバーは新しい排他モード ポリシーを保持していませんでした。 Windows のその他のサウンド設定でデバイスを確認します。",
+        "modeInterfaceUnavailable": "Windows オーディオ デバイス インターフェイスは現在使用できません。 Windows Audio サービスが実行されていることを確認してから、再試行してください。",
+        "modeChangeFailed": "Windows オーディオ インターフェイスまたはデバイス ドライバーはこの変更を受け入れませんでした。再試行するか、継続する場合は Windows その他のサウンド設定を使用してください。",
+        "category": {
+          "speakers": "スピーカー",
+          "headphones": "ヘッドフォン",
+          "digital": "デジタル出力",
+          "microphone": "マイク",
+          "headset": "ヘッドセット",
+          "line": "ライン",
+          "other": "その他"
+        },
+        "servicesTitle": "オーディオ サービス",
+        "guide": {
+          "okTitle": "オーディオ デバイスが利用可能です",
+          "okSummary": "Windows オーディオ サービスは正常であり、入出力エンドポイントが列挙されました。",
+          "serviceTitle": "オーディオ サービスが正常に実行されていません",
+          "serviceSummary": "ハードウェアはまだ存在している可能性がありますが、Windows は現在再生ストリームまたは録音ストリームを作成できません。",
+          "serviceStep1": "「修復」をクリックして、Windows オーディオ サービスを回復します。",
+          "serviceStep2": "修復後に再生または録音していたアプリを再度開きます。",
+          "noDeviceTitle": "Windows がオーディオ エンドポイントを見つけられません",
+          "noDeviceSummary": "スピーカーとマイクが一緒に消えた場合、通常の原因は、オーディオ ドライバー、無効なデバイス、または切断されたドックです。",
+          "noDeviceStep1": "ヘッドセット、モニター、またはドックの接続を確認してください。",
+          "noDeviceStep2": "「デバイスとドライバー」を開き、関連するエラーがないか確認します。",
+          "noDeviceStep3": "修復しても復元できない場合は、PC メーカーからオーディオ ドライバーをインストールしてください。"
+        }
+      },
+      "usb": {
+        "hint": "プロセスを強制的に終了せずに、USB フラッシュ ドライブと外部ディスクを安全に取り出す",
+        "idle": "「チェック」をクリックして、USB ストレージのステータスを確認します",
+        "drivesTitle": "接続された物理ストレージ デバイス",
+        "noDrives": "マウントされた USB ストレージ ボリュームが見つかりませんでした",
+        "notDetectedByWindows": "Windows は USB ストレージ ハードウェアを検出していません。再接続するか、別の USB ポートを試すか、[修復] をクリックしてプラグ アンド プレイ サービスを再初期化してください。",
+        "noMountedVolume": "USB ストレージ ハードウェアが検出されましたが、使用可能なドライブ文字がありません。ディスクの管理で、オフライン、パーティション化されていない、または割り当てられていないディスクがないかどうかを確認します。",
+        "capacitySummary": "{label} ({letter}) · {filesystem} · 使用済み {used} GB / {total} GB 合計 · {free} GB 空き",
+        "hardwareTitle": "USB ストレージ ハードウェアが Windows によって検出されました",
+        "scanLock": "デバイスの使用状況を確認する",
+        "unlock": "デバイスのロックを解除する",
+        "unlockOpened": "{letter}: を開きました。 Windows プロンプトに従ってロックを解除し、再度スキャンします。",
+        "eject": "安全なイジェクト",
+        "ejectDevice": "デバイス全体を取り出す",
+        "format": "{letter} 形式:",
+        "formatTitle": "リムーバブル ボリューム {letter} をフォーマットします:",
+        "formatIntro": "フォーマットすると、このボリューム上のすべてのファイルが削除されます。ドライブ文字を確認し、重要なファイルがバックアップされていることを確認してください。",
+        "formatTarget": "ターゲット: {letter}: · {label} · {size} GB · 現在 {filesystem}",
+        "formatMode": "フォーマットタイプ",
+        "quickFormat": "クイックフォーマット",
+        "quickFormatHint": "ファイル システム インデックスを削除します。通常は高速です。古いデータは上書きされるまで回復可能なままである場合があります。",
+        "fullFormat": "完全なフォーマット",
+        "fullFormatHint": "すべてのセクターをチェックし、既存のデータを上書きします。何時間もかかる場合があります。ディスクを取り外したり、PC をスリープ状態にしたり、ZeroTick を閉じたりしないでください。",
+        "fullFormatDanger": "高リスクの操作: フルフォーマットはボリューム全体に書き込みを行うため、リカバリが非常に困難になります。ディスクが大きいほど時間がかかります。",
+        "filesystem": "ファイル システム",
+        "filesystemHint": {
+          "NTFS": "大きなファイル、権限、ジャーナリングを伴う Windows の使用に最適です。",
+          "exFAT": "Windows、macOS、および一般的なデバイス間で大きなファイルを交換するのに最適です。",
+          "FAT32": "古いデバイスと互換性がありますが、個々のファイルは 4 GB に制限されます。"
+        },
+        "volumeLabel": "ボリューム ラベル",
+        "volumeLabelPlaceholder": "例: バックアップ ドライブ",
+        "backupConfirmed": "ドライブ文字を確認し、すべての重要なファイルをバックアップしました",
+        "typeDriveLetter": "{letter} と入力して完全な形式を確認します",
+        "typeDriveLetterPlaceholder": "ドライブ文字 {letter} を入力してください",
+        "cancelFormat": "キャンセル",
+        "confirmQuickFormat": "クイックフォーマットを確認する",
+        "confirmFullFormat": "完全なフォーマットを確認する",
+        "formattingQuick": "クイックフォーマット {letter}:。デバイスのプラグを抜かないでください…",
+        "formattingFull": "フルフォーマット {letter}:。これには数時間かかる場合があります。デバイスのプラグを抜かないでください…",
+        "formatComplete": "{letter}: フォーマットされました",
+        "formatFailed": "フォーマットが完了しませんでした。音量は変わらないかもしれません。それを使用しているアプリを閉じて、管理者として再試行してください。",
+        "formatNotUsb": "ZeroTick は、このドライブ文字が USB ストレージに属していないため、フォーマットを停止しました。再度スキャンしてください。",
+        "formatSystemBlocked": "ZeroTick はシステムまたはブート ボリュームをフォーマットしません。",
+        "formatVolumeMissing": "ドライブ文字が変更されたか、デバイスが切断されました。再度スキャンして再試行してください。",
+        "formatInvalidLabel": "ボリューム ラベルが長すぎるか、サポートされていない文字が含まれています。",
+        "ejecting": "安全に排出されます…",
+        "noRelatedProcesses": "このデバイスを使用している可能性のあるアプリは見つかりませんでした。デバイス全体の取り出しに進むことができます。 Windows が最終チェックを行います。",
+        "relatedProcessesHint": "これらのアプリがデバイスを使用している可能性があります。 ZeroTick 独自のチェック プロセスは除外されます。 Windows はイジェクト中に最終決定を行います。",
+        "requestClose": "アプリを安全に閉じます",
+        "manualOnly": "手動で閉じます",
+        "usageCheckFailed": "使用状況チェックが完了しませんでした。再試行するか、安全なイジェクトを使用して、Windows の最終決定を取得します。",
+        "cardReader": {
+          "slot": "スロット {n}",
+          "emptySlot": "カードが挿入されていません",
+          "emptySlotDetail": "{letter} · リーダー スロットは正常ですが、現在ストレージ カードが挿入されていません",
+          "noLetter": "ドライブ文字がありません",
+          "slotIssueDetail": "Windows はスロットまたはカードを検出しましたが、読み取ることができません。再挿入しても問題が解決しない場合は、接触不良、カードの損傷、またはサポートされていないフォーマットがないか確認してください。",
+          "ready": "接続済み · {n} カードの準備完了",
+          "partiallyReady": "一部利用可能: {ready} カードは準備完了、{issues} スロットは注意が必要",
+          "needsAttention": "ストレージ カードが検出されましたが、注意が必要です",
+          "empty": "カードリーダーが接続されています、カードが挿入されていません",
+          "ejectAll": "すべてを安全に取り出します",
+          "ejectingAll": "すべてのストレージ カードを安全に取り出しています…",
+          "ejectAllComplete": "このデバイスのすべてのストレージ カードが安全に取り出されました",
+          "ejectAllPartial": "一部のストレージ カードを取り出すことができませんでした。詳細については、影響を受けるスロットを確認してください。"
+        },
+        "closeResult": {
+          "requested": "アプリは通常どおり終了するように求められました。デバイスを取り出す前に、保存のプロンプトを確認してください。",
+          "protected": "これは重要な Windows プロセスです。 ZeroTick はそれを終了しません。プラグを抜く前に、作業内容を保存し、Windows を再起動してください。",
+          "no_window": "このプロセスには安全に閉じることができるウィンドウがありません。名前を指定して終了します。 ZeroTick は強制終了しません。",
+          "not_found": "アプリはすでに終了しています。もう一度確認するか、安全な取り出しを試してください。"
+        },
+        "access": {
+          "ready": "ロック解除され準備完了",
+          "mounted": "取り付け完了",
+          "locked": "検出されました。ロック解除が必要です",
+          "lockedHint": "Windows がデバイスを検出しましたが、その内容は暗号化またはロックされたままです。ロックが解除されるまで、ファイルの使用状況を確認することはできません。",
+          "offline": "マウントされていません (Windows によってオフラインとしてマークされています)",
+          "unpartitioned": "パーティション化されていません",
+          "no_drive_letter": "ドライブ文字がありません",
+          "no_media": "メディアが検出されませんでした",
+          "unavailable": "一時的に利用できません",
+          "unavailableHint": "Windows にはドライブ文字が割り当てられていますが、まだ内容を読み取ることができません。デバイスのロックを解除するか、暗号化する必要があるか、ファイル システムに問題がある可能性があります。",
+          "unknown": "検出されました。マウント状態が不明"
+        },
+        "ejectBusy": "ボリュームはまだ使用中です。コピー、同期、バックアップ、ダウンロード、メディアの再生を停止します。このドライブのファイルとファイル エクスプローラー ウィンドウを閉じてから、安全な取り出しを再試行してください。",
+        "ejectPermission": "Windows はボリュームまたはデバイスの操作を拒否しました。 ZeroTick を管理者として実行し、安全な取り出しを再試行します。",
+        "ejectVetoed": "Windows が安全な削除をブロックしました: {reason} ({name})。それを解決してから、安全な取り出しを再試行してください。",
+        "ejectFailed": "安全な取り外しは {stage} 段階で停止しました。デバイスは強制的に取り出されませんでした。",
+        "ejectBlockedShort": "デバイスはイジェクトされませんでした。デバイスの下に表示される理由を参照してください。",
+        "stage": {
+          "flush": "キャッシュのフラッシュ",
+          "lock": "ボリューム ロック",
+          "dismount": "ボリュームのマウント解除",
+          "pnp": "Windows デバイスの削除"
+        },
+        "veto": {
+          "pending_close": "ハンドルがまだ閉まっています",
+          "windows_app": "アプリケーションがデバイスを使用しています",
+          "windows_service": "Windows サービスがデバイスを使用しています",
+          "outstanding_open": "ファイルまたはボリューム ハンドルが開いたままになっています",
+          "device": "別のデバイスが依存しています",
+          "driver": "ドライバーが削除をブロックしました",
+          "illegal_request": "デバイスは削除リクエストを拒否しました",
+          "insufficient_power": "デバイスの電力が不十分です",
+          "non_disableable": "このデバイスは安全に無効にできません",
+          "legacy_device": "レガシー デバイスにより削除がブロックされました",
+          "legacy_driver": "レガシードライバーにより削除がブロックされました",
+          "insufficient_rights": "管理者権限が必要です",
+          "unknown": "Windows は具体的な拒否理由を提供しませんでした",
+          "unknownSource": "不明なソース"
+        },
+        "servicesTitle": "プラグ アンド プレイ サービス",
+        "guide": {
+          "readyTitle": "USB ストレージの準備ができました",
+          "readySummary": "Windows がハードウェアとボリュームを見つけました。プラグを抜く前に、デバイスの使用状況を確認し、安全に取り出してください。",
+          "emptyTitle": "USB ストレージが接続されていません",
+          "emptySummary": "これは正常な状態です。フラッシュ ドライブまたは外部ディスクを挿入し、再度スキャンします。",
+          "driverTitle": "USB ストレージ デバイスにはドライバーの問題があります",
+          "driverSummary": "Windows はハードウェアを認識できますが、現在のドライバーまたはデバイスの状態により通常のマウントができません。",
+          "driverStep1": "別の USB ポートを試し、電力不足のハブを避けてください。",
+          "driverStep2": "[修復] をクリックし、[デバイスとドライバー] でハードウェアの変更をスキャンします。",
+          "lockedTitle": "デバイスは接続されていますが、ロックが解除されていません",
+          "lockedSummary": "ハードウェアとドライブ文字は存在しますが、Windows はまだファイルを読み取ることができません。これはドライバーが欠落しているわけではないため、ディスクをフォーマットする必要はありません。",
+          "lockedStep1": "[デバイスのロックを解除] をクリックし、Windows プロンプトまたはデバイス画面に従います。",
+          "lockedStep2": "ロックを解除した後、関連アプリを確認したり取り出したりする前に、再度スキャンしてください。",
+          "cardIssueTitle": "カードリーダーは接続されていますが、ストレージカードを読み取れません",
+          "cardIssueSummary": "空のスロットには、「カードが挿入されていません」というラベルが明示的に付けられます。この警告は、メディアが検出されたものの、通常は接触不良、カードの損傷、暗号化、またはサポートされていないファイル システムが原因で読み取れない場合にのみ使用されます。",
+          "cardIssueStep1": "他の正常なカードを安全に取り出し、影響を受けたカードを再度挿入します。",
+          "cardIssueStep2": "別のスロットまたはリーダーを試して、問題がカードまたはスロットに起因するかどうかを確認します。",
+          "cardIssueStep3": "重要なデータが含まれているカードを初期化またはフォーマットしないでください。詳細モードでは、ディスク番号と未加工の状態が表示されます。",
+          "noVolumeTitle": "ハードウェアは見つかりましたが、その内容にアクセスできません",
+          "noVolumeSummary": "デバイスのロックを解除する必要があるか、オフライン、パーティション化されていない、ドライブ文字が欠落している、または読み取り不可能なファイル システムを使用している可能性があります。",
+          "noVolumeStep1": "重要なデータが含まれるディスクをフォーマットしないでください。",
+          "noVolumeStep2": "Windows ディスク管理を開き、その状態を調べます。",
+          "noVolumeStep3": "RAW または初期化されていないと表示される場合は、パーティションを変更する前にデータを回復してください。"
+        }
+      },
+      "bluetooth": {
+        "hint": "デバイスのステータスと再接続/削除アクションは右側に表示されたままになります",
+        "idle": "「スキャン」をクリックして、Bluetooth デバイスをリストします。",
+        "connected": "接続されました",
+        "disconnected": "接続されていません",
+        "devicesTitle": "ペアリングされたデバイス",
+        "noDevices": "Bluetooth 周辺機器が見つかりません",
+        "radio": "Bluetooth アダプター",
+        "radioCount": "{n} デバイス",
+        "issues": "問題",
+        "noIssues": "問題ありません",
+        "reconnect": "再接続",
+        "remove": "削除",
+        "unknownDevice": "Bluetooth デバイス",
+        "removeConfirmTitle": "「{name}」を削除しますか？",
+        "removeConfirmSummary": "ZeroTick は接続を切るだけでなく、このデバイス インスタンスを Windows から削除します。",
+        "removeConfirmRisk": "現在の接続情報とペアリング情報が失われ、Windows の設定で再度ペアリングが必要になる場合があります。",
+        "removeConfirmHint": "再接続と Bluetooth の修復で問題が解決しなかった場合にのみ使用してください。",
+        "removeCancel": "キャンセル",
+        "removeConfirm": "デバイスを削除",
+        "issue": {
+          "driver_error": "{name} のドライバーが正常に動作していません",
+          "no_radio": "{adapter} が見つかりません",
+          "bthserv_not_running": "{service} は実行されていません",
+          "bthserv_status_unknown": "{service} の状態を読み取ることができません",
+          "bthserv_disabled": "{service} は無効です",
+          "bthserv_missing": "{service} が見つかりませんでした",
+          "unknown": "Bluetooth は正常に動作していませんが、Windows にはより具体的な理由が示されていませんでした"
+        },
+        "guide": {
+          "okTitle": "Bluetooth モジュールは正常です",
+          "okSummary": "Windows は Bluetooth アダプターを見つけましたが、明らかなサポート サービスの問題はありませんでした。",
+          "noRadioTitle": "Bluetooth モジュールが Windows から消えました",
+          "noRadioSummary": "これはペアリングの問題ではありません。ドライバーのクラッシュ、モジュールの電源低下、または機内モードの可能性が高くなります。",
+          "noRadioStep1": "デバイスとドライバーを開き、ハードウェアの変更をスキャンします。",
+          "noRadioStep2": "機内モードをオフにして、30 秒間完全にシャットダウンしてから電源をオンにします。",
+          "noRadioStep3": "それでも見つからない場合は、PC メーカーから Bluetooth とチップセット ドライバーをインストールします。",
+          "problemTitle": "Bluetooth ドライバーまたはサポート サービスに問題があります",
+          "problemSummary": "Windows はアダプターを引き続き認識できますが、検出、ペアリング、または再接続が失敗する可能性があります。",
+          "problemStep1": "「修復」をクリックして、Bluetooth サポート サービスを回復します。",
+          "problemStep2": "1 つのデバイスがまだ失敗する場合は、それを取り外して、Windows で再度ペアリングします。"
+        }
+      },
+      "devices": {
+        "idle": "一般的なデバイスが Windows によって認識されるかどうか、およびドライバーがエラーを報告するかどうかを確認します。",
+        "rescan": "ハードウェア変更のスキャン",
+        "rescanDone": "Windows がハードウェア スキャンを完了し、ZeroTick が結果を再度チェックしました。",
+        "rescanAdmin": "Windows はハードウェア スキャンを拒否しました。 ZeroTick を管理者として実行し、再試行してください。",
+        "rescanFailed": "ハードウェア スキャンが完了しませんでした。生の結果の高度な詳細を有効にします。",
+        "problemsTitle": "注意が必要なデバイス",
+        "noProblems": "デバイス マネージャー エラーは見つかりませんでした。",
+        "class": {
+          "network": "ネットワーク アダプター",
+          "display": "ディスプレイデバイス",
+          "camera": "カメラ",
+          "bluetooth": "Bluetooth",
+          "usb": "USB コントローラー",
+          "other": "その他のデバイス"
+        },
+        "reason": {
+          "cannot_start": "デバイスを起動できません。通常、ドライバーの再起動、完全な電源の再投入、またはメーカーのドライバーの更新が必要です。",
+          "disabled": "デバイスは無効になっています。デバイスマネージャーで確認して有効にします。",
+          "driver_missing": "使用可能なドライバーがインストールされていません。 PC またはハードウェアの製造元が提供する公式ドライバーを推奨します。",
+          "driver_load_failed": "Windows は、このデバイスに必要なドライバーをロードできません。",
+          "device_reported_problem": "デバイスが障害を報告しました。再接続または電源を完全に入れ直しても問題が解決しない場合は、ドライバーまたはハードウェアに障害がある可能性があります。",
+          "other": "Windows がデバイスの問題を報告しました。詳細情報を有効にして、デバイス マネージャー コードを表示します。"
+        },
+        "guide": {
+          "okTitle": "一般的なデバイスとドライバーは正常に見えます",
+          "okSummary": "デバイス マネージャー エラーは見つかりませんでした。カメラ数がゼロまたは Bluetooth の場合は、単にこの PC にそのようなハードウェアが搭載されていないことを意味している可能性があります。",
+          "problemTitle": "Windows がデバイスまたはドライバーの問題を見つけました",
+          "problemSummary": "デバイス マネージャー コードは以下に翻訳されます。生のコードはアドバンストモードでのみ表示されます。",
+          "problemStep1": "最初にハードウェアの変更をスキャンし、Windows がそれを回復するかどうかを確認します。",
+          "problemStep2": "それが残る場合は、デバイスのアドバイスに従い、PC 製造元のドライバーを優先してください。",
+          "missingTitle": "Windows は必須のハードウェア クラスを認識できません",
+          "missingSummary": "すべてのネットワーク アダプターまたはディスプレイ デバイスがありません。これは、ドライバーのクラッシュ、デバイスの無効化、またはモジュールの切断を示している可能性があります。",
+          "missingStep1": "ハードウェアの変更をスキャンしてデバイスを再列挙します。",
+          "missingStep2": "再起動するだけでなく、完全にシャットダウンしてから電源を再度オンにします。",
+          "missingStep3": "それでも見つからない場合は、PC 製造元からチップセットとデバイス ドライバーをインストールします。"
+        }
+      },
+      "services": {
+        "issues": "問題",
+        "noIssues": "問題ありません",
+        "onDemand": "オンデマンド (アイドル)",
+        "label": {
+          "audio": "Windows オーディオ",
+          "audio_endpoint": "オーディオ エンドポイント ビルダー",
+          "bluetooth": "Bluetooth サポート",
+          "plugplay": "プラグ アンド プレイ",
+          "dns": "DNS クライアント",
+          "dhcp": "DHCP クライアント",
+          "network": "ネットワーク位置認識"
+        },
+        "issue": {
+          "not_running": "{name} が実行されていません (状態 = {state})",
+          "disabled": "{name} は無効です",
+          "missing": "{name} が見つかりません ({service})",
+          "status_unknown": "{name} ステータスを読み取れません"
+        }
+      },
+      "repairResult": {
+        "restarted": "サービスが回復しました",
+        "noneRestarted": "回復にサービスは必要ありません",
+        "failed": "失敗したアイテム",
+        "adminBanner": "管理者が必要: ZeroTick を右クリック → 管理者として実行",
+        "rechecked": "修復が完了し、現在の状態が自動的に再度チェックされました。",
+        "needsAttention": "修復は実行されましたが、一部のアイテムにはまだ手動による対応が必要です。生の詳細は詳細モードで利用できます。"
+      }
+    },
+    "status": {
+      "connecting": "接続中…"
+    },
+    "tray": {
+      "reason": {
+        "normal": "モニタリングOK",
+        "transient_hw": "一時的な切断",
+        "device_reconnect": "デバイスが再接続されました",
+        "device_arrival": "デバイスが接続されました",
+        "device_remove": "デバイスが切断されました",
+        "unknown": "ステータスが変更されました",
+        "repair_done": "修理完了",
+        "repair_admin": "管理者権限が必要です",
+        "repair_partial": "修理が不完全",
+        "bluetooth_issue": "Bluetooth の問題"
+      }
+    },
+    "overview": {
+      "fullScan": "フルチェック",
+      "fullScanning": "ネットワーク、オーディオ、USB、Bluetooth、デバイス ドライバーをチェックしています…",
+      "healthTitle": "PC の状態の概要",
+      "checkFailed": "このチェックは完了しませんでした。対応するパネルを開いて再試行してください",
+      "healthOverall": {
+        "ok": "明らかな問題は見つかりませんでした",
+        "warn": "いくつかの項目には注意が必要です",
+        "crit": "問題には対処が必要です"
+      },
+      "health": {
+        "ok": "現在の状態は正常です",
+        "networkMissing": "Windows ではアクティブなネットワーク アダプターが見つかりませんでした",
+        "networkIssue": "ネットワーク パスまたはサービスに問題があります",
+        "audioMissing": "オーディオ入力または出力が見つかりませんでした",
+        "audioIssue": "音声サービスに問題があります",
+        "usbIssue": "USB ストレージ ドライバーに問題があります",
+        "bluetoothMissing": "Windows は Bluetooth モジュールを見つけられません",
+        "bluetoothIssue": "Bluetooth ドライバーまたはサービスに問題があります",
+        "devicesMissing": "必須のハードウェア クラスが欠落しています",
+        "devicesIssue": "{n} デバイス エラーが見つかりました"
+      }
+    },
+    "diag": {
+      "bluetooth": {
+        "issue": {
+          "driver_error": "{name} のドライバーが正常に動作していません",
+          "no_radio": "{adapter} が見つかりません",
+          "bthserv_not_running": "{service} は実行されていません",
+          "bthserv_status_unknown": "{service} の状態を読み取ることができません",
+          "bthserv_disabled": "{service} は無効です",
+          "bthserv_missing": "{service} が見つかりませんでした"
+        }
+      },
+      "services": {
+        "title": "システム サービス",
+        "scan": "スキャン",
+        "desc": "オーディオ、Bluetooth、プラグ アンド プレイ、およびネットワーク関連の Windows サービスを確認します",
+        "idle": "「スキャン」をクリックしてサービスのステータスを確認します",
+        "loading": "スキャン中…",
+        "ok": "サービスは正常です",
+        "warn": "問題が見つかりました",
+        "unknown": "不明",
+        "list": "サービスステータス",
+        "issues": "問題",
+        "noIssues": "問題ありません",
+        "label": {
+          "audio": "Windows オーディオ",
+          "audio_endpoint": "オーディオ エンドポイント ビルダー",
+          "bluetooth": "Bluetooth サポート",
+          "plugplay": "プラグ アンド プレイ",
+          "dns": "DNS クライアント",
+          "dhcp": "DHCP クライアント",
+          "network": "ネットワーク位置認識"
+        },
+        "issue": {
+          "not_running": "{name} が実行されていません (状態 = {state})",
+          "disabled": "{name} は無効です",
+          "missing": "{name} が見つかりません ({service})",
+          "status_unknown": "{name} ステータスを読み取れません"
+        }
+      },
+      "bsod": {
+        "faultingModule": "モジュールの障害の証拠",
+        "debugger": "デバッガー エンジン",
+        "failureBucket": "障害バケット",
+        "stackSummary": "キー呼び出しスタック",
+        "dumpTime": "発生時刻",
+        "rootCause": "根本原因の分析",
+        "errorTypeAnalysis": "エラータイプの分析",
+        "rootCauseUnknown": "ダンプには、特定の根本原因を特定するのに十分なデバッガー モジュールまたは呼び出しスタックの証拠が含まれていません。",
+        "moduleEvidenceAnalysis": "WinDbg/DbgEng は、!analyze -v およびコール スタックでモジュール {module} を識別しました。エラータイプのコンテキスト: {analysis}",
+        "analysis": {
+          "irql_not_less_or_equal": "カーネル モード コードが、高い割り込みレベルで無効なメモリにアクセスしました。一般的なカテゴリには、ドライバー、不安定なメモリ、オーバークロックなどがあります。",
+          "kmode_exception_not_handled": "カーネル モード コードでハンドルされない例外が発生しました。ドライバー、セキュリティ ソフトウェア、または仮想化の競合が一般的なカテゴリです。",
+          "system_service_exception": "システム サービスが例外を発生させました。破損したドライバまたはシステム ファイルは一般的なカテゴリです。",
+          "page_fault_in_nonpaged_area": "無効な非ページ メモリにアクセスしました。ドライバー、メモリ、またはストレージの障害が考えられるカテゴリです。",
+          "system_thread_exception_not_handled": "システム スレッドが未処理の例外を発生させました。グラフィックス、ストレージ、ネットワーク ドライバーは一般的なカテゴリです。",
+          "kernel_data_inpage_error": "必要なカーネル データをメモリに読み込むことができませんでした。ストレージ メディア、ケーブル配線、またはストレージ ドライバーが一般的なカテゴリです。",
+          "driver_irql_not_less_or_equal": "ドライバーが高い割り込みレベルで無効なメモリにアクセスしました。この停止コードは、特定のドライバーそのものではなく、ドライバー関連のエラーの種類を示します。",
+          "critical_process_died": "重要なシステム プロセスが予期せず終了しました。ドライバー、破損したシステム ファイル、ストレージ、またはマルウェアが考えられるカテゴリです。",
+          "critical_structure_corruption": "重要なカーネル データが破損しました。ドライバー、メモリ、ストレージ ハードウェアが考えられるカテゴリです。",
+          "dpc_watchdog_violation": "遅延プロシージャ呼び出しが制限時間を超えました。ファームウェア、ストレージ、ネットワーク、またはその他のドライバーのストールは、一般的なカテゴリです。",
+          "kernel_security_check_failure": "カーネルの整合性チェックが失敗しました。範囲外のドライバー アクセスやメモリの破損が考えられます。",
+          "driver_power_state_failure": "デバイスは電源状態の移行を完了しませんでした。スリープ、ウェイク、USB、グラフィックス、またはその他のデバイス ドライバーが一般的なカテゴリです。",
+          "unknown": "クラッシュ ダンプが記録されましたが、エラーをより正確に分類するには、利用可能なストップ コード情報が不十分です。"
+        },
+        "confidence": {
+          "module": "ブルー スクリーンの記録はクラッシュに関連するモジュールを特定しているため、信頼性は比較的高いです。",
+          "code": "エラーの種類はわかっていますが、特定のドライバーまたはハードウェアの原因はまだ確認されていません。",
+          "limited": "入手可能なレコードが限られているため、特定の原因はまだ確認できません。"
+        },
+        "repairs": "推奨されるシステム チェック",
+        "noFixes": "自動修復は利用できません",
+        "runRepairs": "推奨されるシステム チェックを実行する",
+        "historicalRepairHint": "これは履歴ダンプです。これらのアクションにより、現在のシステムがチェックされます。元のクラッシュの原因が修正されたことを証明することはできません。",
+        "adminRequired": "DISM、SFC、CHKDSK、およびデバイスの再スキャンには管理者権限が必要です。 ZeroTick を管理者として実行し、再試行してください。",
+        "repairing": "修復中…",
+        "repairingHint": "システム修復が順次実行されています。これには数分かかる場合があります。アプリを開いたままにしてください。",
+        "noRepairResults": "修復結果は返されませんでした",
+        "repairComplete": "BSOD 修復ワークフローが完了しました",
+        "fix": {
+          "scan_devices": "プラグ アンド プレイ デバイスを再スキャンし、障害のあるデバイスの状態を更新します",
+          "check_image": "Windows コンポーネント ストアを DISM で修復します",
+          "chkdsk_scan": "システム ドライブ上のファイル システム エラーをスキャンして修復します",
+          "sfc_verify": "SFC で破損したシステム ファイルをスキャンして修復する",
+          "review_faulting_driver": "デバイスとベンダーを確認した後、WinDbg で識別されたドライバーを更新またはロールバックします"
+        }
+      },
+      "repair": {
+        "desc": "関連サービスを診断し、異常な項目のみを回復し、USB の電源構成を検査します",
+        "idle": "健全なサービスは変更されません。停止または保留中のサービスのみが回復されます",
+        "loading": "バックグラウンドで診断および回復中…",
+        "adminHint": "異常なサービスを回復するには管理者権限が必要な場合があります",
+        "repaired": "サービスが回復しました",
+        "noneRepaired": "リカバリの必要なサービスはありません",
+        "healthy": "すでに健康です",
+        "noneHealthy": "正常なサービス結果はありません",
+        "usbConfig": "USB 電源構成",
+        "usbConfigItem": "{device} · インスタンス {instance} · {count} インターフェイスは拡張電源管理を使用します",
+        "noUsbConfig": "拡張 USB 電源管理構成が見つかりません",
+        "summary": {
+          "ok_clean": "診断が完了しました。サービスは正常であり、注意を必要とする USB 電源構成はありません",
+          "ok_power_configs": "チェック完了: {n} USB デバイスは、安定性に影響を与える可能性のある省電力設定を使用しています",
+          "needs_admin": "サービスを回復できませんでした - 管理者として ZeroTick を実行してください",
+          "usb_scan_error": "サービス診断は完了しましたが、USB 構成検査は失敗しました",
+          "service_errors": "{n} サービス回復操作が失敗しました",
+          "unknown": "操作は終了しました。現在のステータスを確認する"
+        }
+      }
+    },
+    "ports": {
+      "sort": "並べ替え",
+      "sortPort": "ポート別",
+      "sortCategory": "カテゴリ別",
+      "sortReleasable": "最初に解放可能",
+      "releaseConn": "接続をクリア",
+      "message": {
+        "time_wait_releasable": "残留接続 - 手動解放を試すことができます (管理者)",
+        "residual_releasable": "半閉接続 - 手動解放を試すことができます"
+      }
+    },
+    "settings": {
+      "bluetoothPollHint": "アダプターと接続の変更を確認するためのバックグラウンド間隔",
+      "fullScanTimeout": "フル スキャン アイテムのタイムアウト",
+      "fullScanTimeoutHint": "完全なヘルスチェック中の各モジュールの最大待機時間",
+      "systemQueryTimeout": "Windows クエリのタイムアウト",
+      "systemQueryTimeoutHint": "ネットワーク、オーディオ、USB、デバイス、およびサービス スキャンで使用されます",
+      "networkTestTimeout": "ネットワーク テストのタイムアウト",
+      "networkTestTimeoutHint": "テスト サーバーへの接続とサンプル データのダウンロードの最大待機時間",
+      "bsodDebuggerTimeout": "BSOD 分析タイムアウト",
+      "bsodDebuggerTimeoutHint": "WinDbg が 1 つのダンプを分析するために使用できる最大時間",
+      "closeToTray": "メイン ウィンドウを閉じるとき",
+      "closeToTrayOn": "トレイに最小化 (実行を継続)",
+      "closeToTrayOff": "アプリケーションを完全に終了します",
+      "runAsAdmin": "管理者として実行",
+      "advancedDisplay": "アドバンスモード",
+      "advancedDisplayHint": "スキャン チューニング、デバイス インスタンス、PID、サービス状態、生のエラー、デバッガーの証拠を表示"
+    },
+    "events": {
+      "category": {
+        "usb": "USB",
+        "bluetooth": "Bluetooth",
+        "unknown": "不明"
+      },
+      "msg": {
+        "transient": "デバイスは一時的に切断され、{ms} ミリ秒以内に回復しました",
+        "reconnect": "デバイスは {ms} ミリ秒の切断後に回復しました",
+        "arrival": "接続されているデバイス",
+        "remove": "デバイスが切断されました",
+        "unknown": "デバイスの状態が変更されました"
+      }
+    },
+    "toast": {
+      "saveFailed": "設定を保存できませんでした。もう一度お試しください。",
+      "clearFailed": "履歴を消去できませんでした。もう一度お試しください。",
+      "repairFailed": "修復が完了しませんでした。再試行し、失敗が続く場合は ZeroTick を管理者として実行してください。",
+      "elevateFailed": "ZeroTick は管理者として再起動できませんでした。それを右クリックし、「管理者として実行」を選択します。",
+      "exportComplete": "履歴がエクスポートされました",
+      "transientSimple": "{name} は一時的に切断されましたが、回復しました",
+      "bsodSimple": "最近のブルー スクリーンの記録が見つかりました。分析と次のステップのために BSOD パネルを開きます。",
+      "processEnded": "このポートを使用するプログラムを終了しました",
+      "speedResult": "速度 {speed} Mbps ({ms} ミリ秒)",
+      "speedResultSimple": "現在のダウンロード速度は約 {speed} Mbps です",
+      "dnsFlushed": "DNS キャッシュがフラッシュされました",
+      "repairDone": "修理完了",
+      "audioDefault": "デフォルトのオーディオ出力が更新されました",
+      "audioInputDefault": "デフォルトのマイクが更新されました",
+      "audioMode": "オーディオ排他モードが更新されました",
+      "usbEjected": "排除された {letter}:",
+      "btReconnect": "Bluetooth 再接続を試行しました",
+      "btRemoved": "Bluetooth デバイスが削除されました",
+      "connReleased": "残りの接続がクリアされました"
+    },
+    "errors": {
+      "tauriTimeout": "Tauri IPC がタイムアウトしました。アプリを再試行または再起動します。",
+      "notTauri": "npm run tauri dev で実行します。ブラウザで Vite URL を開かないでください。",
+      "exportCancelled": "エクスポートがキャンセルされました",
+      "operationFailed": "操作は完了しませんでした。もう一度試してください。",
+      "detectionFailed": "チェックが終了しませんでした。リトライ;失敗し続ける場合は、詳細モードを有効にして原因を確認してください。",
+      "permissionDenied": "Windows はこの操作を拒否しました。 ZeroTick を管理者として実行し、再試行してください。",
+      "timeout": "Windows は応答に時間がかかりすぎました。もう一度試すか、必要に応じて PC を再起動します。",
+      "technicalContext": "オペレーション: {context}",
+      "rawDetail": "生のエラー"
+    }
+  },
+  "ko": {
+    "nav": {
+      "network": "네트워크",
+      "audio": "오디오",
+      "usb": "USB 스토리지",
+      "bluetooth": "Bluetooth",
+      "devices": "장치 및 드라이버",
+      "bsod": "BSOD",
+      "repair": "수리"
+    },
+    "pages": {
+      "network": {
+        "title": "네트워크",
+        "desc": "인터넷 접속, 속도, DNS, VPN 및 네트워크 서비스 문제를 확인하세요."
+      },
+      "audio": {
+        "title": "오디오",
+        "desc": "스피커와 마이크를 관리하고 일반적인 사운드 문제를 확인하세요."
+      },
+      "usb": {
+        "title": "USB 스토리지",
+        "desc": "앱 사용을 감지, 잠금 해제, 확인하고 이동식 저장소를 안전하게 꺼내기"
+      },
+      "bluetooth": {
+        "title": "Bluetooth",
+        "desc": "Bluetooth 누락, 연결 실패, 서비스 문제 확인"
+      },
+      "devices": {
+        "title": "장치 및 드라이버",
+        "desc": "누락, 비활성화 또는 드라이버 문제가 있는 일반적인 장치 찾기"
+      },
+      "bsod": {
+        "title": "BSOD 추적",
+        "desc": "블루 스크린 기록을 검토하고, 가능한 원인을 설명하고, 다음 단계를 제안합니다."
+      },
+      "repair": {
+        "title": "원클릭 수리",
+        "desc": "비정상적인 Windows 서비스를 복구하고 USB 절전 문제를 확인하세요."
+      }
+    },
+    "toolkit": {
+      "scan": "확인",
+      "repair": "수리",
+      "ok": "건강함",
+      "warn": "발견된 문제",
+      "unknown": "알 수 없음",
+      "empty": "데이터 없음",
+      "loading": "작업 중…",
+      "technicalDetails": "고급 정보",
+      "recommendedActions": "다음 단계를 순서대로 시도해 보세요.",
+      "verdict": {
+        "ok": "건강함",
+        "warn": "주의가 필요함",
+        "crit": "조치 필요"
+      },
+      "network": {
+        "hint": "어댑터, 라우터 경로, DNS 및 주요 네트워크 서비스를 확인하세요.",
+        "idle": "네트워크 상태를 검토하려면 확인을 클릭하세요.",
+        "speedTest": "속도 테스트",
+        "flushDns": "DNS 플러시",
+        "gateway": "기본 게이트웨이",
+        "adapters": "활성 어댑터",
+        "reachable": "접근 가능",
+        "unreachable": "접근할 수 없음",
+        "servicesTitle": "네트워크 서비스",
+        "speedTesting": "속도 테스트 중…",
+        "speedDone": "속도 테스트 완료",
+        "speedMbps": "다운로드 속도",
+        "speedBytes": "다운로드됨",
+        "speedDuration": "기간",
+        "vpnTitle": "VPN / 프록시",
+        "vpnStatus": "상태",
+        "vpnActive": "연결됨",
+        "proxyActive": "시스템 프록시 감지됨",
+        "vpnInactive": "감지되지 않음",
+        "vpnConnections": "시스템 VPN",
+        "vpnAdapters": "가상 어댑터",
+        "vpnActiveHint": "트래픽은 VPN 터널 또는 프록시를 통과할 수 있습니다. 속도 및 게이트웨이 결과는 직접 광대역 연결을 반영하지 않을 수 있습니다.",
+        "proxy": "프록시 모드",
+        "proxyAddress": "프록시 구성",
+        "proxyProvider": "프록시 애플리케이션",
+        "proxyProviderUnknown": "이 프록시 포트를 수신하는 로컬 애플리케이션을 찾을 수 없습니다. 원격 프록시, PAC 스크립트 또는 종료된 앱이 남긴 구성일 수 있습니다.",
+        "proxySource": {
+          "manual": "Windows 수동 프록시",
+          "pac": "PAC 자동 구성",
+          "environment": "환경 변수"
+        },
+        "proxyEvidence": {
+          "listener": "프록시 포트에서 수신 중",
+          "related_process": "관련이 있을 수 있음; 포트 연결이 확인되지 않았습니다."
+        },
+        "proxyMode": {
+          "manual": "수동 시스템 프록시",
+          "pac": "자동 구성 스크립트(PAC)",
+          "environment": "프록시 환경 변수",
+          "combined": "다중 프록시 구성"
+        },
+        "speedError": {
+          "curl_missing": "Windows curl.exe를 사용할 수 없으므로 보안 속도 테스트를 실행할 수 없습니다.",
+          "launch_failed": "속도 테스트 프로세스를 시작할 수 없습니다.",
+          "proxy_dns": "구성된 프록시 주소를 확인할 수 없습니다. VPN 또는 프록시 구성을 확인하세요.",
+          "dns": "속도 테스트 서버 이름을 확인할 수 없습니다. DNS 및 VPN 연결을 확인하십시오.",
+          "connect": "속도 테스트 서버에 연결할 수 없습니다. VPN, 프록시 또는 방화벽이 이를 차단하고 있을 수 있습니다.",
+          "timeout": "속도 테스트 시간이 초과되었습니다. VPN 안정성을 확인하거나 일시적으로 경로를 전환하고 다시 시도하세요.",
+          "tls": "보안 연결이 인증서 또는 TLS 검증에 실패했습니다. VPN HTTPS 검사와 시스템 시계를 확인하세요.",
+          "redirect": "속도 테스트 서버가 너무 많은 리디렉션을 반환했습니다. 프록시 또는 종속 포털을 확인하세요.",
+          "transfer": "전송 중에 연결이 중단되었습니다. VPN 안정성을 확인하고 다시 시도하세요.",
+          "server": "속도 테스트 서버가 요청을 거부했습니다. 나중에 다시 시도하거나 VPN 경로를 전환하세요.",
+          "empty": "서버가 테스트 데이터를 반환하지 않았습니다.",
+          "unknown": "속도 테스트에 실패했습니다. VPN, 프록시, 방화벽, 네트워크 연결을 확인하세요."
+        },
+        "guide": {
+          "okTitle": "기본 네트워크 경로가 정상입니다.",
+          "okSummary": "Windows는 활성 어댑터를 찾았으며 핵심 서비스나 기본 게이트웨이에서는 뚜렷한 문제가 발견되지 않았습니다.",
+          "noAdapterTitle": "Windows는 사용 가능한 네트워크 어댑터를 찾을 수 없습니다.",
+          "noAdapterSummary": "이것은 일반적으로 비밀번호 문제가 아닙니다. 어댑터가 비활성화되었거나 드라이버에 오류가 발생했거나 무선 모듈이 사라졌을 수 있습니다.",
+          "noAdapterStep1": "장치 및 드라이버를 열고 네트워크 장치 상태를 확인하세요.",
+          "noAdapterStep2": "Windows가 어댑터를 재발견할 수 있도록 하드웨어 변경 사항을 검색합니다.",
+          "noAdapterStep3": "아직 누락된 경우 완전히 종료하고 비행기 모드와 무선 스위치를 확인하세요.",
+          "gatewayTitle": "어댑터가 활성화되어 있지만 라우터에 연결할 수 없습니다.",
+          "gatewaySummary": "공개 DNS가 아닌 Wi-Fi 신호, 케이블 연결, 라우터 또는 네트워크 로그인이 원인일 가능성이 높습니다.",
+          "gatewayStep1": "Wi-Fi 연결을 끊었다가 다시 연결하거나 네트워크 케이블을 다시 연결하세요.",
+          "gatewayStep2": "다른 장치가 동일한 네트워크를 사용할 수 있는지 확인하세요.",
+          "gatewayStep3": "복구를 클릭하여 네트워크 서비스를 복구한 다음 다시 검색하세요.",
+          "serviceTitle": "Windows 네트워크 서비스가 건강하지 않습니다",
+          "serviceSummary": "어댑터가 있지만 주소, DNS 또는 네트워크 인식 서비스가 정상적으로 작동하지 않습니다.",
+          "serviceStep1": "관련 서비스를 복구하려면 복구를 클릭하세요.",
+          "serviceStep2": "다시 시작한 후에도 문제가 지속되면 타사 VPN 또는 보안 소프트웨어를 일시적으로 종료하고 다시 시도하세요."
+        }
+      },
+      "audio": {
+        "hint": "스피커, 헤드폰, 마이크 및 Windows 오디오 서비스 확인",
+        "idle": "오디오 장치를 나열하려면 스캔을 클릭하세요.",
+        "outputTitle": "출력",
+        "inputTitle": "입력",
+        "devicesTitle": "장치",
+        "noDevices": "오디오 장치를 찾을 수 없습니다.",
+        "noOutputDevices": "출력 장치를 찾을 수 없습니다.",
+        "noInputDevices": "입력 장치를 찾을 수 없습니다.",
+        "default": "기본값",
+        "setDefault": "기본값 설정",
+        "volume": "볼륨",
+        "mute": "음소거",
+        "unmute": "음소거 해제",
+        "volumeUnavailable": "이 장치에서는 엔드포인트 볼륨 제어를 사용할 수 없습니다.",
+        "advanced": "고급 오디오 기능",
+        "allowExclusive": "앱이 독점적인 제어권을 갖도록 허용",
+        "allowExclusiveHint": "프로 오디오 앱은 공유 믹서를 우회하여 일시적으로 다른 재생을 차단할 수 있습니다.",
+        "exclusivePriority": "독점 모드 앱에 우선순위 부여",
+        "exclusivePriorityHint": "독점 제어가 있는 경우에만 사용 가능합니다. 요청은 활성 공유 스트림을 선점할 수 있습니다.",
+        "modeAdminHint": "이것은 Windows 장치 정책이며 관리자 액세스가 필요합니다. ZeroTick는 각 변경 후 결과를 확인합니다.",
+        "modeAdminRequired": "배타적 모드 정책을 변경하려면 관리자 액세스가 필요합니다. 설정에서 관리자 권한으로 실행을 활성화하고 다시 시작한 후 다시 시도하세요.",
+        "modeAccessDenied": "Windows가 이 장치의 배타적 모드 정책에 대한 액세스를 거부했습니다. ZeroTick가 관리자로 실행 중인지 확인하세요. 그래도 실패할 경우 이 드라이버는 Windows 추가 사운드 설정에서만 변경을 허용할 수 있습니다.",
+        "modeEndpointMissing": "이 오디오 장치의 연결이 끊어졌거나 변경되었습니다. 다시 스캔한 후 다시 시도하세요.",
+        "modeVerifyFailed": "Windows가 작업을 수락했지만 장치 드라이버가 새로운 배타적 모드 정책을 유지하지 않았습니다. Windows 추가 사운드 설정에서 장치를 확인하세요.",
+        "modeInterfaceUnavailable": "Windows 오디오 장치 인터페이스는 현재 사용할 수 없습니다. Windows 오디오 서비스가 실행 중인지 확인한 후 다시 시도하세요.",
+        "modeChangeFailed": "Windows 오디오 인터페이스 또는 장치 드라이버가 이 변경 사항을 허용하지 않았습니다. 다시 시도하거나 계속되면 Windows 추가 사운드 설정을 사용하세요.",
+        "category": {
+          "speakers": "스피커",
+          "headphones": "헤드폰",
+          "digital": "디지털 출력",
+          "microphone": "마이크",
+          "headset": "헤드셋",
+          "line": "라인",
+          "other": "기타"
+        },
+        "servicesTitle": "오디오 서비스",
+        "guide": {
+          "okTitle": "오디오 장치를 사용할 수 있습니다.",
+          "okSummary": "Windows 오디오 서비스가 정상이고 입력/출력 엔드포인트가 열거되었습니다.",
+          "serviceTitle": "오디오 서비스가 정상적으로 실행되지 않습니다.",
+          "serviceSummary": "하드웨어가 여전히 존재할 수 있지만 Windows는 현재 재생 또는 녹음 스트림을 생성할 수 없습니다.",
+          "serviceStep1": "Windows 오디오 서비스를 복구하려면 복구를 클릭하세요.",
+          "serviceStep2": "수리 후 재생 중이거나 녹화 중이던 앱을 다시 엽니다.",
+          "noDeviceTitle": "Windows는 오디오 엔드포인트를 찾을 수 없습니다.",
+          "noDeviceSummary": "스피커와 마이크가 함께 사라지는 경우 일반적인 원인은 오디오 드라이버, 비활성화된 장치 또는 연결 해제된 도크입니다.",
+          "noDeviceStep1": "헤드셋, 모니터 또는 도크 연결을 확인하세요.",
+          "noDeviceStep2": "장치 및 드라이버를 열고 관련 오류를 확인하세요.",
+          "noDeviceStep3": "수리로 복원되지 않으면 PC 제조업체에서 제공한 오디오 드라이버를 설치하십시오."
+        }
+      },
+      "usb": {
+        "hint": "프로세스를 강제로 닫지 않고 USB 플래시 드라이브 및 외부 디스크를 안전하게 꺼냅니다.",
+        "idle": "USB 스토리지 상태를 검토하려면 확인을 클릭하세요.",
+        "drivesTitle": "연결된 물리적 저장 장치",
+        "noDrives": "마운트된 USB 스토리지 볼륨을 찾을 수 없습니다.",
+        "notDetectedByWindows": "Windows가 USB 스토리지 하드웨어를 감지하지 못합니다. 다시 연결하고, 다른 USB 포트를 사용해 보거나, 복구를 클릭하여 플러그 앤 플레이 서비스를 다시 초기화하세요.",
+        "noMountedVolume": "USB 스토리지 하드웨어가 감지되었지만 사용 가능한 드라이브 문자가 없습니다. 오프라인, 파티션되지 않았거나 할당되지 않은 디스크에 대한 디스크 관리를 확인하세요.",
+        "capacitySummary": "{label} ({letter}) · {filesystem} · 중고 {used} GB / {total} GB 총 · {free} GB 무료",
+        "hardwareTitle": "USB 스토리지 하드웨어가 Windows에 의해 감지됨",
+        "scanLock": "기기 사용량 확인",
+        "unlock": "기기 잠금 해제",
+        "unlockOpened": "{letter}를 열었습니다:. Windows 프롬프트에 따라 잠금을 해제한 다음 다시 스캔하세요.",
+        "eject": "안전 꺼내기",
+        "ejectDevice": "전체 장치 꺼내기",
+        "format": "{letter} 형식:",
+        "formatTitle": "이동식 볼륨 {letter} 포맷:",
+        "formatIntro": "포맷하면 이 볼륨의 모든 파일이 삭제됩니다. 드라이브 문자를 확인하고 중요한 파일이 백업되었는지 확인하세요.",
+        "formatTarget": "대상: {letter}: · {label} · {size} GB · 현재 {filesystem}",
+        "formatMode": "형식 유형",
+        "quickFormat": "빠른 포맷",
+        "quickFormatHint": "파일 시스템 인덱스를 제거하며 일반적으로 빠릅니다. 오래된 데이터는 덮어쓸 때까지 복구 가능한 상태로 남아 있을 수 있습니다.",
+        "fullFormat": "전체 형식",
+        "fullFormatHint": "모든 섹터를 확인하고 기존 데이터를 덮어씁니다. 몇 시간이 걸릴 수 있습니다. 디스크를 분리하거나 PC를 절전 모드로 전환하거나 ZeroTick를 닫지 마십시오.",
+        "fullFormatDanger": "고위험 작업: 전체 형식은 전체 볼륨에 걸쳐 쓰기 때문에 복구가 매우 어렵습니다. 디스크가 클수록 시간이 더 오래 걸립니다.",
+        "filesystem": "파일 시스템",
+        "filesystemHint": {
+          "NTFS": "대용량 파일, 권한 및 저널링과 함께 Windows 사용에 가장 적합합니다.",
+          "exFAT": "Windows, macOS 및 일반 장치 간에 대용량 파일을 교환하는 데 가장 적합합니다.",
+          "FAT32": "이전 장치와 호환되지만 개별 파일은 4GB로 제한됩니다."
+        },
+        "volumeLabel": "볼륨 레이블",
+        "volumeLabelPlaceholder": "예: 백업 드라이브",
+        "backupConfirmed": "드라이브 문자를 확인하고 모든 중요한 파일을 백업했습니다.",
+        "typeDriveLetter": "{letter}를 입력하여 전체 형식을 확인하세요.",
+        "typeDriveLetterPlaceholder": "드라이브 문자 {letter}를 입력하세요.",
+        "cancelFormat": "취소",
+        "confirmQuickFormat": "빠른 포맷 확인",
+        "confirmFullFormat": "전체 형식 확인",
+        "formattingQuick": "빠른 포맷 {letter}:. 장치의 플러그를 뽑지 마십시오…",
+        "formattingFull": "전체 형식 {letter}:. 몇 시간이 걸릴 수 있습니다. 장치를 분리하지 마십시오…",
+        "formatComplete": "{letter}: 포맷되었습니다",
+        "formatFailed": "포맷이 완료되지 않았습니다. 볼륨은 변경되지 않을 수 있습니다. 이를 사용하는 앱을 닫고 관리자로 다시 시도하세요.",
+        "formatNotUsb": "ZeroTick는 이 드라이브 문자가 더 이상 USB 저장소에 속하지 않기 때문에 포맷을 중지했습니다. 다시 스캔하세요.",
+        "formatSystemBlocked": "ZeroTick는 시스템이나 부팅 볼륨을 포맷하지 않습니다.",
+        "formatVolumeMissing": "드라이브 문자가 변경되었거나 장치 연결이 끊어졌습니다. 다시 스캔하고 다시 시도하세요.",
+        "formatInvalidLabel": "볼륨 레이블이 너무 길거나 지원되지 않는 문자가 포함되어 있습니다.",
+        "ejecting": "안전하게 꺼내는 중…",
+        "noRelatedProcesses": "이 기기를 사용하고 있을 수 있는 앱이 발견되지 않았습니다. 전체 장치 꺼내기를 계속할 수 있습니다. Windows가 최종 확인을 수행합니다.",
+        "relatedProcessesHint": "이 앱이 기기를 사용 중일 수 있습니다. ZeroTick 자체 점검 프로세스는 제외됩니다. Windows는 여전히 꺼내는 동안 최종 결정을 내립니다.",
+        "requestClose": "앱을 안전하게 종료",
+        "manualOnly": "수동으로 닫기",
+        "usageCheckFailed": "사용량 확인이 완료되지 않았습니다. 다시 시도하거나 안전 꺼내기를 사용하여 Windows의 최종 결정을 받으세요.",
+        "cardReader": {
+          "slot": "슬롯 {n}",
+          "emptySlot": "카드가 삽입되지 않았습니다.",
+          "emptySlotDetail": "{letter} · 리더 슬롯이 정상이며 현재 삽입된 저장소 카드가 없습니다.",
+          "noLetter": "드라이브 문자 없음",
+          "slotIssueDetail": "Windows가 슬롯이나 카드를 감지했지만 읽을 수 없습니다. 다시 넣어도 문제가 해결되지 않으면 접촉 불량, 카드 손상 또는 지원되지 않는 형식이 있는지 확인하세요.",
+          "ready": "연결됨 · {n} 카드 준비됨",
+          "partiallyReady": "부분적으로 사용 가능: {ready} 카드 준비됨, {issues} 슬롯에 주의가 필요함",
+          "needsAttention": "저장 카드가 감지되었지만 주의가 필요합니다.",
+          "empty": "카드 리더가 연결됨 · 카드가 삽입되지 않음",
+          "ejectAll": "모두 안전하게 꺼내기",
+          "ejectingAll": "모든 저장 카드를 안전하게 꺼내는 중…",
+          "ejectAllComplete": "이 장치의 모든 저장소 카드가 안전하게 제거되었습니다.",
+          "ejectAllPartial": "일부 저장소 카드를 꺼낼 수 없습니다. 자세한 내용은 영향을 받는 슬롯을 확인하세요."
+        },
+        "closeResult": {
+          "requested": "앱을 정상적으로 종료하라는 요청을 받았습니다. 장치를 꺼내기 전에 저장 메시지를 확인하세요.",
+          "protected": "이것은 중요한 Windows 프로세스입니다. ZeroTick는 이를 종료하지 않습니다. 플러그를 뽑기 전에 작업 내용을 저장하고 Windows를 다시 시작하세요.",
+          "no_window": "이 프로세스에는 안전하게 닫을 수 있는 창이 없습니다. 이름으로 종료하십시오. ZeroTick는 강제 종료하지 않습니다.",
+          "not_found": "앱이 이미 종료되었습니다. 다시 확인하거나 안전 꺼내기를 시도해 보세요."
+        },
+        "access": {
+          "ready": "잠금 해제되어 준비됨",
+          "mounted": "마운트 및 준비됨",
+          "locked": "감지됨; 잠금 해제 필요",
+          "lockedHint": "Windows가 장치를 감지했지만 해당 콘텐츠는 암호화되거나 잠겨 있는 상태로 유지됩니다. 잠금이 해제될 때까지 파일 사용량을 확인할 수 없습니다.",
+          "offline": "마운트되지 않음(Windows에 의해 오프라인으로 표시됨)",
+          "unpartitioned": "파티션되지 않음",
+          "no_drive_letter": "드라이브 문자 없음",
+          "no_media": "미디어가 감지되지 않음",
+          "unavailable": "일시적으로 사용할 수 없음",
+          "unavailableHint": "Windows에 드라이브 문자가 할당되었지만 아직 내용을 읽을 수 없습니다. 장치를 잠금 해제하거나 암호화해야 하거나 파일 시스템 문제가 있을 수 있습니다.",
+          "unknown": "감지됨; 마운트 상태를 알 수 없음"
+        },
+        "ejectBusy": "볼륨이 아직 사용 중입니다. 복사, 동기화, 백업, 다운로드 및 미디어 재생을 중지합니다. 이 드라이브의 파일과 파일 탐색기 창을 닫은 후 안전 꺼내기를 다시 시도하세요.",
+        "ejectPermission": "Windows가 볼륨 또는 장치 작업을 거부했습니다. ZeroTick를 관리자로 실행한 후 안전 꺼내기를 다시 시도하세요.",
+        "ejectVetoed": "Windows가 안전 제거를 차단했습니다: {reason}({name}). 문제를 해결한 후 안전 꺼내기를 다시 시도하세요.",
+        "ejectFailed": "{stage} 단계에서 안전 제거가 중지되었습니다. 장치가 강제로 꺼내지지 않았습니다.",
+        "ejectBlockedShort": "장치가 꺼내지지 않았습니다. 장치 아래에 표시된 이유를 확인하세요.",
+        "stage": {
+          "flush": "캐시 플러시",
+          "lock": "볼륨 잠금",
+          "dismount": "볼륨 마운트 해제",
+          "pnp": "Windows 장치 제거"
+        },
+        "veto": {
+          "pending_close": "핸들이 아직 닫히는 중",
+          "windows_app": "애플리케이션이 기기를 사용 중입니다.",
+          "windows_service": "Windows 서비스가 기기를 사용 중입니다.",
+          "outstanding_open": "파일 또는 볼륨 핸들이 열린 상태로 유지됩니다.",
+          "device": "다른 장치가 이에 의존합니다.",
+          "driver": "드라이버가 제거를 차단했습니다.",
+          "illegal_request": "기기가 제거 요청을 거부했습니다.",
+          "insufficient_power": "기기의 전력이 부족합니다",
+          "non_disableable": "이 장치는 안전하게 비활성화할 수 없습니다.",
+          "legacy_device": "기존 장치가 제거를 차단했습니다.",
+          "legacy_driver": "레거시 드라이버가 제거를 차단했습니다.",
+          "insufficient_rights": "관리자 권한이 필요합니다",
+          "unknown": "Windows는 구체적인 거부 사유를 제공하지 않았습니다.",
+          "unknownSource": "알 수 없는 소스"
+        },
+        "servicesTitle": "플러그 앤 플레이 서비스",
+        "guide": {
+          "readyTitle": "USB 스토리지가 준비되었습니다",
+          "readySummary": "Windows가 하드웨어와 볼륨을 찾았습니다. 플러그를 뽑기 전에 장치 사용 확인 및 안전 꺼내기를 사용하세요.",
+          "emptyTitle": "USB 스토리지가 연결되지 않았습니다.",
+          "emptySummary": "정상 상태입니다. 플래시 드라이브나 외부 디스크를 삽입하고 다시 스캔하세요.",
+          "driverTitle": "USB 저장 장치에 드라이버 문제가 있습니다",
+          "driverSummary": "Windows는 하드웨어를 볼 수 있지만 현재 드라이버 또는 장치 상태로 인해 정상적인 마운트가 불가능합니다.",
+          "driverStep1": "다른 USB 포트를 시도하고 전력이 부족한 허브를 피하십시오.",
+          "driverStep2": "복구를 클릭한 다음 장치 및 드라이버에서 하드웨어 변경 사항을 검색합니다.",
+          "lockedTitle": "기기가 연결되었지만 잠금 해제되지 않았습니다.",
+          "lockedSummary": "하드웨어 및 드라이브 문자가 있지만 Windows는 아직 파일을 읽을 수 없습니다. 이는 누락된 드라이버가 아니며 디스크를 포맷해서는 안 됩니다.",
+          "lockedStep1": "장치 잠금 해제를 클릭하고 Windows 프롬프트 또는 장치 화면을 따릅니다.",
+          "lockedStep2": "잠금 해제 후 관련 앱을 확인하거나 꺼내기 전에 다시 스캔하세요.",
+          "cardIssueTitle": "카드 리더가 연결되었지만 저장소 카드를 읽을 수 없습니다.",
+          "cardIssueSummary": "빈 슬롯에는 카드가 삽입되지 않은 것으로 명시적으로 표시되어 있습니다. 이 경고는 일반적으로 접촉 불량, 카드 손상, 암호화 또는 지원되지 않는 파일 시스템으로 인해 미디어가 감지되었지만 읽을 수 없는 경우에만 사용됩니다.",
+          "cardIssueStep1": "다른 정상 카드를 안전하게 꺼낸 다음 영향을 받은 카드를 다시 삽입하십시오.",
+          "cardIssueStep2": "다른 슬롯이나 리더를 사용해 문제가 카드에 있는지 아니면 슬롯에 있는지 확인하세요.",
+          "cardIssueStep3": "중요한 데이터가 포함된 카드를 초기화하거나 포맷하지 마세요. 고급 모드에는 디스크 번호와 원시 상태가 표시됩니다.",
+          "noVolumeTitle": "하드웨어를 찾았지만 해당 콘텐츠에 액세스할 수 없습니다.",
+          "noVolumeSummary": "장치를 잠금 해제해야 할 수도 있고, 오프라인이거나, 파티션이 지정되지 않았거나, 드라이브 문자가 없거나, 읽을 수 없는 파일 시스템을 사용하고 있을 수도 있습니다.",
+          "noVolumeStep1": "중요한 데이터가 포함된 디스크를 포맷하지 마십시오.",
+          "noVolumeStep2": "Windows 디스크 관리를 열고 상태를 검사하세요.",
+          "noVolumeStep3": "RAW 또는 초기화되지 않은 것으로 표시되면 파티션을 변경하기 전에 데이터를 복구하세요."
+        }
+      },
+      "bluetooth": {
+        "hint": "장치 상태 및 재연결/제거 작업은 오른쪽에 계속 표시됩니다.",
+        "idle": "Bluetooth 장치를 나열하려면 스캔을 클릭하세요.",
+        "connected": "연결됨",
+        "disconnected": "연결되지 않음",
+        "devicesTitle": "페어링된 장치",
+        "noDevices": "Bluetooth 주변기기를 찾을 수 없습니다.",
+        "radio": "Bluetooth 어댑터",
+        "radioCount": "{n} 장치",
+        "issues": "문제",
+        "noIssues": "문제 없음",
+        "reconnect": "다시 연결",
+        "remove": "제거",
+        "unknownDevice": "Bluetooth 장치",
+        "removeConfirmTitle": "‘{name}’을(를) 제거할까요?",
+        "removeConfirmSummary": "ZeroTick은 연결만 끊는 것이 아니라 Windows에서 이 장치 인스턴스를 제거합니다.",
+        "removeConfirmRisk": "현재 연결 및 페어링 정보가 손실될 수 있으며 Windows 설정에서 다시 페어링해야 할 수 있습니다.",
+        "removeConfirmHint": "다시 연결과 Bluetooth 복구로 문제가 해결되지 않은 경우에만 사용하세요.",
+        "removeCancel": "취소",
+        "removeConfirm": "장치 제거",
+        "issue": {
+          "driver_error": "{name}용 드라이버가 정상적으로 작동하지 않습니다.",
+          "no_radio": "{adapter}를 찾을 수 없음",
+          "bthserv_not_running": "{service}가 실행되고 있지 않습니다.",
+          "bthserv_status_unknown": "{service}의 상태를 읽을 수 없습니다.",
+          "bthserv_disabled": "{service}가 비활성화되었습니다.",
+          "bthserv_missing": "{service}를 찾을 수 없습니다",
+          "unknown": "Bluetooth가 정상적으로 작동하지 않지만 Windows가 더 구체적인 이유를 제공하지 않았습니다."
+        },
+        "guide": {
+          "okTitle": "Bluetooth 모듈이 정상입니다.",
+          "okSummary": "Windows는 Bluetooth 어댑터를 발견했으며 명백한 지원 서비스 문제는 없습니다.",
+          "noRadioTitle": "Bluetooth 모듈이 Windows에서 사라졌습니다.",
+          "noRadioSummary": "이것은 페어링 문제가 아닙니다. 충돌한 드라이버, 전원이 꺼진 모듈 또는 비행기 모드일 가능성이 더 높습니다.",
+          "noRadioStep1": "장치 및 드라이버를 열고 하드웨어 변경 사항을 검색합니다.",
+          "noRadioStep2": "비행기 모드를 끄고 30초 동안 완전히 종료한 후 전원을 켜세요.",
+          "noRadioStep3": "계속 누락된 경우 PC 제조업체에서 Bluetooth 및 칩셋 드라이버를 설치하세요.",
+          "problemTitle": "Bluetooth 드라이버 또는 지원 서비스에 문제가 있습니다",
+          "problemSummary": "Windows는 여전히 어댑터를 볼 수 있지만 검색, 페어링 또는 재연결이 실패할 수 있습니다.",
+          "problemStep1": "Bluetooth 지원 서비스를 복구하려면 복구를 클릭하세요.",
+          "problemStep2": "하나의 장치에 여전히 오류가 발생하면 해당 장치를 제거하고 Windows에서 다시 페어링하세요."
+        }
+      },
+      "devices": {
+        "idle": "일반 장치가 Windows에서 인식되는지 여부와 해당 드라이버가 오류를 보고하는지 확인하세요.",
+        "rescan": "하드웨어 변경 사항 검색",
+        "rescanDone": "Windows가 하드웨어 스캔을 완료했고 ZeroTick가 결과를 다시 확인했습니다.",
+        "rescanAdmin": "Windows가 하드웨어 스캔을 거부했습니다. ZeroTick를 관리자로 실행하고 다시 시도하세요.",
+        "rescanFailed": "하드웨어 스캔이 완료되지 않았습니다. 원시 결과에 대한 고급 세부 정보를 활성화합니다.",
+        "problemsTitle": "주의가 필요한 장치",
+        "noProblems": "장치 관리자 오류가 발견되지 않았습니다.",
+        "class": {
+          "network": "네트워크 어댑터",
+          "display": "디스플레이 장치",
+          "camera": "카메라",
+          "bluetooth": "Bluetooth",
+          "usb": "USB 컨트롤러",
+          "other": "기타 장치"
+        },
+        "reason": {
+          "cannot_start": "장치를 시작할 수 없습니다. 일반적으로 드라이버 다시 시작, 전체 전원 주기 또는 제조업체 드라이버 업데이트가 필요합니다.",
+          "disabled": "장치가 비활성화되었습니다. 장치 관리자에서 확인하고 활성화하세요.",
+          "driver_missing": "사용 가능한 드라이버가 설치되어 있지 않습니다. PC나 하드웨어 제조사의 공식 드라이버를 선호하세요.",
+          "driver_load_failed": "Windows는 이 장치에 필요한 드라이버를 로드할 수 없습니다.",
+          "device_reported_problem": "장치에서 오류가 보고되었습니다. 다시 연결하거나 전체 전원을 껐다가 켜도 도움이 되지 않으면 드라이버나 하드웨어에 결함이 있을 수 있습니다.",
+          "other": "Windows가 장치 문제를 보고했습니다. 장치 관리자 코드를 보려면 고급 세부 정보를 활성화하세요."
+        },
+        "guide": {
+          "okTitle": "일반 장치 및 드라이버가 정상인 것처럼 보입니다.",
+          "okSummary": "장치 관리자 오류가 발견되지 않았습니다. 카메라 또는 Bluetooth 개수가 0이라는 것은 단순히 이 PC에 해당 하드웨어가 없다는 의미일 수 있습니다.",
+          "problemTitle": "Windows가 장치 또는 드라이버 문제를 발견했습니다.",
+          "problemSummary": "장치 관리자 코드는 아래에 번역되어 있습니다. 원시 코드는 고급 모드에서만 표시됩니다.",
+          "problemStep1": "먼저 하드웨어 변경 사항을 검색하고 Windows가 이를 복구하는지 확인하세요.",
+          "problemStep2": "남아 있으면 장치 조언을 따르고 PC 제조업체의 드라이버를 선호하십시오.",
+          "missingTitle": "Windows는 필수 하드웨어 클래스를 볼 수 없습니다",
+          "missingSummary": "모든 네트워크 어댑터 또는 디스플레이 장치가 누락되었습니다. 이는 충돌한 드라이버, 비활성화된 장치 또는 연결이 끊긴 모듈을 나타낼 수 있습니다.",
+          "missingStep1": "하드웨어 변경 사항을 검색하여 장치를 다시 열거합니다.",
+          "missingStep2": "다시 시작하는 대신 완전히 종료하고 전원을 다시 켜세요.",
+          "missingStep3": "계속 누락된 경우 PC 제조업체에서 제공하는 칩셋 및 장치 드라이버를 설치하세요."
+        }
+      },
+      "services": {
+        "issues": "문제",
+        "noIssues": "문제 없음",
+        "onDemand": "주문형(유휴)",
+        "label": {
+          "audio": "Windows 오디오",
+          "audio_endpoint": "오디오 엔드포인트 빌더",
+          "bluetooth": "Bluetooth 지원",
+          "plugplay": "플러그 앤 플레이",
+          "dns": "DNS 클라이언트",
+          "dhcp": "DHCP 클라이언트",
+          "network": "네트워크 위치 인식"
+        },
+        "issue": {
+          "not_running": "{name}가 실행되지 않음(상태={state})",
+          "disabled": "{name}가 비활성화되었습니다.",
+          "missing": "{name}를 찾을 수 없음({service})",
+          "status_unknown": "{name} 상태를 읽을 수 없습니다."
+        }
+      },
+      "repairResult": {
+        "restarted": "서비스가 복구됨",
+        "noneRestarted": "서비스가 필요하지 않은 복구",
+        "failed": "실패한 항목",
+        "adminBanner": "관리자 필요: ZeroTick를 마우스 오른쪽 버튼으로 클릭 → 관리자 권한으로 실행",
+        "rechecked": "수리가 완료되었으며 현재 상태가 자동으로 다시 확인되었습니다.",
+        "needsAttention": "복구가 실행되었지만 일부 항목에는 여전히 수동 주의가 필요합니다. 원시 세부 정보는 고급 모드에서 사용할 수 있습니다."
+      }
+    },
+    "status": {
+      "connecting": "연결 중…"
+    },
+    "tray": {
+      "reason": {
+        "normal": "모니터링 OK",
+        "transient_hw": "일시적인 연결 끊김",
+        "device_reconnect": "장치가 다시 연결됨",
+        "device_arrival": "장치가 연결됨",
+        "device_remove": "장치 연결이 끊어졌습니다.",
+        "unknown": "상태가 변경됨",
+        "repair_done": "수리 완료",
+        "repair_admin": "관리자 권한 필요",
+        "repair_partial": "수리 미완료",
+        "bluetooth_issue": "Bluetooth 문제"
+      }
+    },
+    "overview": {
+      "fullScan": "전체 확인",
+      "fullScanning": "네트워크, 오디오, USB, Bluetooth 및 장치 드라이버 확인 중...",
+      "healthTitle": "PC 상태 개요",
+      "checkFailed": "이 검사가 완료되지 않았습니다. 해당 패널을 열고 다시 시도하십시오.",
+      "healthOverall": {
+        "ok": "명백한 문제는 발견되지 않았습니다.",
+        "warn": "일부 항목에 주의가 필요함",
+        "crit": "문제가 발생하면 조치가 필요함"
+      },
+      "health": {
+        "ok": "현재 상태는 정상입니다.",
+        "networkMissing": "Windows에서 활성 네트워크 어댑터를 찾지 못했습니다.",
+        "networkIssue": "네트워크 경로 또는 서비스에 문제가 있습니다",
+        "audioMissing": "오디오 입력 또는 출력을 찾을 수 없습니다.",
+        "audioIssue": "오디오 서비스에 문제가 있습니다",
+        "usbIssue": "USB 스토리지 드라이버에 문제가 있습니다",
+        "bluetoothMissing": "Windows는 Bluetooth 모듈을 찾을 수 없습니다",
+        "bluetoothIssue": "Bluetooth 드라이버 또는 서비스에 문제가 있습니다",
+        "devicesMissing": "필수 하드웨어 클래스가 누락되었습니다.",
+        "devicesIssue": "{n} 장치 오류 발견"
+      }
+    },
+    "diag": {
+      "bluetooth": {
+        "issue": {
+          "driver_error": "{name}용 드라이버가 정상적으로 작동하지 않습니다.",
+          "no_radio": "{adapter}를 찾을 수 없음",
+          "bthserv_not_running": "{service}가 실행되고 있지 않습니다.",
+          "bthserv_status_unknown": "{service}의 상태를 읽을 수 없습니다.",
+          "bthserv_disabled": "{service}가 비활성화되었습니다.",
+          "bthserv_missing": "{service}를 찾을 수 없습니다"
+        }
+      },
+      "services": {
+        "title": "시스템 서비스",
+        "scan": "스캔",
+        "desc": "오디오, Bluetooth, 플러그 앤 플레이 및 네트워크 관련 Windows 서비스 확인",
+        "idle": "서비스 상태를 확인하려면 스캔을 클릭하세요.",
+        "loading": "스캔 중...",
+        "ok": "서비스 정상",
+        "warn": "발견된 문제",
+        "unknown": "알 수 없음",
+        "list": "서비스 상태",
+        "issues": "문제",
+        "noIssues": "문제 없음",
+        "label": {
+          "audio": "Windows 오디오",
+          "audio_endpoint": "오디오 엔드포인트 빌더",
+          "bluetooth": "Bluetooth 지원",
+          "plugplay": "플러그 앤 플레이",
+          "dns": "DNS 클라이언트",
+          "dhcp": "DHCP 클라이언트",
+          "network": "네트워크 위치 인식"
+        },
+        "issue": {
+          "not_running": "{name}가 실행되지 않음(상태={state})",
+          "disabled": "{name}가 비활성화되었습니다.",
+          "missing": "{name}를 찾을 수 없음({service})",
+          "status_unknown": "{name} 상태를 읽을 수 없습니다."
+        }
+      },
+      "bsod": {
+        "faultingModule": "결함 있는 모듈 증거",
+        "debugger": "디버거 엔진",
+        "failureBucket": "실패 버킷",
+        "stackSummary": "키 호출 스택",
+        "dumpTime": "발생 시간",
+        "rootCause": "근본 원인 분석",
+        "errorTypeAnalysis": "오류 유형 분석",
+        "rootCauseUnknown": "덤프에는 특정 근본 원인을 식별하기에 충분한 디버거 모듈 또는 호출 스택 증거가 포함되어 있지 않습니다.",
+        "moduleEvidenceAnalysis": "WinDbg/DbgEng는 !analyze -v 및 호출 스택에서 모듈 {module}를 식별했습니다. 오류 유형 컨텍스트: {analysis}",
+        "analysis": {
+          "irql_not_less_or_equal": "커널 모드 코드가 높은 인터럽트 수준에서 잘못된 메모리에 액세스했습니다. 일반적인 범주에는 드라이버, 불안정한 메모리 및 오버클러킹이 포함됩니다.",
+          "kmode_exception_not_handled": "커널 모드 코드에서 처리되지 않은 예외가 발생했습니다. 드라이버, 보안 소프트웨어 또는 가상화 충돌은 일반적인 범주입니다.",
+          "system_service_exception": "시스템 서비스에서 예외가 발생했습니다. 손상된 드라이버나 시스템 파일은 일반적인 범주입니다.",
+          "page_fault_in_nonpaged_area": "잘못된 비페이징 메모리에 액세스했습니다. 드라이버, 메모리 또는 스토리지 오류가 가능한 범주입니다.",
+          "system_thread_exception_not_handled": "시스템 스레드에서 처리되지 않은 예외가 발생했습니다. 그래픽, 저장소 및 네트워크 드라이버는 일반적인 범주입니다.",
+          "kernel_data_inpage_error": "필수 커널 데이터를 메모리로 읽을 수 없습니다. 저장소 미디어, 케이블 연결 또는 저장소 드라이버는 일반적인 범주입니다.",
+          "driver_irql_not_less_or_equal": "드라이버가 높은 인터럽트 수준에서 잘못된 메모리에 액세스했습니다. 이 중지 코드는 특정 드라이버 자체가 아닌 드라이버 관련 오류 유형을 나타냅니다.",
+          "critical_process_died": "중요한 시스템 프로세스가 예기치 않게 종료되었습니다. 드라이버, 손상된 시스템 파일, 저장소 또는 맬웨어가 가능한 범주입니다.",
+          "critical_structure_corruption": "중요한 커널 데이터가 손상되었습니다. 드라이버, 메모리 또는 스토리지 하드웨어가 가능한 범주입니다.",
+          "dpc_watchdog_violation": "지연된 프로시저 호출이 시간 제한을 초과했습니다. 펌웨어, 스토리지, 네트워크 또는 기타 드라이버 정지는 일반적인 범주입니다.",
+          "kernel_security_check_failure": "커널 무결성 검사에 실패했습니다. 범위를 벗어난 드라이버 액세스 또는 손상된 메모리가 가능한 범주입니다.",
+          "driver_power_state_failure": "장치가 전원 상태 전환을 완료하지 못했습니다. 절전, 깨우기, USB, 그래픽 또는 기타 장치 드라이버는 일반적인 범주입니다.",
+          "unknown": "크래시 덤프가 기록되었지만 사용 가능한 중지 코드 정보가 부족하여 오류를 더 정확하게 분류할 수 없습니다."
+        },
+        "confidence": {
+          "module": "블루 스크린 기록은 충돌과 관련된 모듈을 식별하므로 신뢰도가 상대적으로 높습니다.",
+          "code": "오류 유형은 알려져 있지만 구체적인 드라이버나 하드웨어 원인은 아직 확인되지 않았습니다.",
+          "limited": "사용 가능한 기록이 제한되어 아직 구체적인 원인을 확인할 수 없습니다."
+        },
+        "repairs": "권장 시스템 검사",
+        "noFixes": "자동 복구를 사용할 수 없습니다.",
+        "runRepairs": "권장 시스템 검사 실행",
+        "historicalRepairHint": "이것은 역사적인 덤프입니다. 이러한 작업은 현재 시스템을 확인합니다. 원래의 충돌 원인이 해결되었음을 증명할 수 없습니다.",
+        "adminRequired": "DISM, SFC, CHKDSK 및 장치 재검색에는 관리자 권한이 필요합니다. ZeroTick를 관리자로 실행하고 다시 시도하세요.",
+        "repairing": "수리 중…",
+        "repairingHint": "시스템 복구가 순차적으로 실행 중입니다. 이 작업은 몇 분 정도 걸릴 수 있습니다. 앱을 열어두세요.",
+        "noRepairResults": "수리 결과가 반환되지 않았습니다.",
+        "repairComplete": "BSOD 수리 워크플로 완료",
+        "fix": {
+          "scan_devices": "플러그 앤 플레이 장치를 다시 검색하고 결함이 있는 장치 상태를 새로 고침",
+          "check_image": "DISM로 Windows 구성요소 저장소 수리",
+          "chkdsk_scan": "시스템 드라이브의 파일 시스템 오류 검사 및 복구",
+          "sfc_verify": "SFC로 손상된 시스템 파일 검사 및 복구",
+          "review_faulting_driver": "장치 및 공급업체를 확인한 후 WinDbg로 식별된 드라이버를 업데이트하거나 롤백합니다."
+        }
+      },
+      "repair": {
+        "desc": "관련 서비스 진단, 비정상 항목만 복구, USB 전원 구성 검사",
+        "idle": "정상 서비스는 변경되지 않습니다. 중지되었거나 보류 중인 서비스만 복구됩니다.",
+        "loading": "백그라운드에서 진단 및 복구 중…",
+        "adminHint": "비정상 서비스를 복구하려면 관리자 권한이 필요할 수 있습니다.",
+        "repaired": "서비스가 복구됨",
+        "noneRepaired": "서비스가 필요하지 않은 복구",
+        "healthy": "이미 건강함",
+        "noneHealthy": "정상적인 서비스 결과가 없습니다.",
+        "usbConfig": "USB 전원 구성",
+        "usbConfigItem": "{device} · 인스턴스 {instance} · {count} 인터페이스는 향상된 전원 관리를 사용합니다.",
+        "noUsbConfig": "향상된 USB 전원 관리 구성을 찾을 수 없습니다.",
+        "summary": {
+          "ok_clean": "진단 완료; 서비스가 정상이며 USB 전원 구성에 주의가 필요하지 않습니다.",
+          "ok_power_configs": "확인 완료: {n} USB 장치가 안정성에 영향을 미칠 수 있는 절전 설정을 사용합니다.",
+          "needs_admin": "서비스를 복구할 수 없습니다. 관리자로 ZeroTick를 실행하세요.",
+          "usb_scan_error": "서비스 진단이 완료되었지만 USB 구성 검사에 실패했습니다.",
+          "service_errors": "{n} 서비스 복구 작업이 실패했습니다.",
+          "unknown": "작업이 완료되었습니다. 현재 상태를 검토하다"
+        }
+      }
+    },
+    "ports": {
+      "sort": "정렬",
+      "sortPort": "포트별",
+      "sortCategory": "카테고리별",
+      "sortReleasable": "먼저 해제 가능",
+      "releaseConn": "연결 지우기",
+      "message": {
+        "time_wait_releasable": "잔여 연결 — 수동 해제를 시도할 수 있습니다(관리자)",
+        "residual_releasable": "반쯤 닫힌 연결 - 수동 해제 시도 가능"
+      }
+    },
+    "settings": {
+      "bluetoothPollHint": "어댑터 및 연결 변경 사항을 확인하는 백그라운드 간격",
+      "fullScanTimeout": "전체 검사 항목 시간 초과",
+      "fullScanTimeoutHint": "전체 상태 확인 중 각 모듈에 대한 최대 대기 시간",
+      "systemQueryTimeout": "Windows 쿼리 시간 초과",
+      "systemQueryTimeoutHint": "네트워크, 오디오, USB, 장치 및 서비스 검색에 사용됩니다.",
+      "networkTestTimeout": "네트워크 테스트 시간 초과",
+      "networkTestTimeoutHint": "테스트 서버 연결 및 샘플 데이터 다운로드를 위한 최대 대기 시간",
+      "bsodDebuggerTimeout": "BSOD 분석 시간 초과",
+      "bsodDebuggerTimeoutHint": "WinDbg가 하나의 덤프를 분석하는 데 사용할 수 있는 최대 시간",
+      "closeToTray": "메인 창을 닫을 때",
+      "closeToTrayOn": "트레이로 최소화(계속 실행)",
+      "closeToTrayOff": "애플리케이션을 완전히 종료",
+      "runAsAdmin": "관리자 권한으로 실행",
+      "advancedDisplay": "고급 모드",
+      "advancedDisplayHint": "스캔 조정, 장치 인스턴스, PID, 서비스 상태, 원시 오류 및 디버거 증거 표시"
+    },
+    "events": {
+      "category": {
+        "usb": "USB",
+        "bluetooth": "Bluetooth",
+        "unknown": "알 수 없음"
+      },
+      "msg": {
+        "transient": "기기의 연결이 잠시 끊어지고 {ms} ms 내에 복구되었습니다.",
+        "reconnect": "{ms} ms 연결 끊김 후 장치가 복구되었습니다.",
+        "arrival": "기기가 연결되었습니다",
+        "remove": "장치 연결이 끊어졌습니다.",
+        "unknown": "장치 상태가 변경되었습니다."
+      }
+    },
+    "toast": {
+      "saveFailed": "설정을 저장하지 못했습니다. 다시 시도해 주세요.",
+      "clearFailed": "기록을 지우지 못했습니다. 다시 시도해 주세요.",
+      "repairFailed": "복구가 완료되지 않았습니다. 다시 시도하고, 계속 실패하면 ZeroTick을 관리자 권한으로 실행하세요.",
+      "elevateFailed": "ZeroTick는 관리자로 다시 시작할 수 없습니다. 마우스 오른쪽 버튼을 클릭하고 관리자 권한으로 실행을 선택합니다.",
+      "exportComplete": "내보낸 기록",
+      "transientSimple": "{name}가 잠시 연결이 끊어졌다가 복구되었습니다.",
+      "bsodSimple": "최근 블루스크린 기록이 발견되었습니다. 분석 및 다음 단계를 위해 BSOD 패널을 엽니다.",
+      "processEnded": "이 포트를 사용하여 프로그램을 종료했습니다.",
+      "speedResult": "속도 {speed}Mbps({ms}ms)",
+      "speedResultSimple": "현재 다운로드 속도는 약 {speed}Mbps입니다.",
+      "dnsFlushed": "DNS 캐시 플러시됨",
+      "repairDone": "수리 완료",
+      "audioDefault": "기본 오디오 출력 업데이트됨",
+      "audioInputDefault": "기본 마이크가 업데이트되었습니다.",
+      "audioMode": "오디오 독점 모드 업데이트됨",
+      "usbEjected": "{letter}가 배출됨:",
+      "btReconnect": "Bluetooth 재연결 시도",
+      "btRemoved": "Bluetooth 장치가 제거됨",
+      "connReleased": "잔여 연결이 삭제됨"
+    },
+    "errors": {
+      "tauriTimeout": "Tauri IPC 시간이 초과되었습니다. 앱을 다시 시도하거나 다시 시작하세요.",
+      "notTauri": "npm run tauri dev로 실행하세요. 브라우저에서 Vite URL을 열지 마세요.",
+      "exportCancelled": "내보내기가 취소되었습니다.",
+      "operationFailed": "작업이 완료되지 않았습니다. 다시 시도해 주세요.",
+      "detectionFailed": "검사가 완료되지 않았습니다. 다시 해 보다; 계속 실패하면 고급 모드를 활성화하여 원인을 확인하세요.",
+      "permissionDenied": "Windows가 이 작업을 거부했습니다. ZeroTick를 관리자로 실행하고 다시 시도하십시오.",
+      "timeout": "Windows가 응답하는 데 너무 오랜 시간이 걸렸습니다. 다시 시도하거나 필요한 경우 PC를 다시 시작하세요.",
+      "technicalContext": "작업: {context}",
+      "rawDetail": "원시 오류"
+    }
+  },
+  "de": {
+    "nav": {
+      "network": "Netzwerk",
+      "audio": "Audio",
+      "usb": "USB-Speicher",
+      "bluetooth": "Bluetooth",
+      "devices": "Geräte & Treiber",
+      "bsod": "BSOD",
+      "repair": "Reparatur"
+    },
+    "pages": {
+      "network": {
+        "title": "Netzwerk",
+        "desc": "Überprüfen Sie Internetzugriff, Geschwindigkeit, DNS, VPN und Netzwerkdienstprobleme"
+      },
+      "audio": {
+        "title": "Audio",
+        "desc": "Verwalten Sie Lautsprecher und Mikrofone und überprüfen Sie häufige Tonprobleme"
+      },
+      "usb": {
+        "title": "USB-Speicher",
+        "desc": "App-Nutzung erkennen, entsperren, überprüfen und Wechselspeicher sicher auswerfen"
+      },
+      "bluetooth": {
+        "title": "Bluetooth",
+        "desc": "Überprüfen Sie fehlendes Bluetooth, Verbindungsfehler und Serviceprobleme"
+      },
+      "devices": {
+        "title": "Geräte & Treiber",
+        "desc": "Suchen Sie nach häufigen Geräten, die fehlen oder deaktiviert sind oder Treiberprobleme haben"
+      },
+      "bsod": {
+        "title": "BSOD-Trace",
+        "desc": "Überprüfen Sie Bluescreen-Aufzeichnungen, erläutern Sie wahrscheinliche Ursachen und schlagen Sie die nächsten Schritte vor"
+      },
+      "repair": {
+        "title": "Reparatur mit einem Klick",
+        "desc": "Stellen Sie fehlerhafte Windows-Dienste wieder her und überprüfen Sie USB-Energiesparprobleme"
+      }
+    },
+    "toolkit": {
+      "scan": "Überprüfen",
+      "repair": "Reparatur",
+      "ok": "Gesund",
+      "warn": "Es wurden Probleme gefunden",
+      "unknown": "Unbekannt",
+      "empty": "Keine Daten",
+      "loading": "Arbeitet…",
+      "technicalDetails": "Erweiterte Informationen",
+      "recommendedActions": "Führen Sie diese Schritte der Reihe nach aus",
+      "verdict": {
+        "ok": "Gesund",
+        "warn": "Benötigt Aufmerksamkeit",
+        "crit": "Aktion erforderlich"
+      },
+      "network": {
+        "hint": "Überprüfen Sie den Adapter, den Router-Pfad, DNS und die wichtigsten Netzwerkdienste",
+        "idle": "Klicken Sie auf „Überprüfen“, um den Netzwerkstatus zu überprüfen",
+        "speedTest": "Geschwindigkeitstest",
+        "flushDns": "Spülung DNS",
+        "gateway": "Standard-Gateway",
+        "adapters": "Aktive Adapter",
+        "reachable": "Erreichbar",
+        "unreachable": "Nicht erreichbar",
+        "servicesTitle": "Netzwerkdienste",
+        "speedTesting": "Geschwindigkeit testen…",
+        "speedDone": "Geschwindigkeitstest abgeschlossen",
+        "speedMbps": "Download-Geschwindigkeit",
+        "speedBytes": "Heruntergeladen",
+        "speedDuration": "Dauer",
+        "vpnTitle": "VPN / Proxy",
+        "vpnStatus": "Status",
+        "vpnActive": "Verbunden",
+        "proxyActive": "System-Proxy erkannt",
+        "vpnInactive": "Nicht erkannt",
+        "vpnConnections": "System VPN",
+        "vpnAdapters": "Virtuelle Adapter",
+        "vpnActiveHint": "Der Datenverkehr kann über einen VPN-Tunnel oder -Proxy erfolgen. Geschwindigkeits- und Gateway-Ergebnisse spiegeln möglicherweise nicht die direkte Breitbandverbindung wider.",
+        "proxy": "Proxy-Modus",
+        "proxyAddress": "Proxy-Konfiguration",
+        "proxyProvider": "Proxy-Anwendung",
+        "proxyProviderUnknown": "Es wurde keine lokale Anwendung gefunden, die diesen Proxy-Port überwacht. Es kann sich um einen Remote-Proxy, ein PAC-Skript oder eine Konfiguration handeln, die von einer App hinterlassen wurde, die beendet wurde.",
+        "proxySource": {
+          "manual": "Windows manueller Proxy",
+          "pac": "PAC automatische Konfiguration",
+          "environment": "Umgebungsvariable"
+        },
+        "proxyEvidence": {
+          "listener": "Überwachen des Proxy-Ports",
+          "related_process": "Möglicherweise verwandt; Hafenzugehörigkeit nicht bestätigt"
+        },
+        "proxyMode": {
+          "manual": "Manueller System-Proxy",
+          "pac": "Automatisches Konfigurationsskript (PAC)",
+          "environment": "Proxy-Umgebungsvariable",
+          "combined": "Mehrere Proxy-Konfigurationen"
+        },
+        "speedError": {
+          "curl_missing": "Windows curl.exe ist nicht verfügbar, daher kann der sichere Geschwindigkeitstest nicht ausgeführt werden.",
+          "launch_failed": "Der Geschwindigkeitstestvorgang konnte nicht gestartet werden.",
+          "proxy_dns": "Die konfigurierte Proxy-Adresse konnte nicht aufgelöst werden. Überprüfen Sie die VPN- oder Proxy-Konfiguration.",
+          "dns": "Der Name des Geschwindigkeitstestservers konnte nicht aufgelöst werden. Überprüfen Sie die DNS- und die VPN-Verbindung.",
+          "connect": "Es konnte keine Verbindung zum Geschwindigkeitstestserver hergestellt werden. Der VPN, der Proxy oder die Firewall blockieren es möglicherweise.",
+          "timeout": "Der Geschwindigkeitstest ist abgelaufen. Überprüfen Sie die VPN-Stabilität oder wechseln Sie vorübergehend die Route und versuchen Sie es erneut.",
+          "tls": "Bei der sicheren Verbindung ist das Zertifikat oder die TLS-Validierung fehlgeschlagen. Überprüfen Sie die Inspektion VPN HTTPS und die Systemuhr.",
+          "redirect": "Der Geschwindigkeitstestserver hat zu viele Weiterleitungen zurückgegeben. Überprüfen Sie das Proxy- oder Captive-Portal.",
+          "transfer": "Die Verbindung wurde während der Übertragung unterbrochen. Überprüfen Sie die Stabilität von VPN und versuchen Sie es erneut.",
+          "server": "Der Geschwindigkeitstestserver hat die Anfrage abgelehnt. Versuchen Sie es später erneut oder wechseln Sie die VPN-Route.",
+          "empty": "Der Server hat keine Testdaten zurückgegeben.",
+          "unknown": "Der Geschwindigkeitstest ist fehlgeschlagen. Überprüfen Sie VPN, Proxy, Firewall und Netzwerkverbindung."
+        },
+        "guide": {
+          "okTitle": "Der grundlegende Netzwerkpfad ist fehlerfrei",
+          "okSummary": "Windows hat einen aktiven Adapter gefunden und es wurde kein offensichtliches Problem mit den Kerndiensten oder dem Standard-Gateway gefunden.",
+          "noAdapterTitle": "Windows kann keinen verwendbaren Netzwerkadapter finden",
+          "noAdapterSummary": "Dies ist normalerweise kein Passwortproblem. Möglicherweise ist der Adapter deaktiviert, sein Treiber ist möglicherweise ausgefallen oder das Wireless-Modul ist möglicherweise verschwunden.",
+          "noAdapterStep1": "Öffnen Sie „Geräte & Treiber“ und überprüfen Sie den Status des Netzwerkgeräts.",
+          "noAdapterStep2": "Nach Hardwareänderungen suchen, damit Windows den Adapter erneut erkennen kann.",
+          "noAdapterStep3": "Wenn es immer noch fehlt, fahren Sie vollständig herunter und überprüfen Sie den Flugmodus und alle Wireless-Schalter.",
+          "gatewayTitle": "Ein Adapter ist aktiv, aber der Router ist nicht erreichbar",
+          "gatewaySummary": "Die wahrscheinliche Ursache ist das WLAN-Signal, die Verkabelung, der Router oder die Netzwerkanmeldung und nicht die öffentliche DNS.",
+          "gatewayStep1": "Trennen Sie die WLAN-Verbindung und verbinden Sie sie erneut, oder schließen Sie das Netzwerkkabel neu an.",
+          "gatewayStep2": "Überprüfen Sie, ob ein anderes Gerät dasselbe Netzwerk nutzen kann.",
+          "gatewayStep3": "Klicken Sie auf „Reparieren“, um die Netzwerkdienste wiederherzustellen, und scannen Sie dann erneut.",
+          "serviceTitle": "Windows Netzwerkdienste sind nicht fehlerfrei",
+          "serviceSummary": "Der Adapter ist vorhanden, aber Adress-, DNS- oder Netzwerkerkennungsdienste funktionieren nicht normal.",
+          "serviceStep1": "Klicken Sie auf Reparieren, um die zugehörigen Dienste wiederherzustellen.",
+          "serviceStep2": "Wenn das Problem nach dem Neustart weiterhin besteht, beenden Sie vorübergehend die VPN- oder Sicherheitssoftware von Drittanbietern und versuchen Sie es erneut."
+        }
+      },
+      "audio": {
+        "hint": "Überprüfen Sie Lautsprecher, Kopfhörer, Mikrofone und Windows Audiodienste",
+        "idle": "Klicken Sie auf „Scannen“, um die Audiogeräte aufzulisten",
+        "outputTitle": "Ausgabe",
+        "inputTitle": "Eingabe",
+        "devicesTitle": "Geräte",
+        "noDevices": "Keine Audiogeräte gefunden",
+        "noOutputDevices": "Keine Ausgabegeräte gefunden",
+        "noInputDevices": "Keine Eingabegeräte gefunden",
+        "default": "Standard",
+        "setDefault": "Standard festlegen",
+        "volume": "Lautstärke",
+        "mute": "Stumm",
+        "unmute": "Stummschaltung aufheben",
+        "volumeUnavailable": "Endpoint-Lautstärkeregelung ist für dieses Gerät nicht verfügbar",
+        "advanced": "Erweiterte Audiofunktionen",
+        "allowExclusive": "Apps erlauben, die ausschließliche Kontrolle zu übernehmen",
+        "allowExclusiveHint": "Pro-Audio-Apps können den gemeinsamen Mixer umgehen und andere Wiedergaben vorübergehend blockieren.",
+        "exclusivePriority": "Apps im exklusiven Modus Priorität geben",
+        "exclusivePriorityHint": "Nur mit exklusiver Steuerung verfügbar; Anfragen können einen aktiven freigegebenen Stream verhindern.",
+        "modeAdminHint": "Dies ist eine Windows-Geräterichtlinie und erfordert Administratorzugriff; ZeroTick überprüft das Ergebnis nach jeder Änderung.",
+        "modeAdminRequired": "Das Ändern der Richtlinie für den exklusiven Modus erfordert Administratorzugriff. Aktivieren Sie „Als Administrator ausführen“ in den Einstellungen, starten Sie neu und versuchen Sie es erneut.",
+        "modeAccessDenied": "Windows hat den Zugriff auf die Exklusivmodus-Richtlinie dieses Geräts verweigert. Bestätigen Sie, dass ZeroTick als Administrator ausgeführt wird. Wenn es immer noch fehlschlägt, lässt dieser Treiber möglicherweise nur Änderungen in den Windows More Soundeinstellungen zu.",
+        "modeEndpointMissing": "Dieses Audiogerät wurde getrennt oder geändert. Scannen Sie erneut und versuchen Sie es erneut.",
+        "modeVerifyFailed": "Windows hat den Vorgang akzeptiert, aber der Gerätetreiber hat die neue Richtlinie für den exklusiven Modus nicht beibehalten. Überprüfen Sie das Gerät in Windows Weitere Toneinstellungen.",
+        "modeInterfaceUnavailable": "Die Audiogeräteschnittstelle Windows ist derzeit nicht verfügbar. Vergewissern Sie sich, dass der Windows-Audiodienst ausgeführt wird, und versuchen Sie es dann erneut.",
+        "modeChangeFailed": "Die Windows-Audioschnittstelle oder der Gerätetreiber haben diese Änderung nicht akzeptiert. Versuchen Sie es erneut oder verwenden Sie Windows Weitere Toneinstellungen, wenn das Problem weiterhin besteht.",
+        "category": {
+          "speakers": "Lautsprecher",
+          "headphones": "Kopfhörer",
+          "digital": "Digitaler Ausgang",
+          "microphone": "Mikrofon",
+          "headset": "Headset",
+          "line": "Linie",
+          "other": "Sonstiges"
+        },
+        "servicesTitle": "Audiodienste",
+        "guide": {
+          "okTitle": "Audiogeräte sind verfügbar",
+          "okSummary": "Windows Audiodienste sind fehlerfrei und Eingabe-/Ausgabeendpunkte wurden aufgelistet.",
+          "serviceTitle": "Audiodienste laufen nicht normal",
+          "serviceSummary": "Die Hardware ist möglicherweise noch vorhanden, aber Windows kann derzeit keine Wiedergabe- oder Aufnahmestreams erstellen.",
+          "serviceStep1": "Klicken Sie auf Reparieren, um Windows Audiodienste wiederherzustellen.",
+          "serviceStep2": "Öffnen Sie die App, die gerade abgespielt oder aufgezeichnet hat, nach der Reparatur erneut.",
+          "noDeviceTitle": "Windows kann keinen Audio-Endpunkt finden",
+          "noDeviceSummary": "Wenn Lautsprecher und Mikrofone gleichzeitig verschwinden, sind die häufigsten Ursachen ein Audiotreiber, ein deaktiviertes Gerät oder eine nicht angeschlossene Dockingstation.",
+          "noDeviceStep1": "Überprüfen Sie die Headset-, Monitor- oder Dock-Verbindung.",
+          "noDeviceStep2": "Öffnen Sie „Geräte und Treiber“ und suchen Sie nach entsprechenden Fehlern.",
+          "noDeviceStep3": "Wenn die Reparatur sie nicht wiederherstellt, installieren Sie den Audiotreiber des PC-Herstellers."
+        }
+      },
+      "usb": {
+        "hint": "USB Flash-Laufwerke und externe Festplatten sicher auswerfen, ohne das Schließen von Prozessen zu erzwingen",
+        "idle": "Klicken Sie auf „Überprüfen“, um den USB-Speicherstatus zu überprüfen",
+        "drivesTitle": "Angeschlossene physische Speichergeräte",
+        "noDrives": "Es wurde kein gemountetes USB-Speichervolume gefunden",
+        "notDetectedByWindows": "Windows erkennt keine USB-Speicherhardware. Schließen Sie es erneut an, versuchen Sie es mit einem anderen USB-Port oder klicken Sie auf „Reparieren“, um die Plug-and-Play-Dienste neu zu initialisieren.",
+        "noMountedVolume": "USB-Speicherhardware wurde erkannt, hat aber keinen verwendbaren Laufwerksbuchstaben. Überprüfen Sie die Datenträgerverwaltung auf einen Offline-, nicht partitionierten oder nicht zugewiesenen Datenträger.",
+        "capacitySummary": "{label} ({letter}) · {filesystem} · Gebraucht {used} GB / {total} GB insgesamt · {free} GB frei",
+        "hardwareTitle": "USB-Speicherhardware von Windows erkannt",
+        "scanLock": "Gerätenutzung prüfen",
+        "unlock": "Gerät entsperren",
+        "unlockOpened": "Geöffnet {letter}:. Befolgen Sie die Aufforderung Windows, um es zu entsperren, und scannen Sie dann erneut.",
+        "eject": "Sicheres Auswerfen",
+        "ejectDevice": "Ganzes Gerät auswerfen",
+        "format": "Format {letter}:",
+        "formatTitle": "Wechseldatenträger formatieren {letter}:",
+        "formatIntro": "Durch die Formatierung werden alle Dateien auf diesem Volume gelöscht. Überprüfen Sie den Laufwerksbuchstaben und stellen Sie sicher, dass wichtige Dateien gesichert werden.",
+        "formatTarget": "Ziel: {letter}: · {label} · {size} GB · derzeit {filesystem}",
+        "formatMode": "Formattyp",
+        "quickFormat": "Schnellformatierung",
+        "quickFormatHint": "Entfernt Dateisystemindizes und ist normalerweise schnell. Alte Daten bleiben möglicherweise wiederherstellbar, bis sie überschrieben werden.",
+        "fullFormat": "Vollformat",
+        "fullFormatHint": "Überprüft jeden Sektor und überschreibt vorhandene Daten. Es kann Stunden dauern. Trennen Sie die Festplatte nicht, schalten Sie den PC nicht in den Ruhezustand und schließen Sie ZeroTick nicht.",
+        "fullFormatDanger": "Vorgang mit hohem Risiko: Eine vollständige Formatierung schreibt über das gesamte Volume und erschwert die Wiederherstellung erheblich. Größere Festplatten brauchen länger.",
+        "filesystem": "Dateisystem",
+        "filesystemHint": {
+          "NTFS": "Am besten für die Verwendung geeignet, mit großen Dateien, Berechtigungen und Journaling.",
+          "exFAT": "Am besten für den Austausch großer Dateien zwischen Windows, macOS und gängigen Geräten geeignet.",
+          "FAT32": "Kompatibel mit älteren Geräten, einzelne Dateien sind jedoch auf 4 GB begrenzt."
+        },
+        "volumeLabel": "Volumenbezeichnung",
+        "volumeLabelPlaceholder": "Zum Beispiel: Backup-Laufwerk",
+        "backupConfirmed": "Ich habe den Laufwerksbuchstaben überprüft und alle wichtigen Dateien gesichert",
+        "typeDriveLetter": "Geben Sie {letter} ein, um das vollständige Format zu bestätigen",
+        "typeDriveLetterPlaceholder": "Geben Sie den Laufwerksbuchstaben {letter} ein",
+        "cancelFormat": "Abbrechen",
+        "confirmQuickFormat": "Schnellformatierung bestätigen",
+        "confirmFullFormat": "Vollständiges Format bestätigen",
+        "formattingQuick": "Schnellformatierung {letter}:. Trennen Sie das Gerät nicht vom Stromnetz.",
+        "formattingFull": "Vollformatierung {letter}:. Dies kann Stunden dauern; Trennen Sie das Gerät nicht vom Stromnetz.",
+        "formatComplete": "{letter}: wurde formatiert",
+        "formatFailed": "Formatierung wurde nicht abgeschlossen. Die Lautstärke kann unverändert bleiben. Schließen Sie damit Apps und versuchen Sie es erneut als Administrator.",
+        "formatNotUsb": "ZeroTick hat die Formatierung abgebrochen, da dieser Laufwerksbuchstabe nicht mehr zum USB-Speicher gehört. Noch einmal scannen.",
+        "formatSystemBlocked": "ZeroTick formatiert niemals ein System oder Boot-Volume.",
+        "formatVolumeMissing": "Der Laufwerksbuchstabe wurde geändert oder das Gerät wurde getrennt. Scannen Sie erneut und versuchen Sie es erneut.",
+        "formatInvalidLabel": "Die Datenträgerbezeichnung ist zu lang oder enthält nicht unterstützte Zeichen.",
+        "ejecting": "Sicheres Auswerfen…",
+        "noRelatedProcesses": "Es wurde keine App gefunden, die möglicherweise dieses Gerät verwendet. Sie können mit „Gesamtes Gerät auswerfen“ fortfahren; Windows führt die letzte Prüfung durch.",
+        "relatedProcessesHint": "Diese Apps verwenden möglicherweise das Gerät. Der eigene Prüfprozess von ZeroTick ist ausgeschlossen; Windows trifft immer noch die endgültige Entscheidung beim Auswerfen.",
+        "requestClose": "App sicher schließen",
+        "manualOnly": "Manuell schließen",
+        "usageCheckFailed": "Die Nutzungsprüfung wurde nicht abgeschlossen. Versuchen Sie es erneut oder verwenden Sie „Sicheres Auswerfen“, um die endgültige Entscheidung von Windows zu erhalten.",
+        "cardReader": {
+          "slot": "Steckplatz {n}",
+          "emptySlot": "Keine Karte eingelegt",
+          "emptySlotDetail": "{letter} · Der Lesesteckplatz ist fehlerfrei und derzeit ist keine Speicherkarte eingelegt",
+          "noLetter": "Kein Laufwerksbuchstabe",
+          "slotIssueDetail": "Windows hat den Steckplatz oder die Karte erkannt, kann sie aber nicht lesen. Wenn das erneute Einsetzen nicht hilft, prüfen Sie, ob der Kontakt schlecht ist, die Karte beschädigt ist oder ein nicht unterstütztes Format vorliegt.",
+          "ready": "Verbunden · {n}-Karte(n) bereit",
+          "partiallyReady": "Teilweise verfügbar: {ready}-Karte(n) bereit, {issues}-Steckplatz(e) benötigen Aufmerksamkeit",
+          "needsAttention": "Eine Speicherkarte wurde erkannt, muss aber behoben werden",
+          "empty": "Kartenleser angeschlossen · keine Karte eingelegt",
+          "ejectAll": "Alle sicher auswerfen",
+          "ejectingAll": "Sicheres Auswerfen aller Speicherkarten…",
+          "ejectAllComplete": "Alle Speicherkarten in diesem Gerät wurden sicher ausgeworfen",
+          "ejectAllPartial": "Einige Speicherkarten konnten nicht ausgeworfen werden. Weitere Informationen finden Sie im betroffenen Steckplatz."
+        },
+        "closeResult": {
+          "requested": "Die App wurde aufgefordert, normal zu schließen. Bestätigen Sie die Speicheraufforderung, bevor Sie das Gerät auswerfen.",
+          "protected": "Dies ist ein kritischer Windows-Prozess. ZeroTick wird es nicht beenden; Speichern Sie Ihre Arbeit und starten Sie Windows neu, bevor Sie den Netzstecker ziehen.",
+          "no_window": "Dieser Prozess hat kein Fenster, das sicher geschlossen werden kann. Verlassen Sie es mit dem Namen; ZeroTick wird die Beendigung nicht erzwingen.",
+          "not_found": "Die App wurde bereits beendet. Überprüfen Sie es erneut oder versuchen Sie es mit dem sicheren Auswerfen."
+        },
+        "access": {
+          "ready": "Entsperrt und bereit",
+          "mounted": "Montiert und bereit",
+          "locked": "Erkannt; Entsperren erforderlich",
+          "lockedHint": "Windows hat das Gerät erkannt, sein Inhalt bleibt jedoch verschlüsselt oder gesperrt. Die Dateinutzung kann erst überprüft werden, wenn sie entsperrt ist.",
+          "offline": "Nicht gemountet (von Windows als offline markiert)",
+          "unpartitioned": "Nicht partitioniert",
+          "no_drive_letter": "Kein Laufwerksbuchstabe",
+          "no_media": "Kein Medium erkannt",
+          "unavailable": "Vorübergehend nicht verfügbar",
+          "unavailableHint": "Windows hat einen Laufwerksbuchstaben zugewiesen, kann den Inhalt jedoch noch nicht lesen. Möglicherweise muss das Gerät entsperrt oder verschlüsselt werden oder es liegt ein Dateisystemproblem vor.",
+          "unknown": "Erkannt; Mount-Status unbekannt"
+        },
+        "ejectBusy": "Das Volume wird noch verwendet. Stoppen Sie das Kopieren, Synchronisieren, Sichern, Herunterladen und Abspielen von Medien. Schließen Sie die Dateien und Datei-Explorer-Fenster für dieses Laufwerk und versuchen Sie es dann erneut mit dem sicheren Auswerfen.",
+        "ejectPermission": "Windows hat den Volume- oder Gerätevorgang verweigert. Führen Sie ZeroTick als Administrator aus und versuchen Sie es dann erneut mit dem sicheren Auswerfen.",
+        "ejectVetoed": "Windows blockierte sichere Entfernung: {reason} ({name}). Beheben Sie das Problem und versuchen Sie es erneut mit dem sicheren Auswerfen.",
+        "ejectFailed": "Die sichere Entfernung wurde in der {stage}-Stufe gestoppt. Das Gerät wurde nicht gewaltsam ausgeworfen.",
+        "ejectBlockedShort": "Das Gerät wurde nicht ausgeworfen. Sehen Sie sich den Grund an, der unter dem Gerät angezeigt wird.",
+        "stage": {
+          "flush": "Cache leeren",
+          "lock": "Lautstärkesperre",
+          "dismount": "Volume-Demontage",
+          "pnp": "Windows Geräteentfernung"
+        },
+        "veto": {
+          "pending_close": "ein Handle wird immer noch geschlossen",
+          "windows_app": "Eine Anwendung verwendet das Gerät",
+          "windows_service": "ein Windows-Dienst verwendet das Gerät",
+          "outstanding_open": "ein Datei- oder Volume-Handle bleibt geöffnet",
+          "device": "ein anderes Gerät hängt davon ab",
+          "driver": "ein Treiber hat das Entfernen blockiert",
+          "illegal_request": "Das Gerät hat die Entfernungsanforderung abgelehnt",
+          "insufficient_power": "Das Gerät hat nicht genügend Strom",
+          "non_disableable": "Dieses Gerät kann nicht sicher deaktiviert werden",
+          "legacy_device": "ein älteres Gerät blockierte die Entfernung",
+          "legacy_driver": "Ein älterer Treiber hat das Entfernen blockiert",
+          "insufficient_rights": "Administratorrechte sind erforderlich",
+          "unknown": "Windows hat keinen spezifischen Vetogrund angegeben",
+          "unknownSource": "unbekannte Quelle"
+        },
+        "servicesTitle": "Plug-and-Play-Dienst",
+        "guide": {
+          "readyTitle": "USB-Speicher ist bereit",
+          "readySummary": "Windows hat die Hardware und das Volume gefunden. Überprüfen Sie die Gerätenutzung und die Funktion „Sicheres Auswerfen“, bevor Sie das Gerät ausstecken.",
+          "emptyTitle": "Es ist kein USB-Speicher angeschlossen",
+          "emptySummary": "Dies ist ein normaler Zustand. Legen Sie ein Flash-Laufwerk oder eine externe Festplatte ein und scannen Sie erneut.",
+          "driverTitle": "Das USB-Speichergerät hat ein Treiberproblem",
+          "driverSummary": "Windows kann die Hardware sehen, aber der aktuelle Treiber- oder Gerätestatus verhindert eine normale Bereitstellung.",
+          "driverStep1": "Versuchen Sie es mit einem anderen USB-Port und vermeiden Sie einen Hub mit unzureichender Stromversorgung.",
+          "driverStep2": "Klicken Sie auf „Reparieren“ und suchen Sie dann unter „Geräte und Treiber“ nach Hardwareänderungen.",
+          "lockedTitle": "Das Gerät ist verbunden, aber nicht entsperrt",
+          "lockedSummary": "Die Hardware und der Laufwerksbuchstabe sind vorhanden, aber Windows kann die Dateien noch nicht lesen. Dies ist kein fehlender Treiber und die Festplatte sollte nicht formatiert werden.",
+          "lockedStep1": "Klicken Sie auf Gerät entsperren und folgen Sie der Windows-Eingabeaufforderung oder dem Gerätebildschirm.",
+          "lockedStep2": "Scannen Sie nach dem Entsperren erneut, bevor Sie verwandte Apps überprüfen oder auswerfen.",
+          "cardIssueTitle": "Der Kartenleser ist angeschlossen, aber eine Speicherkarte kann nicht gelesen werden",
+          "cardIssueSummary": "Leere Steckplätze sind explizit mit „Keine Karte eingelegt“ gekennzeichnet. Diese Warnung wird nur verwendet, wenn Medien erkannt wurden, aber nicht gelesen werden können, was häufig auf einen schlechten Kontakt, eine Beschädigung der Karte, eine Verschlüsselung oder ein nicht unterstütztes Dateisystem zurückzuführen ist.",
+          "cardIssueStep1": "Werfen Sie andere fehlerfreie Karten sicher aus und setzen Sie dann die betroffene Karte wieder ein.",
+          "cardIssueStep2": "Versuchen Sie es mit einem anderen Steckplatz oder Lesegerät, um festzustellen, ob das Problem auf die Karte oder den Steckplatz zurückzuführen ist.",
+          "cardIssueStep3": "Eine Karte mit wichtigen Daten darf nicht initialisiert oder formatiert werden. Im erweiterten Modus werden die Festplattennummern und der Rohzustand angezeigt.",
+          "noVolumeTitle": "Hardware gefunden, aber der Inhalt ist nicht zugänglich",
+          "noVolumeSummary": "Das Gerät muss möglicherweise entsperrt werden, es ist möglicherweise offline, nicht partitioniert, es fehlt ein Laufwerksbuchstabe oder es wird ein nicht lesbares Dateisystem verwendet.",
+          "noVolumeStep1": "Formatieren Sie keine Festplatte, die wichtige Daten enthält.",
+          "noVolumeStep2": "Öffnen Sie die Windows-Datenträgerverwaltung und überprüfen Sie den Status.",
+          "noVolumeStep3": "Wenn RAW oder nicht initialisiert angezeigt wird, stellen Sie die Daten wieder her, bevor Sie die Partition ändern."
+        }
+      },
+      "bluetooth": {
+        "hint": "Gerätestatus und Aktionen zum erneuten Verbinden/Entfernen bleiben auf der rechten Seite sichtbar",
+        "idle": "Klicken Sie auf Scannen, um Bluetooth-Geräte aufzulisten",
+        "connected": "Verbunden",
+        "disconnected": "Nicht verbunden",
+        "devicesTitle": "Gekoppelte Geräte",
+        "noDevices": "Keine Bluetooth-Peripheriegeräte gefunden",
+        "radio": "Bluetooth-Adapter",
+        "radioCount": "{n} Gerät(e)",
+        "issues": "Probleme",
+        "noIssues": "Keine Probleme",
+        "reconnect": "Wieder verbinden",
+        "remove": "Entfernen",
+        "unknownDevice": "Bluetooth-Gerät",
+        "removeConfirmTitle": "„{name}“ entfernen?",
+        "removeConfirmSummary": "ZeroTick trennt das Gerät nicht nur, sondern entfernt diese Geräteinstanz aus Windows.",
+        "removeConfirmRisk": "Die aktuellen Verbindungs- und Kopplungsinformationen können verloren gehen. Möglicherweise müssen Sie das Gerät in den Windows-Einstellungen erneut koppeln.",
+        "removeConfirmHint": "Verwenden Sie dies nur, wenn erneutes Verbinden und die Bluetooth-Reparatur das Problem nicht gelöst haben.",
+        "removeCancel": "Abbrechen",
+        "removeConfirm": "Gerät entfernen",
+        "issue": {
+          "driver_error": "Der Treiber für {name} funktioniert nicht normal",
+          "no_radio": "Kein {adapter} gefunden",
+          "bthserv_not_running": "{service} läuft nicht",
+          "bthserv_status_unknown": "Der Status von {service} kann nicht gelesen werden",
+          "bthserv_disabled": "{service} ist deaktiviert",
+          "bthserv_missing": "{service} wurde nicht gefunden",
+          "unknown": "Bluetooth funktioniert nicht normal, aber Windows hat keinen genaueren Grund angegeben"
+        },
+        "guide": {
+          "okTitle": "Das Bluetooth-Modul ist fehlerfrei",
+          "okSummary": "Windows hat den Bluetooth-Adapter gefunden und kein offensichtliches Support-Service-Problem.",
+          "noRadioTitle": "Das Modul Bluetooth ist aus Windows verschwunden",
+          "noRadioSummary": "Dies ist kein Kopplungsproblem. Wahrscheinlicher ist ein abgestürzter Treiber, ein ausgeschaltetes Modul oder ein Flugmodus.",
+          "noRadioStep1": "Öffnen Sie Geräte und Treiber und suchen Sie nach Hardwareänderungen.",
+          "noRadioStep2": "Schalten Sie den Flugmodus aus, schalten Sie ihn dann für 30 Sekunden vollständig aus und schalten Sie ihn wieder ein.",
+          "noRadioStep3": "Wenn es weiterhin fehlt, installieren Sie Bluetooth und Chipsatztreiber vom PC-Hersteller.",
+          "problemTitle": "Der Bluetooth-Treiber oder der Support-Dienst haben ein Problem",
+          "problemSummary": "Windows kann den Adapter weiterhin sehen, aber die Erkennung, das Pairing oder die erneute Verbindung schlagen möglicherweise fehl.",
+          "problemStep1": "Klicken Sie auf Reparieren, um den Bluetooth Support Service wiederherzustellen.",
+          "problemStep2": "Wenn ein Gerät immer noch ausfällt, entfernen Sie es und koppeln Sie es erneut in Windows."
+        }
+      },
+      "devices": {
+        "idle": "Überprüfen Sie, ob gängige Geräte von Windows erkannt werden und ob deren Treiber Fehler melden",
+        "rescan": "Nach Hardwareänderungen suchen",
+        "rescanDone": "Windows hat den Hardware-Scan abgeschlossen und ZeroTick hat das Ergebnis erneut überprüft.",
+        "rescanAdmin": "Windows hat den Hardware-Scan verweigert. Führen Sie ZeroTick als Administrator aus und versuchen Sie es erneut.",
+        "rescanFailed": "Der Hardware-Scan wurde nicht abgeschlossen. Aktivieren Sie erweiterte Details für das Rohergebnis.",
+        "problemsTitle": "Geräte, die Aufmerksamkeit erfordern",
+        "noProblems": "Es wurden keine Geräte-Manager-Fehler gefunden.",
+        "class": {
+          "network": "Netzwerkadapter",
+          "display": "Anzeigegeräte",
+          "camera": "Kameras",
+          "bluetooth": "Bluetooth",
+          "usb": "USB-Controller",
+          "other": "Andere Geräte"
+        },
+        "reason": {
+          "cannot_start": "Das Gerät kann nicht gestartet werden. Normalerweise ist ein Neustart des Treibers, ein vollständiger Aus- und Wiedereinschalten oder ein Update des Herstellertreibers erforderlich.",
+          "disabled": "Das Gerät ist deaktiviert. Bestätigen und aktivieren Sie es im Geräte-Manager.",
+          "driver_missing": "Es ist kein verwendbarer Treiber installiert. Bevorzugen Sie den offiziellen Treiber des PC- oder Hardwareherstellers.",
+          "driver_load_failed": "Windows kann den für dieses Gerät erforderlichen Treiber nicht laden.",
+          "device_reported_problem": "Das Gerät hat einen Fehler gemeldet. Wenn das erneute Anschließen oder ein vollständiges Aus- und Wiedereinschalten nicht hilft, ist möglicherweise der Treiber oder die Hardware fehlerhaft.",
+          "other": "Windows hat ein Geräteproblem gemeldet. Aktivieren Sie erweiterte Details, um den Geräte-Manager-Code anzuzeigen."
+        },
+        "guide": {
+          "okTitle": "Gemeinsame Geräte und Treiber sehen fehlerfrei aus",
+          "okSummary": "Es wurden keine Geräte-Manager-Fehler gefunden. Eine Null-Kamera- oder Bluetooth-Zählung kann einfach bedeuten, dass dieser PC über keine solche Hardware verfügt.",
+          "problemTitle": "Windows hat ein Geräte- oder Treiberproblem gefunden",
+          "problemSummary": "Der Geräte-Manager-Code ist unten übersetzt; Rohcodes werden nur im erweiterten Modus angezeigt.",
+          "problemStep1": "Scannen Sie zuerst nach Hardwareänderungen und prüfen Sie, ob Windows diese wiederherstellt.",
+          "problemStep2": "Wenn das Problem weiterhin besteht, befolgen Sie die Gerätehinweise und bevorzugen Sie den Treiber des PC-Herstellers.",
+          "missingTitle": "Windows kann eine wesentliche Hardwareklasse nicht sehen",
+          "missingSummary": "Alle Netzwerkadapter oder Anzeigegeräte fehlen, was auf einen abgestürzten Treiber, ein deaktiviertes Gerät oder ein nicht angeschlossenes Modul hinweisen kann.",
+          "missingStep1": "Nach Hardwareänderungen suchen, um Geräte neu aufzulisten.",
+          "missingStep2": "Komplett herunterfahren und wieder einschalten, statt nur neu zu starten.",
+          "missingStep3": "Falls es weiterhin fehlt, installieren Sie den Chipsatz und den Gerätetreiber vom PC-Hersteller."
+        }
+      },
+      "services": {
+        "issues": "Probleme",
+        "noIssues": "Keine Probleme",
+        "onDemand": "Auf Anfrage (im Leerlauf)",
+        "label": {
+          "audio": "Windows Audio",
+          "audio_endpoint": "Audio Endpoint Builder",
+          "bluetooth": "Bluetooth-Unterstützung",
+          "plugplay": "Plug-and-Play",
+          "dns": "DNS-Client",
+          "dhcp": "DHCP-Client",
+          "network": "Netzwerk-Standorterkennung"
+        },
+        "issue": {
+          "not_running": "{name} läuft nicht (Status={state})",
+          "disabled": "{name} ist deaktiviert",
+          "missing": "{name} nicht gefunden ({service})",
+          "status_unknown": "{name}-Status kann nicht gelesen werden"
+        }
+      },
+      "repairResult": {
+        "restarted": "Dienste wiederhergestellt",
+        "noneRestarted": "Keine Servicewiederherstellung erforderlich",
+        "failed": "Fehlgeschlagene Elemente",
+        "adminBanner": "Administrator erforderlich: Rechtsklick ZeroTick → Als Administrator ausführen",
+        "rechecked": "Reparatur abgeschlossen und der aktuelle Zustand wurde erneut automatisch überprüft.",
+        "needsAttention": "Die Reparatur wurde ausgeführt, einige Elemente erfordern jedoch noch manuelle Wartung. Rohdetails sind im erweiterten Modus verfügbar."
+      }
+    },
+    "status": {
+      "connecting": "Verbinden…"
+    },
+    "tray": {
+      "reason": {
+        "normal": "Überwachung OK",
+        "transient_hw": "Vorübergehende Unterbrechung",
+        "device_reconnect": "Gerät erneut verbunden",
+        "device_arrival": "Gerät angeschlossen",
+        "device_remove": "Gerät getrennt",
+        "unknown": "Status geändert",
+        "repair_done": "Reparatur abgeschlossen",
+        "repair_admin": "Administratorrechte erforderlich",
+        "repair_partial": "Reparatur unvollständig",
+        "bluetooth_issue": "Bluetooth-Problem"
+      }
+    },
+    "overview": {
+      "fullScan": "Vollständige Prüfung",
+      "fullScanning": "Überprüfen von Netzwerk, Audio, USB, Bluetooth und Gerätetreibern…",
+      "healthTitle": "PC-Gesundheitsübersicht",
+      "checkFailed": "Diese Prüfung wurde nicht abgeschlossen; Öffnen Sie das entsprechende Fenster und versuchen Sie es erneut",
+      "healthOverall": {
+        "ok": "Kein offensichtliches Problem gefunden",
+        "warn": "Einige Elemente erfordern Aufmerksamkeit",
+        "crit": "Probleme erfordern Maßnahmen"
+      },
+      "health": {
+        "ok": "Der aktuelle Status ist fehlerfrei",
+        "networkMissing": "Windows hat keinen aktiven Netzwerkadapter gefunden",
+        "networkIssue": "Der Netzwerkpfad oder die Dienste haben ein Problem",
+        "audioMissing": "Es wurde kein Audio-Eingang oder -Ausgang gefunden",
+        "audioIssue": "Audiodienste haben ein Problem",
+        "usbIssue": "Ein USB-Speichertreiber hat ein Problem",
+        "bluetoothMissing": "Windows kann das Modul Bluetooth nicht finden",
+        "bluetoothIssue": "Beim Bluetooth-Treiber oder -Dienst liegt ein Problem vor",
+        "devicesMissing": "Eine wesentliche Hardwareklasse fehlt",
+        "devicesIssue": "{n} Gerätefehler gefunden"
+      }
+    },
+    "diag": {
+      "bluetooth": {
+        "issue": {
+          "driver_error": "Der Treiber für {name} funktioniert nicht normal",
+          "no_radio": "Kein {adapter} gefunden",
+          "bthserv_not_running": "{service} läuft nicht",
+          "bthserv_status_unknown": "Der Status von {service} kann nicht gelesen werden",
+          "bthserv_disabled": "{service} ist deaktiviert",
+          "bthserv_missing": "{service} wurde nicht gefunden"
+        }
+      },
+      "services": {
+        "title": "Systemdienste",
+        "scan": "Scannen",
+        "desc": "Überprüfen Sie Audio-, Bluetooth-, Plug-and-Play- und netzwerkbezogene Windows-Dienste",
+        "idle": "Klicken Sie auf „Scannen“, um den Dienststatus zu überprüfen",
+        "loading": "Scannen…",
+        "ok": "Dienste fehlerfrei",
+        "warn": "Es wurden Probleme gefunden",
+        "unknown": "Unbekannt",
+        "list": "Dienststatus",
+        "issues": "Probleme",
+        "noIssues": "Keine Probleme",
+        "label": {
+          "audio": "Windows Audio",
+          "audio_endpoint": "Audio Endpoint Builder",
+          "bluetooth": "Bluetooth-Unterstützung",
+          "plugplay": "Plug-and-Play",
+          "dns": "DNS-Client",
+          "dhcp": "DHCP-Client",
+          "network": "Netzwerk-Standorterkennung"
+        },
+        "issue": {
+          "not_running": "{name} läuft nicht (Status={state})",
+          "disabled": "{name} ist deaktiviert",
+          "missing": "{name} nicht gefunden ({service})",
+          "status_unknown": "{name}-Status kann nicht gelesen werden"
+        }
+      },
+      "bsod": {
+        "faultingModule": "Beweise für fehlerhaftes Modul",
+        "debugger": "Debugger-Engine",
+        "failureBucket": "Fehler-Bucket",
+        "stackSummary": "Schlüsselaufrufstapel",
+        "dumpTime": "Aufgetreten um",
+        "rootCause": "Ursachenanalyse",
+        "errorTypeAnalysis": "Fehlertypanalyse",
+        "rootCauseUnknown": "Der Dump enthält keine ausreichenden Debugger-Modul- oder Call-Stack-Beweise, um eine bestimmte Grundursache zu identifizieren.",
+        "moduleEvidenceAnalysis": "WinDbg/DbgEng identifizierte das Modul {module} in !analyze -v und dem Aufrufstapel. Fehlertypkontext: {analysis}",
+        "analysis": {
+          "irql_not_less_or_equal": "Kernel-Modus-Code hat auf ungültigem Speicher auf einer erhöhten Interrupt-Ebene zugegriffen. Zu den häufigsten Kategorien gehören Treiber, instabiler Speicher und Übertaktung.",
+          "kmode_exception_not_handled": "Kernelmoduscode hat eine nicht behandelte Ausnahme ausgelöst. Häufige Kategorien sind Treiber-, Sicherheitssoftware- oder Virtualisierungskonflikte.",
+          "system_service_exception": "Ein Systemdienst hat eine Ausnahme ausgelöst. Beschädigte Treiber oder Systemdateien sind häufige Kategorien.",
+          "page_fault_in_nonpaged_area": "Es wurde auf ungültigen, nicht ausgelagerten Speicher zugegriffen. Mögliche Kategorien sind Treiber-, Speicher- oder Speicherfehler.",
+          "system_thread_exception_not_handled": "Ein Systemthread hat eine nicht behandelte Ausnahme ausgelöst. Grafik-, Speicher- und Netzwerktreiber sind gängige Kategorien.",
+          "kernel_data_inpage_error": "Erforderliche Kerneldaten konnten nicht in den Speicher eingelesen werden. Speichermedien, Verkabelung oder Speichertreiber sind gängige Kategorien.",
+          "driver_irql_not_less_or_equal": "Ein Treiber hat auf einem erhöhten Interrupt-Level auf ungültigen Speicher zugegriffen. Dieser Stoppcode weist auf einen treiberbezogenen Fehlertyp hin, nicht auf einen bestimmten Treiber.",
+          "critical_process_died": "Ein kritischer Systemprozess wurde unerwartet beendet. Treiber, beschädigte Systemdateien, Speicher oder Malware sind mögliche Kategorien.",
+          "critical_structure_corruption": "Kritische Kerneldaten wurden beschädigt. Mögliche Kategorien sind Treiber, Arbeitsspeicher oder Speicherhardware.",
+          "dpc_watchdog_violation": "Ein verzögerter Prozeduraufruf hat sein Zeitlimit überschritten. Häufige Kategorien sind Firmware-, Speicher-, Netzwerk- oder andere Treiberprobleme.",
+          "kernel_security_check_failure": "Eine Kernel-Integritätsprüfung ist fehlgeschlagen. Mögliche Kategorien sind unzulässiger Treiberzugriff oder beschädigter Speicher.",
+          "driver_power_state_failure": "Ein Gerät hat den Energiezustandsübergang nicht abgeschlossen. Schlaf-, Wach-, USB-, Grafik- oder andere Gerätetreiber sind gängige Kategorien.",
+          "unknown": "Es wurde ein Absturzspeicherauszug aufgezeichnet, die verfügbaren Stoppcode-Informationen reichen jedoch nicht aus, um den Fehler genauer zu klassifizieren."
+        },
+        "confidence": {
+          "module": "Der Bluescreen-Datensatz identifiziert ein Modul, das mit dem Absturz in Zusammenhang steht, daher ist die Zuverlässigkeit relativ hoch.",
+          "code": "Der Fehlertyp ist bekannt, aber eine bestimmte Treiber- oder Hardwareursache ist noch nicht bestätigt.",
+          "limited": "Der verfügbare Datensatz ist begrenzt, sodass eine bestimmte Ursache noch nicht bestätigt werden kann."
+        },
+        "repairs": "Empfohlene Systemprüfungen",
+        "noFixes": "Es ist keine automatische Reparatur verfügbar",
+        "runRepairs": "Führen Sie die empfohlenen Systemprüfungen aus",
+        "historicalRepairHint": "Dies ist ein historischer Dump. Diese Aktionen überprüfen das aktuelle System; Sie können nicht nachweisen, dass die ursprüngliche Absturzursache behoben wurde.",
+        "adminRequired": "DISM, SFC, CHKDSK und das erneute Scannen von Geräten erfordern Administratorrechte. Führen Sie ZeroTick als Administrator aus und versuchen Sie es erneut.",
+        "repairing": "Reparatur…",
+        "repairingHint": "Systemreparaturen werden nacheinander ausgeführt. Dies kann mehrere Minuten dauern; Lass die App geöffnet.",
+        "noRepairResults": "Es wurde kein Reparaturergebnis zurückgegeben",
+        "repairComplete": "BSOD Reparatur-Workflow abgeschlossen",
+        "fix": {
+          "scan_devices": "Plug-and-Play-Geräte erneut scannen und fehlerhaften Gerätestatus aktualisieren",
+          "check_image": "Reparieren Sie den Komponentenspeicher Windows mit DISM",
+          "chkdsk_scan": "Dateisystemfehler auf dem Systemlaufwerk scannen und reparieren",
+          "sfc_verify": "Scannen und reparieren Sie beschädigte Systemdateien mit SFC",
+          "review_faulting_driver": "Aktualisieren oder setzen Sie den durch WinDbg identifizierten Treiber zurück, nachdem Sie sein Gerät und seinen Hersteller bestätigt haben"
+        }
+      },
+      "repair": {
+        "desc": "Diagnostizieren Sie verwandte Dienste, stellen Sie nur abnormale Elemente wieder her und überprüfen Sie die USB-Energiekonfiguration",
+        "idle": "Gesunde Dienste bleiben unverändert; Es werden nur gestoppte oder ausstehende Dienste wiederhergestellt",
+        "loading": "Diagnose und Wiederherstellung im Hintergrund…",
+        "adminHint": "Für die Wiederherstellung eines abnormalen Dienstes sind möglicherweise Administratorrechte erforderlich",
+        "repaired": "Dienste wiederhergestellt",
+        "noneRepaired": "Keine Servicewiederherstellung erforderlich",
+        "healthy": "Bereits gesund",
+        "noneHealthy": "Kein fehlerfreies Dienstergebnis",
+        "usbConfig": "USB Energiekonfiguration",
+        "usbConfigItem": "{device} · Instanz {instance} · {count}-Schnittstelle(n) verwenden erweiterte Energieverwaltung",
+        "noUsbConfig": "Keine erweiterte USB Energieverwaltungskonfiguration gefunden",
+        "summary": {
+          "ok_clean": "Diagnose abgeschlossen; Die Dienste sind fehlerfrei und keine USB-Energiekonfiguration erfordert Aufmerksamkeit",
+          "ok_power_configs": "Prüfung abgeschlossen: {n} USB-Gerät(e) verwenden Energiespareinstellungen, die die Stabilität beeinträchtigen können",
+          "needs_admin": "Ein Dienst konnte nicht wiederhergestellt werden – führen Sie ZeroTick als Administrator aus",
+          "usb_scan_error": "Dienstdiagnose abgeschlossen, aber die USB-Konfigurationsprüfung ist fehlgeschlagen",
+          "service_errors": "{n}-Dienstwiederherstellungsvorgänge sind fehlgeschlagen",
+          "unknown": "Der Vorgang wurde beendet; Überprüfen Sie den aktuellen Status"
+        }
+      }
+    },
+    "ports": {
+      "sort": "Sortieren",
+      "sortPort": "Nach Hafen",
+      "sortCategory": "Nach Kategorie",
+      "sortReleasable": "Zuerst lösbar",
+      "releaseConn": "Verbindung löschen",
+      "message": {
+        "time_wait_releasable": "Restverbindung – manuelle Freigabe kann versucht werden (Administrator)",
+        "residual_releasable": "Halbgeschlossene Verbindung – manuelle Freigabe kann versucht werden"
+      }
+    },
+    "settings": {
+      "bluetoothPollHint": "Hintergrundintervall zur Überprüfung von Adapter- und Verbindungsänderungen",
+      "fullScanTimeout": "Zeitüberschreitung beim vollständigen Scan des Elements",
+      "fullScanTimeoutHint": "Maximale Wartezeit für jedes Modul während einer vollständigen Integritätsprüfung",
+      "systemQueryTimeout": "Windows Abfrage-Timeout",
+      "systemQueryTimeoutHint": "Wird von Netzwerk-, Audio-, USB-, Geräte- und Dienstscans verwendet",
+      "networkTestTimeout": "Zeitüberschreitung beim Netzwerktest",
+      "networkTestTimeoutHint": "Maximale Wartezeit für die Verbindung zum Testserver und das Herunterladen von Beispieldaten",
+      "bsodDebuggerTimeout": "BSOD Analyse-Timeout",
+      "bsodDebuggerTimeoutHint": "Maximale Zeit, die WinDbg für die Analyse eines Dumps verwenden darf",
+      "closeToTray": "Beim Schließen des Hauptfensters",
+      "closeToTrayOn": "Auf Fach minimieren (weiterführen)",
+      "closeToTrayOff": "Anwendung vollständig beenden",
+      "runAsAdmin": "Als Administrator ausführen",
+      "advancedDisplay": "Erweiterter Modus",
+      "advancedDisplayHint": "Scan-Optimierung, Geräteinstanzen, PIDs, Dienststatus, Rohfehler und Debugger-Beweise anzeigen"
+    },
+    "events": {
+      "category": {
+        "usb": "USB",
+        "bluetooth": "Bluetooth",
+        "unknown": "Unbekannt"
+      },
+      "msg": {
+        "transient": "Das Gerät wurde kurzzeitig getrennt und innerhalb von {ms} ms wiederhergestellt",
+        "reconnect": "Das Gerät wurde nach einer {ms} ms-Trennung wiederhergestellt",
+        "arrival": "Das Gerät ist verbunden",
+        "remove": "Die Verbindung zum Gerät wurde getrennt",
+        "unknown": "Der Gerätestatus hat sich geändert"
+      }
+    },
+    "toast": {
+      "saveFailed": "Die Einstellungen wurden nicht gespeichert. Bitte versuchen Sie es erneut.",
+      "clearFailed": "Der Verlauf wurde nicht gelöscht. Bitte versuchen Sie es erneut.",
+      "repairFailed": "Die Reparatur wurde nicht abgeschlossen. Versuchen Sie es erneut oder starten Sie ZeroTick als Administrator, falls der Fehler weiterhin auftritt.",
+      "elevateFailed": "ZeroTick konnte nicht als Administrator neu gestartet werden. Klicken Sie mit der rechten Maustaste darauf und wählen Sie Als Administrator ausführen.",
+      "exportComplete": "Historie exportiert",
+      "transientSimple": "{name} hat die Verbindung kurzzeitig getrennt und wurde wiederhergestellt",
+      "bsodSimple": "Es wurde ein aktueller Bluescreen-Eintrag gefunden. Öffnen Sie das BSOD-Panel für die Analyse und die nächsten Schritte.",
+      "processEnded": "Das Programm wurde über diesen Port beendet",
+      "speedResult": "Geschwindigkeit {speed} Mbit/s ({ms} ms)",
+      "speedResultSimple": "Die aktuelle Download-Geschwindigkeit beträgt etwa {speed} Mbit/s",
+      "dnsFlushed": "DNS-Cache geleert",
+      "repairDone": "Reparatur abgeschlossen",
+      "audioDefault": "Standard-Audioausgabe aktualisiert",
+      "audioInputDefault": "Standardmikrofon aktualisiert",
+      "audioMode": "Audio-Exklusivmodus aktualisiert",
+      "usbEjected": "Ausgeworfen {letter}:",
+      "btReconnect": "Bluetooth erneuter Verbindungsversuch",
+      "btRemoved": "Bluetooth-Gerät entfernt",
+      "connReleased": "Restverbindung gelöscht"
+    },
+    "errors": {
+      "tauriTimeout": "Zeitüberschreitung beim Tauri IPC. Versuchen Sie es erneut oder starten Sie die App neu.",
+      "notTauri": "Run with npm run tauri dev – Öffnen Sie die Vite-URL nicht in einem Browser.",
+      "exportCancelled": "Export abgebrochen",
+      "operationFailed": "Der Vorgang wurde nicht abgeschlossen. Bitte versuchen Sie es erneut.",
+      "detectionFailed": "Die Prüfung wurde nicht abgeschlossen. Wiederholen; Wenn es weiterhin fehlschlägt, aktivieren Sie den erweiterten Modus, um die Ursache zu ermitteln.",
+      "permissionDenied": "Windows hat diesen Vorgang abgelehnt. Führen Sie ZeroTick als Administrator aus und versuchen Sie es erneut.",
+      "timeout": "Windows hat zu lange gedauert, um zu antworten. Versuchen Sie es erneut oder starten Sie den PC bei Bedarf neu.",
+      "technicalContext": "Operation: {context}",
+      "rawDetail": "Rohfehler"
+    }
+  }
+};

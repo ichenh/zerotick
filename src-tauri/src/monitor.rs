@@ -20,11 +20,10 @@ use windows::Win32::Foundation::{HANDLE, HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, DispatchMessageW, GetMessageW, PostQuitMessage,
-    RegisterClassW, RegisterDeviceNotificationW, TranslateMessage, UnregisterClassW,
-    WM_DEVICECHANGE, WM_DESTROY, WNDCLASSW, CS_HREDRAW, CS_VREDRAW, DBT_DEVICEARRIVAL,
-    DBT_DEVICEREMOVECOMPLETE, DBT_DEVTYP_DEVICEINTERFACE, DEV_BROADCAST_DEVICEINTERFACE_W,
-    DEV_BROADCAST_HDR, DEVICE_NOTIFY_WINDOW_HANDLE, HWND_MESSAGE, WINDOW_EX_STYLE,
-    WINDOW_STYLE,
+    RegisterClassW, RegisterDeviceNotificationW, TranslateMessage, UnregisterClassW, CS_HREDRAW,
+    CS_VREDRAW, DBT_DEVICEARRIVAL, DBT_DEVICEREMOVECOMPLETE, DBT_DEVTYP_DEVICEINTERFACE,
+    DEVICE_NOTIFY_WINDOW_HANDLE, DEV_BROADCAST_DEVICEINTERFACE_W, DEV_BROADCAST_HDR, HWND_MESSAGE,
+    WINDOW_EX_STYLE, WINDOW_STYLE, WM_DESTROY, WM_DEVICECHANGE, WNDCLASSW,
 };
 
 const CLASS_NAME: PCWSTR = windows::core::w!("ZeroTickDeviceMonitor");
@@ -86,7 +85,13 @@ fn push_event(
 ) {
     let category_code = category.as_str().to_string();
     let friendly_name = device_name::resolve(&device_path, vid_pid.as_deref());
-    let message = build_message(event_type, &category_code, &friendly_name, &vid_pid, disconnect_ms);
+    let message = build_message(
+        event_type,
+        &category_code,
+        &friendly_name,
+        &vid_pid,
+        disconnect_ms,
+    );
 
     if let Some(app) = APP_HANDLE.get() {
         tray::set_level(app, tray_level, tray_reason_id);
@@ -232,7 +237,7 @@ unsafe extern "system" fn device_wnd_proc(
             LRESULT(0)
         }
         WM_DESTROY => {
-            let _ = PostQuitMessage(0);
+            PostQuitMessage(0);
             LRESULT(0)
         }
         _ => DefWindowProcW(hwnd, msg, wparam, lparam),
@@ -273,8 +278,7 @@ unsafe fn handle_device_change(wparam: WPARAM, lparam: LPARAM) {
             };
             if let Some(elapsed) = guard.record_arrival(&path) {
                 let ms = elapsed.as_millis() as u64;
-                let threshold =
-                    Duration::from_millis(settings::get().transient_threshold_ms);
+                let threshold = Duration::from_millis(settings::get().transient_threshold_ms);
                 if is_transient_disconnect(elapsed, threshold) {
                     logging::critical(format!("[瞬断] {path} — {ms}ms"));
                     push_event(

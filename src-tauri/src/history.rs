@@ -67,8 +67,9 @@ pub fn export_json() -> Result<String, String> {
 /// 导出为 CSV 字符串
 pub fn export_csv() -> Result<String, String> {
     let items = list();
-    let mut out =
-        String::from("timestamp,event_type,category,friendly_name,vid_pid,disconnect_ms,device_path,message\n");
+    let mut out = String::from(
+        "timestamp,event_type,category,friendly_name,vid_pid,disconnect_ms,device_path,message\n",
+    );
     for e in &items {
         out.push_str(&format!(
             "{},{},{},{},{},{},{},{}\n",
@@ -90,16 +91,6 @@ fn csv_cell(value: &str) -> String {
         format!("\"{}\"", value.replace('"', "\"\""))
     } else {
         value.to_string()
-    }
-}
-
-#[cfg(test)]
-mod export_tests {
-    use super::csv_cell;
-
-    #[test]
-    fn csv_escapes_commas() {
-        assert_eq!(csv_cell("a,b"), "\"a,b\"");
     }
 }
 
@@ -127,8 +118,18 @@ impl HistoryStore {
     }
 
     fn save_inner(&self, entries: &[DeviceEvent]) -> Result<(), String> {
-        let json = serde_json::to_string_pretty(entries)
-            .map_err(|e| format!("序列化历史失败: {e}"))?;
+        let json =
+            serde_json::to_string_pretty(entries).map_err(|e| format!("序列化历史失败: {e}"))?;
         fs::write(&self.path, json).map_err(|e| format!("写入历史失败: {e}"))
+    }
+}
+
+#[cfg(test)]
+mod export_tests {
+    use super::csv_cell;
+
+    #[test]
+    fn csv_escapes_commas() {
+        assert_eq!(csv_cell("a,b"), "\"a,b\"");
     }
 }

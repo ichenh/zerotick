@@ -38,7 +38,10 @@ pub fn init(log_path: PathBuf) -> io::Result<PathBuf> {
         .open(&log_path)?;
     let _ = LOG_FILE.set(Mutex::new(file));
     enable_vt_mode();
-    info(format!("ZeroTick 日志系统已初始化 → {}", log_path.display()));
+    info(format!(
+        "ZeroTick 日志系统已初始化 → {}",
+        log_path.display()
+    ));
     Ok(log_path)
 }
 

@@ -73,9 +73,15 @@ jobs:
         if: steps.gate.outputs.skip != 'true'
         run: node scripts/ensure-icons.mjs
 
+      - name: Validate release metadata
+        if: steps.gate.outputs.skip != 'true'
+        run: npm run check:release
+
       - name: Test
         if: steps.gate.outputs.skip != 'true'
-        run: cargo test --manifest-path src-tauri/Cargo.toml
+        run: |
+          cargo test --manifest-path src-tauri/Cargo.toml
+          cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 
       - name: Build installers (Tauri)
         if: steps.gate.outputs.skip != 'true'

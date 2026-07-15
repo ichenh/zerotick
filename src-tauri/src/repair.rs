@@ -1,47 +1,49 @@
 //! Task 4：自动化一键修复
 
 use crate::utils::logging;
+use serde::Serialize;
+use std::collections::BTreeMap;
 use std::path::Path;
 use windows::core::PCWSTR;
 use windows::Win32::System::Registry::{
-    RegCloseKey, RegEnumKeyExW, RegOpenKeyExW, RegQueryValueExW, HKEY, HKEY_LOCAL_MACHINE,
-    KEY_READ,
+    RegCloseKey, RegEnumKeyExW, RegOpenKeyExW, RegQueryValueExW, HKEY, HKEY_LOCAL_MACHINE, KEY_READ,
 };
 use windows::Win32::System::Services::{
-    CloseServiceHandle, ControlService, OpenSCManagerW, OpenServiceW, QueryServiceStatusEx,
-    StartServiceW, SC_MANAGER_CONNECT, SC_STATUS_PROCESS_INFO, SERVICE_CONTROL_STOP,
-    SERVICE_QUERY_STATUS, SERVICE_START, SERVICE_STATUS, SERVICE_STATUS_PROCESS, SERVICE_STOP,
-    SERVICE_STOPPED, SERVICE_RUNNING,
+    CloseServiceHandle, OpenSCManagerW, OpenServiceW, QueryServiceStatusEx, StartServiceW,
+    SC_MANAGER_CONNECT, SC_STATUS_PROCESS_INFO, SERVICE_CONTINUE_PENDING, SERVICE_PAUSED,
+    SERVICE_PAUSE_PENDING, SERVICE_QUERY_STATUS, SERVICE_RUNNING, SERVICE_START,
+    SERVICE_START_PENDING, SERVICE_STATUS_CURRENT_STATE, SERVICE_STATUS_PROCESS, SERVICE_STOPPED,
+    SERVICE_STOP_PENDING,
 };
 
-const TARGET_SERVICES: &[&str] = &["bthserv", "Audiosrv"];
+use crate::services;
 
 #[derive(Debug, Default)]
 pub struct RepairReport {
     pub services_restarted: Vec<String>,
+    pub services_healthy: Vec<String>,
     pub service_errors: Vec<String>,
-    pub usb_hubs_with_power_mgmt: Vec<String>,
+    pub usb_power_configs: Vec<UsbPowerConfig>,
     pub power_scan_error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct UsbPowerConfig {
+    pub device_id: String,
+    pub instance_group: String,
+    pub interface_count: usize,
 }
 
 pub fn run_auto_repair() -> windows::core::Result<RepairReport> {
     let mut report = RepairReport::default();
     logging::info("── 开始自动修复 ──");
-    for name in TARGET_SERVICES {
-        match restart_service(name) {
-            Ok(()) => {
-                logging::info(format!("  ✓ 服务 {name} 已重启"));
-                report.services_restarted.push(name.to_string());
-            }
-            Err(e) => {
-                logging::error(format!("  ✗ 服务 {name} 重启失败: {e}"));
-                report.service_errors.push(format!("{name}: {e}"));
-            }
-        }
-    }
+    let service_result = repair_services(&services::all_repair_targets());
+    report.services_restarted = service_result.repaired;
+    report.services_healthy = service_result.healthy;
+    report.service_errors = service_result.errors;
     match scan_usb_power_management() {
-        Ok(hubs) => {
-            report.usb_hubs_with_power_mgmt = hubs;
+        Ok(configs) => {
+            report.usb_power_configs = configs;
         }
         Err(e) => {
             report.power_scan_error = Some(format!("{e}"));
@@ -49,6 +51,37 @@ pub fn run_auto_repair() -> windows::core::Result<RepairReport> {
     }
     logging::info("── 自动修复完成 ──");
     Ok(report)
+}
+
+/// 重启指定服务列表，返回 (成功, 失败消息)
+pub fn restart_services(names: &[&str]) -> (Vec<String>, Vec<String>) {
+    let result = repair_services(names);
+    (result.repaired, result.errors)
+}
+
+#[derive(Debug, Default)]
+struct ServiceRepairResult {
+    repaired: Vec<String>,
+    healthy: Vec<String>,
+    errors: Vec<String>,
+}
+
+fn repair_services(names: &[&str]) -> ServiceRepairResult {
+    let mut result = ServiceRepairResult::default();
+    for name in names {
+        match ensure_service_running(name) {
+            Ok(false) => result.healthy.push((*name).to_string()),
+            Ok(true) => {
+                logging::info(format!("服务 {name} 已恢复运行"));
+                result.repaired.push((*name).to_string());
+            }
+            Err(error) => {
+                logging::error(format!("服务 {name} 修复失败: {error}"));
+                result.errors.push(format!("{name}: {error}"));
+            }
+        }
+    }
+    result
 }
 
 /// 判断服务错误是否由权限不足引起
@@ -68,13 +101,13 @@ pub fn build_summary_meta(
     needs_admin: bool,
     report: &RepairReport,
 ) -> (String, Option<usize>) {
-    if success && report.usb_hubs_with_power_mgmt.is_empty() {
+    if success && report.usb_power_configs.is_empty() {
         return ("ok_clean".into(), None);
     }
-    if success && !report.usb_hubs_with_power_mgmt.is_empty() {
+    if success && !report.usb_power_configs.is_empty() {
         return (
-            "ok_usb_warnings".into(),
-            Some(report.usb_hubs_with_power_mgmt.len()),
+            "ok_power_configs".into(),
+            Some(report.usb_power_configs.len()),
         );
     }
     if needs_admin {
@@ -83,68 +116,142 @@ pub fn build_summary_meta(
     if report.service_errors.is_empty() {
         return ("usb_scan_error".into(), None);
     }
-    (
-        "service_errors".into(),
-        Some(report.service_errors.len()),
-    )
+    ("service_errors".into(), Some(report.service_errors.len()))
 }
 
-fn restart_service(service_name: &str) -> windows::core::Result<()> {
+fn ensure_service_running(service_name: &str) -> windows::core::Result<bool> {
     unsafe {
         let scm = OpenSCManagerW(None, None, SC_MANAGER_CONNECT)?;
         let wide_name: Vec<u16> = service_name
             .encode_utf16()
             .chain(std::iter::once(0))
             .collect();
-        let service = OpenServiceW(
+        let query_service =
+            match OpenServiceW(scm, PCWSTR(wide_name.as_ptr()), SERVICE_QUERY_STATUS) {
+                Ok(service) => service,
+                Err(error) => {
+                    let _ = CloseServiceHandle(scm);
+                    return Err(error);
+                }
+            };
+        let status_result = (|| {
+            let status = query_service_status(query_service)?;
+            if status.dwCurrentState == SERVICE_RUNNING {
+                return Ok(Some(false));
+            }
+            if matches!(
+                status.dwCurrentState,
+                SERVICE_START_PENDING | SERVICE_CONTINUE_PENDING
+            ) {
+                wait_for_service_state(query_service, SERVICE_RUNNING)?;
+                return Ok(Some(true));
+            }
+            if matches!(
+                status.dwCurrentState,
+                SERVICE_STOP_PENDING | SERVICE_PAUSE_PENDING
+            ) {
+                wait_for_service_state(query_service, SERVICE_STOPPED)?;
+            } else if status.dwCurrentState == SERVICE_PAUSED {
+                return Err(windows::core::Error::new(
+                    windows::core::HRESULT::from_win32(
+                        windows::Win32::Foundation::ERROR_INVALID_STATE.0,
+                    ),
+                    "服务处于暂停状态，未执行破坏性重启",
+                ));
+            }
+            Ok(None)
+        })();
+        let _ = CloseServiceHandle(query_service);
+        match status_result {
+            Ok(Some(done)) => {
+                let _ = CloseServiceHandle(scm);
+                return Ok(done);
+            }
+            Err(error) => {
+                let _ = CloseServiceHandle(scm);
+                return Err(error);
+            }
+            Ok(None) => {}
+        }
+
+        let service = match OpenServiceW(
             scm,
             PCWSTR(wide_name.as_ptr()),
-            SERVICE_STOP | SERVICE_START | SERVICE_QUERY_STATUS,
-        )?;
-        let mut status = SERVICE_STATUS::default();
-        let _ = ControlService(service, SERVICE_CONTROL_STOP, &mut status);
-        wait_for_service_state(service, SERVICE_STOP, 10_000)?;
-        StartServiceW(service, None)?;
-        wait_for_service_state(service, SERVICE_START, 10_000)?;
-        CloseServiceHandle(service)?;
-        CloseServiceHandle(scm)?;
+            SERVICE_START | SERVICE_QUERY_STATUS,
+        ) {
+            Ok(service) => service,
+            Err(error) => {
+                let _ = CloseServiceHandle(scm);
+                return Err(error);
+            }
+        };
+        let result = (|| {
+            if query_service_status(service)?.dwCurrentState == SERVICE_RUNNING {
+                return Ok(true);
+            }
+            StartServiceW(service, None)?;
+            wait_for_service_state(service, SERVICE_RUNNING)?;
+            Ok(true)
+        })();
+        let _ = CloseServiceHandle(service);
+        let _ = CloseServiceHandle(scm);
+        result
     }
-    Ok(())
+}
+
+unsafe fn query_service_status(
+    service: windows::Win32::System::Services::SC_HANDLE,
+) -> windows::core::Result<SERVICE_STATUS_PROCESS> {
+    let mut status = SERVICE_STATUS_PROCESS::default();
+    let mut bytes_needed = 0u32;
+    let buf = std::slice::from_raw_parts_mut(
+        (&mut status as *mut SERVICE_STATUS_PROCESS).cast::<u8>(),
+        std::mem::size_of::<SERVICE_STATUS_PROCESS>(),
+    );
+    QueryServiceStatusEx(
+        service,
+        SC_STATUS_PROCESS_INFO,
+        Some(buf),
+        &mut bytes_needed,
+    )?;
+    Ok(status)
 }
 
 unsafe fn wait_for_service_state(
     service: windows::Win32::System::Services::SC_HANDLE,
-    target_state: u32,
-    timeout_ms: u32,
+    desired: SERVICE_STATUS_CURRENT_STATE,
 ) -> windows::core::Result<()> {
-    let deadline = std::time::Instant::now() + std::time::Duration::from_millis(timeout_ms as u64);
-    let desired = if target_state == SERVICE_STOP {
-        SERVICE_STOPPED
-    } else {
-        SERVICE_RUNNING
-    };
+    let absolute_deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+    let mut last_checkpoint = 0;
+    let mut last_progress = std::time::Instant::now();
     loop {
-        let mut status = SERVICE_STATUS_PROCESS::default();
-        let mut bytes_needed = 0u32;
-        let mut buf = std::slice::from_raw_parts_mut(
-            (&mut status as *mut SERVICE_STATUS_PROCESS).cast::<u8>(),
-            std::mem::size_of::<SERVICE_STATUS_PROCESS>(),
-        );
-        QueryServiceStatusEx(service, SC_STATUS_PROCESS_INFO, Some(&mut buf), &mut bytes_needed)?;
+        let status = query_service_status(service)?;
         if status.dwCurrentState == desired {
             return Ok(());
         }
-        if std::time::Instant::now() >= deadline {
+        if status.dwCheckPoint > last_checkpoint {
+            last_checkpoint = status.dwCheckPoint;
+            last_progress = std::time::Instant::now();
+        }
+        let wait_hint_ms = if status.dwWaitHint == 0 {
+            10_000
+        } else {
+            status.dwWaitHint.clamp(1_000, 30_000)
+        };
+        let wait_hint = std::time::Duration::from_millis(wait_hint_ms as u64);
+        if std::time::Instant::now() >= absolute_deadline || last_progress.elapsed() > wait_hint {
             return Err(windows::core::Error::new(
                 windows::core::HRESULT::from_win32(windows::Win32::Foundation::ERROR_TIMEOUT.0),
-                "等待服务状态变更超时",
+                format!("服务未在预期时间内进入状态 {}", desired.0),
             ));
         }
-        std::thread::sleep(std::time::Duration::from_millis(200));
+        std::thread::sleep(std::time::Duration::from_millis(
+            (status.dwWaitHint / 10).clamp(100, 1_000) as u64,
+        ));
     }
 }
 
-fn scan_usb_power_management() -> windows::core::Result<Vec<String>> {
+fn scan_usb_power_management() -> windows::core::Result<Vec<UsbPowerConfig>> {
     let mut results = Vec::new();
     unsafe {
         let mut usb_key = HKEY::default();
@@ -159,13 +266,13 @@ fn scan_usb_power_management() -> windows::core::Result<Vec<String>> {
         scan_registry_tree(usb_key, Path::new("HKLM\\Enum\\USB"), &mut results)?;
         let _ = RegCloseKey(usb_key);
     }
-    Ok(results)
+    Ok(group_usb_power_nodes(results))
 }
 
 unsafe fn scan_registry_tree(
     key: HKEY,
     path_prefix: &Path,
-    results: &mut Vec<String>,
+    results: &mut Vec<(String, String)>,
 ) -> windows::core::Result<()> {
     let mut index = 0u32;
     loop {
@@ -194,11 +301,12 @@ unsafe fn scan_registry_tree(
         }
         if let Some(val) = read_dword_value(sub_key, "Device Parameters") {
             if val == 1 {
-                results.push(format!(
-                    "{}\\{} (EnhancedPowerManagementEnabled=1)",
-                    path_prefix.display(),
-                    sub_name
-                ));
+                let hardware_id = path_prefix
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .unwrap_or("USB")
+                    .to_string();
+                results.push((hardware_id, sub_name.clone()));
             }
         }
         let sub_path = path_prefix.join(&sub_name);
@@ -206,6 +314,33 @@ unsafe fn scan_registry_tree(
         let _ = RegCloseKey(sub_key);
     }
     Ok(())
+}
+
+fn group_usb_power_nodes(nodes: Vec<(String, String)>) -> Vec<UsbPowerConfig> {
+    let mut grouped: BTreeMap<(String, String), usize> = BTreeMap::new();
+    for (hardware_id, instance_id) in nodes {
+        let device_id = hardware_id
+            .split("&MI_")
+            .next()
+            .unwrap_or(&hardware_id)
+            .to_string();
+        let mut parts: Vec<&str> = instance_id.split('&').collect();
+        if parts.len() > 3 {
+            parts.pop();
+        }
+        let instance_group = parts.join("&");
+        *grouped.entry((device_id, instance_group)).or_default() += 1;
+    }
+    grouped
+        .into_iter()
+        .map(
+            |((device_id, instance_group), interface_count)| UsbPowerConfig {
+                device_id,
+                instance_group,
+                interface_count,
+            },
+        )
+        .collect()
 }
 
 unsafe fn read_dword_value(key: HKEY, sub_path: &str) -> Option<u32> {
@@ -231,5 +366,23 @@ unsafe fn read_dword_value(key: HKEY, sub_path: &str) -> Option<u32> {
         Some(data)
     } else {
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::group_usb_power_nodes;
+
+    #[test]
+    fn groups_composite_usb_interfaces_by_device_instance() {
+        let grouped = group_usb_power_nodes(vec![
+            ("VID_046D&PID_C548&MI_00".into(), "9&ABC&0&0000".into()),
+            ("VID_046D&PID_C548&MI_01".into(), "9&ABC&0&0001".into()),
+            ("VID_046D&PID_C548&MI_02".into(), "9&ABC&0&0002".into()),
+        ]);
+        assert_eq!(grouped.len(), 1);
+        assert_eq!(grouped[0].device_id, "VID_046D&PID_C548");
+        assert_eq!(grouped[0].instance_group, "9&ABC&0");
+        assert_eq!(grouped[0].interface_count, 3);
     }
 }

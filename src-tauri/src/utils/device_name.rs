@@ -8,8 +8,8 @@ use windows::Win32::Devices::DeviceAndDriverInstallation::{
     SetupDiDestroyDeviceInfoList, SetupDiGetClassDevsW, SetupDiGetDeviceInterfaceDetailW,
     SetupDiGetDeviceRegistryPropertyW, SetupDiOpenDeviceInterfaceW, DIGCF_ALLCLASSES,
     DIGCF_DEVICEINTERFACE, DIGCF_PRESENT, HDEVINFO, SETUP_DI_GET_CLASS_DEVS_FLAGS,
-    SETUP_DI_REGISTRY_PROPERTY, SP_DEVINFO_DATA, SP_DEVICE_INTERFACE_DATA,
-    SP_DEVICE_INTERFACE_DETAIL_DATA_W, SPDRP_DEVICEDESC, SPDRP_FRIENDLYNAME,
+    SETUP_DI_REGISTRY_PROPERTY, SPDRP_DEVICEDESC, SPDRP_FRIENDLYNAME, SP_DEVICE_INTERFACE_DATA,
+    SP_DEVICE_INTERFACE_DETAIL_DATA_W, SP_DEVINFO_DATA,
 };
 use windows::Win32::System::Registry::{
     RegCloseKey, RegOpenKeyExW, RegQueryValueExW, HKEY, HKEY_LOCAL_MACHINE, KEY_READ, REG_SZ,
@@ -46,7 +46,10 @@ pub fn resolve(device_path: &str, vid_pid: Option<&str>) -> Option<String> {
 /// SetupAPI：通过设备接口路径精确定位到单一设备实例
 fn resolve_via_setupapi(device_path: &str) -> Option<String> {
     unsafe {
-        let path_wide: Vec<u16> = device_path.encode_utf16().chain(std::iter::once(0)).collect();
+        let path_wide: Vec<u16> = device_path
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
         let flags = SETUP_DI_GET_CLASS_DEVS_FLAGS(
             DIGCF_ALLCLASSES.0 | DIGCF_DEVICEINTERFACE.0 | DIGCF_PRESENT.0,
         );
@@ -64,7 +67,8 @@ unsafe fn resolve_setupapi_inner(dev_info: HDEVINFO, path_wide: &[u16]) -> Optio
         ..Default::default()
     };
 
-    SetupDiOpenDeviceInterfaceW(dev_info, PCWSTR(path_wide.as_ptr()), 0, Some(&mut if_data)).ok()?;
+    SetupDiOpenDeviceInterfaceW(dev_info, PCWSTR(path_wide.as_ptr()), 0, Some(&mut if_data))
+        .ok()?;
 
     let mut dev_data = SP_DEVINFO_DATA {
         cbSize: size_of::<SP_DEVINFO_DATA>() as u32,
@@ -163,7 +167,8 @@ fn read_reg_key_name(enum_key_path: &str) -> Option<String> {
             return None;
         }
 
-        let name = read_reg_string(key, "FriendlyName").or_else(|| read_reg_string(key, "DeviceDesc"));
+        let name =
+            read_reg_string(key, "FriendlyName").or_else(|| read_reg_string(key, "DeviceDesc"));
         let _ = RegCloseKey(key);
         name.map(|s| clean_registry_string(&s))
     }
@@ -306,7 +311,8 @@ mod tests {
 
     #[test]
     fn parses_usb_interface_path() {
-        let path = r"\\?\USB#VID_046D&PID_C52B#6&1a2b3c4d&0&1#{a5dcbF10-6530-11d2-901f-00c04fb951ed}";
+        let path =
+            r"\\?\USB#VID_046D&PID_C52B#6&1a2b3c4d&0&1#{a5dcbF10-6530-11d2-901f-00c04fb951ed}";
         let (bus, hw, inst) = parse_interface_path(path).unwrap();
         assert_eq!(bus, "USB");
         assert_eq!(hw, "VID_046D&PID_C52B");

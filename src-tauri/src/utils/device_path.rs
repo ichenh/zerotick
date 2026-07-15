@@ -17,14 +17,6 @@ impl DeviceCategory {
             Self::Unknown => "unknown",
         }
     }
-
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::Usb => "USB外设",
-            Self::Bluetooth => "蓝牙设备/驱动",
-            Self::Unknown => "未知设备",
-        }
-    }
 }
 
 pub fn parse_device_path(path: &str) -> (DeviceCategory, Option<String>) {
@@ -65,7 +57,8 @@ mod tests {
 
     #[test]
     fn classifies_usb_path() {
-        let path = r"\\?\USB#VID_046D&PID_C52B#6&1a2b3c4d&0&1#{a5dcbF10-6530-11d2-901f-00c04fb951ed}";
+        let path =
+            r"\\?\USB#VID_046D&PID_C52B#6&1a2b3c4d&0&1#{a5dcbF10-6530-11d2-901f-00c04fb951ed}";
         let (cat, vid_pid) = parse_device_path(path);
         assert_eq!(cat, DeviceCategory::Usb);
         assert_eq!(vid_pid.as_deref(), Some("VID_046D&PID_C52B"));

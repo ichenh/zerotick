@@ -9,14 +9,10 @@ use windows::Win32::System::Diagnostics::ToolHelp::{
 };
 use windows::Win32::System::Threading::{OpenProcess, TerminateProcess, PROCESS_TERMINATE};
 
-/// 与 vite.config.js / tauri.conf.json devUrl 保持一致
-pub const DEV_SERVER_PORT: u16 = 55555;
-
 #[derive(Debug, Clone, Serialize)]
 pub struct ExcludedRange {
     pub start: u16,
     pub end: u16,
-    pub contains_dev_port: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -28,20 +24,25 @@ pub struct PortEntry {
     pub state: String,
     pub pid: Option<u32>,
     pub process_name: Option<String>,
-    /// releasable | in_use | time_wait | system_reserved | free
+    /// releasable | in_use | time_wait | system_reserved
     pub category: String,
     pub category_label: String,
     pub message_id: String,
     pub can_release: bool,
     pub message: String,
+    /// 排序权重：可解除残留 < 可解除连接 < 普通占用 < 系统保留
+    pub sort_priority: u8,
+    /// 残留连接解除键（local|remote|port|proto）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub connection_key: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct PortScanReport {
-    pub dev_server_port: u16,
     pub excluded_ranges: Vec<ExcludedRange>,
     pub entries: Vec<PortEntry>,
     pub releasable_count: usize,
+    pub residual_releasable_count: usize,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -51,9 +52,21 @@ pub struct ReleaseReport {
 }
 
 pub fn scan() -> Result<PortScanReport, String> {
-    let process_cache = build_process_cache();
-    let excluded = load_excluded_ranges()?;
-    let rows = parse_netstat()?;
+    let (process_cache, excluded, rows) = std::thread::scope(|scope| {
+        let process_task = scope.spawn(build_process_cache);
+        let excluded_task = scope.spawn(load_excluded_ranges);
+        let rows_task = scope.spawn(parse_netstat);
+        let process_cache = process_task
+            .join()
+            .map_err(|_| "进程扫描异常终止".to_string())?;
+        let excluded = excluded_task
+            .join()
+            .map_err(|_| "Windows 保留端口扫描异常终止".to_string())??;
+        let rows = rows_task
+            .join()
+            .map_err(|_| "端口扫描异常终止".to_string())??;
+        Ok::<_, String>((process_cache, excluded, rows))
+    })?;
     let self_pid = std::process::id();
 
     let mut entries: Vec<PortEntry> = rows
@@ -68,61 +81,20 @@ pub fn scan() -> Result<PortScanReport, String> {
             .then(a.pid.unwrap_or(0).cmp(&b.pid.unwrap_or(0)))
     });
 
-    let has_dev_listener = entries.iter().any(|e| {
-        e.port == DEV_SERVER_PORT && e.state.eq_ignore_ascii_case("LISTENING")
-    });
-    if !has_dev_listener && !port_in_excluded(DEV_SERVER_PORT, &excluded) {
-        entries.insert(
-            0,
-            PortEntry {
-                port: DEV_SERVER_PORT,
-                local_address: format!("127.0.0.1:{DEV_SERVER_PORT}"),
-                remote_address: String::new(),
-                protocol: "TCP".into(),
-                state: "FREE".into(),
-                pid: None,
-                process_name: None,
-                category: "free".into(),
-                category_label: "free".into(),
-                message_id: "free".into(),
-                can_release: false,
-                message: "free".into(),
-            },
-        );
-    } else if !has_dev_listener && port_in_excluded(DEV_SERVER_PORT, &excluded) {
-        entries.insert(
-            0,
-            PortEntry {
-                port: DEV_SERVER_PORT,
-                local_address: format!("127.0.0.1:{DEV_SERVER_PORT}"),
-                remote_address: String::new(),
-                protocol: "TCP".into(),
-                state: "BLOCKED".into(),
-                pid: None,
-                process_name: None,
-                category: "system_reserved".into(),
-                category_label: "system_reserved".into(),
-                message_id: "system_reserved".into(),
-                can_release: false,
-                message: "system_reserved".into(),
-            },
-        );
-    }
-
     let releasable_count = entries.iter().filter(|e| e.can_release).count();
+    let residual_releasable_count = entries
+        .iter()
+        .filter(|e| e.can_release && e.connection_key.is_some())
+        .count();
 
     Ok(PortScanReport {
-        dev_server_port: DEV_SERVER_PORT,
         excluded_ranges: excluded
             .iter()
-            .map(|(s, e)| ExcludedRange {
-                start: *s,
-                end: *e,
-                contains_dev_port: *s <= DEV_SERVER_PORT && *e >= DEV_SERVER_PORT,
-            })
+            .map(|(s, e)| ExcludedRange { start: *s, end: *e })
             .collect(),
         entries,
         releasable_count,
+        residual_releasable_count,
     })
 }
 
@@ -155,8 +127,18 @@ pub fn release_all_releasable() -> Result<ReleaseReport, String> {
     let mut seen = HashSet::new();
 
     for entry in report.entries.iter().filter(|e| e.can_release) {
+        if let Some(key) = &entry.connection_key {
+            if !seen.insert(key.clone()) {
+                continue;
+            }
+            match release_connection_key(key) {
+                Ok(()) => released.push(entry.pid.unwrap_or(0)),
+                Err(e) => errors.push(e),
+            }
+            continue;
+        }
         let Some(pid) = entry.pid else { continue };
-        if !seen.insert(pid) {
+        if !seen.insert(format!("pid:{pid}")) {
             continue;
         }
         match release_pid(pid) {
@@ -166,9 +148,33 @@ pub fn release_all_releasable() -> Result<ReleaseReport, String> {
     }
 
     Ok(ReleaseReport {
-        released_pids: released,
+        released_pids: released.into_iter().filter(|p| *p > 0).collect(),
         errors,
     })
+}
+
+pub fn release_connection(connection_key: &str) -> Result<(), String> {
+    release_connection_key(connection_key)
+}
+
+fn release_connection_key(key: &str) -> Result<(), String> {
+    let parts: Vec<&str> = key.splitn(4, '|').collect();
+    if parts.len() < 4 {
+        return Err("无效连接键".into());
+    }
+    let local = parts[0].replace('\'', "''");
+    let remote = parts[1].replace('\'', "''");
+    let port: u16 = parts[2].parse().map_err(|_| "无效端口")?;
+    let proto = parts[3];
+    let state_filter = if proto.eq_ignore_ascii_case("UDP") {
+        ""
+    } else {
+        "-State TimeWait,CloseWait,FinWait2,LastAck"
+    };
+    let script = format!(
+        "Get-NetTCPConnection -LocalAddress '{local}' -LocalPort {port} -RemoteAddress '{remote}' {state_filter} -ErrorAction SilentlyContinue | Remove-NetTCPConnection -Confirm:$false"
+    );
+    crate::utils::powershell::run_void(&script)
 }
 
 #[derive(Debug)]
@@ -190,34 +196,66 @@ fn build_entry(
     let pid_opt = if row.pid == 0 { None } else { Some(row.pid) };
     let process_name = pid_opt.and_then(|p| process_name(p, process_cache));
 
-    let (category, category_label, message_id, can_release, message) = if row
-        .state
-        .eq_ignore_ascii_case("TIME_WAIT")
-    {
-        ("time_wait", "time_wait", "time_wait", false, "time_wait")
-    } else if port_in_excluded(port, excluded) && row.state.eq_ignore_ascii_case("LISTENING") {
-        (
-            "system_reserved",
-            "system_reserved",
-            "system_reserved",
-            false,
-            "system_reserved",
-        )
-    } else if pid_opt == Some(self_pid) {
-        ("in_use", "in_use", "self_app", false, "self_app")
-    } else if let Some(ref name) = process_name {
-        if is_protected_process(name) {
-            ("in_use", "in_use", "protected", false, "protected")
-        } else if is_releasable_process(name, row.pid, self_pid) {
-            ("releasable", "releasable", "releasable", true, "releasable")
+    let (category, category_label, message_id, can_release, message, sort_priority, connection_key) =
+        if row.state.eq_ignore_ascii_case("TIME_WAIT")
+            || row.state.eq_ignore_ascii_case("CLOSE_WAIT")
+            || row.state.eq_ignore_ascii_case("FIN_WAIT_2")
+        {
+            let key = format!("{}|{}|{}|{}", row.local, row.remote, port, row.protocol);
+            (
+                "time_wait",
+                "time_wait",
+                if row.state.eq_ignore_ascii_case("TIME_WAIT") {
+                    "time_wait_releasable"
+                } else {
+                    "residual_releasable"
+                },
+                true,
+                row.state.as_str(),
+                1,
+                Some(key),
+            )
+        } else if port_in_excluded(port, excluded) && row.state.eq_ignore_ascii_case("LISTENING") {
+            (
+                "system_reserved",
+                "system_reserved",
+                "system_reserved",
+                false,
+                "system_reserved",
+                4,
+                None,
+            )
+        } else if pid_opt == Some(self_pid) {
+            ("in_use", "in_use", "self_app", false, "self_app", 3, None)
+        } else if let Some(ref name) = process_name {
+            if is_protected_process(name) {
+                ("in_use", "in_use", "protected", false, "protected", 3, None)
+            } else if is_releasable_process(name, row.pid, self_pid) {
+                (
+                    "releasable",
+                    "releasable",
+                    "releasable",
+                    true,
+                    "releasable",
+                    0,
+                    None,
+                )
+            } else {
+                ("in_use", "in_use", "in_use", false, "in_use", 2, None)
+            }
+        } else if row.state.eq_ignore_ascii_case("LISTENING") {
+            ("in_use", "in_use", "unknown", false, "unknown", 2, None)
         } else {
-            ("in_use", "in_use", "in_use", false, "in_use")
-        }
-    } else if row.state.eq_ignore_ascii_case("LISTENING") {
-        ("in_use", "in_use", "unknown", false, "unknown")
-    } else {
-        ("in_use", "in_use", "other", false, row.state.as_str())
-    };
+            (
+                "in_use",
+                "in_use",
+                "other",
+                false,
+                row.state.as_str(),
+                2,
+                None,
+            )
+        };
 
     PortEntry {
         port,
@@ -232,6 +270,8 @@ fn build_entry(
         message_id: message_id.into(),
         can_release,
         message: message.to_string(),
+        sort_priority,
+        connection_key,
     }
 }
 
@@ -270,9 +310,7 @@ fn is_protected_process(name: &str) -> bool {
 }
 
 fn port_in_excluded(port: u16, ranges: &[(u16, u16)]) -> bool {
-    ranges
-        .iter()
-        .any(|(s, e)| port >= *s && port <= *e)
+    ranges.iter().any(|(s, e)| port >= *s && port <= *e)
 }
 
 fn parse_port(addr: &str) -> Option<u16> {

@@ -33,6 +33,9 @@
   --settings-scrollbar-idle: rgba(90, 90, 90, 0);
   --settings-scrollbar-active: rgba(90, 90, 90, 0.42);
   --settings-scrollbar-fade: 0.65s;
+  --panel-scrollbar-idle: var(--settings-scrollbar-idle);
+  --panel-scrollbar-active: var(--settings-scrollbar-active);
+  --panel-scrollbar-fade: var(--settings-scrollbar-fade);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -149,6 +152,10 @@ input {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .nav-item {
@@ -311,6 +318,18 @@ input {
   flex-shrink: 0;
 }
 
+.toolbar-end {
+  justify-content: flex-end;
+}
+
+.port-toolbar {
+  justify-content: flex-end;
+}
+
+.port-toolbar .btn {
+  min-width: 104px;
+}
+
 /* ── Cards ── */
 .card {
   background: var(--surface);
@@ -411,6 +430,32 @@ input {
   border-color: var(--accent-hover);
 }
 
+.btn-danger,
+.btn-danger-quiet {
+  border-color: color-mix(in srgb, var(--crit) 58%, transparent);
+  color: var(--crit);
+}
+
+.btn-danger {
+  background: var(--crit);
+  border-color: var(--crit);
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--crit) 88%, #000);
+  border-color: color-mix(in srgb, var(--crit) 88%, #000);
+}
+
+.btn-danger-quiet {
+  background: var(--crit-bg);
+}
+
+.btn-danger-quiet:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--crit-bg) 72%, var(--crit));
+}
+
 .btn-sm {
   padding: 4px 10px;
   min-height: 28px;
@@ -424,6 +469,13 @@ input {
   overflow-y: auto;
   margin: 12px -16px -16px;
   border-top: 1px solid var(--stroke);
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--panel-scrollbar-idle) transparent;
+}
+
+.event-list.is-scrolling {
+  scrollbar-color: var(--panel-scrollbar-active) transparent;
 }
 
 .event-list li {
@@ -534,6 +586,13 @@ input {
   gap: 16px;
   overflow-y: auto;
   padding-bottom: 4px;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--panel-scrollbar-idle) transparent;
+}
+
+.diag-grid.is-scrolling {
+  scrollbar-color: var(--panel-scrollbar-active) transparent;
 }
 
 .card-span {
@@ -550,27 +609,424 @@ input {
   line-height: 1.45;
 }
 
+.card-fill > .result-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--panel-scrollbar-idle) transparent;
+}
+
+.card-fill > .result-panel.is-scrolling {
+  scrollbar-color: var(--panel-scrollbar-active) transparent;
+}
+
+/* Native-feeling destructive-operation confirmation */
+.format-dialog {
+  width: min(560px, calc(100vw - 40px));
+  max-height: calc(100vh - 40px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--stroke-strong);
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+}
+
+.format-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(2px);
+}
+
+.format-dialog-form {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+}
+
+.format-dialog-header {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.format-dialog-header h2 {
+  margin-bottom: 5px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.format-dialog-header p,
+.format-field small,
+.format-mode-card small {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.format-target-summary {
+  margin-top: 9px;
+  padding: 7px 9px;
+  color: var(--text);
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.format-warning-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--crit);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.format-mode-group {
+  display: grid;
+  gap: 8px;
+  border: 0;
+}
+
+.format-mode-group legend,
+.format-field > span {
+  margin-bottom: 7px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.format-mode-card {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 11px 12px;
+  border: 1px solid var(--stroke-strong);
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.format-mode-card:hover {
+  background: var(--surface-hover);
+}
+
+.format-mode-card.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.format-mode-card-danger.is-selected {
+  border-color: var(--crit);
+  background: var(--crit-bg);
+}
+
+.format-mode-card input {
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.format-mode-card span,
+.format-field {
+  display: grid;
+  gap: 3px;
+}
+
+.format-field-grid {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(190px, 1.2fr);
+  gap: 12px;
+}
+
+.format-text-input {
+  min-height: 34px;
+  padding: 6px 9px;
+  background: var(--surface);
+  border: 1px solid var(--stroke-strong);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+.format-text-input:focus,
+.format-dialog .field-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.format-danger-notice {
+  padding: 10px 12px;
+  color: var(--crit);
+  background: var(--crit-bg);
+  border-left: 3px solid var(--crit);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.format-backup-check {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.format-backup-check input {
+  margin-top: 2px;
+  accent-color: var(--crit);
+}
+
+.format-letter-confirm[hidden],
+.format-danger-notice[hidden] {
+  display: none;
+}
+
+.format-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+@media (max-width: 600px) {
+  .format-field-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.health-overview {
+  flex-shrink: 0;
+  margin-bottom: 12px;
+  border: 1px solid var(--stroke-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.health-scan-progress {
+  padding: 18px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.health-overview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--stroke);
+}
+
+.health-overview-head > div {
+  display: grid;
+  gap: 2px;
+}
+
+.health-overview-head span { color: var(--text-secondary); font-size: 11px; }
+.health-overview-head strong { font-size: 14px; font-weight: 600; }
+
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.health-item {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr);
+  gap: 9px;
+  padding: 12px 14px;
+  border-right: 1px solid var(--stroke);
+}
+
+.health-item:last-child { border-right: 0; }
+.health-item > div { display: grid; gap: 3px; min-width: 0; }
+.health-item strong { font-size: 12px; font-weight: 600; }
+.health-item small { color: var(--text-secondary); font-size: 11px; line-height: 1.4; }
+
+.health-dot {
+  width: 7px;
+  height: 7px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+}
+
+.health-dot-ok { background: var(--ok); }
+.health-dot-warn { background: var(--warn); }
+.health-dot-crit { background: var(--crit); }
+
 .result-panel.result-idle {
   border-style: dashed;
 }
 
 .result-panel.result-loading {
   border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.advanced-only {
+  display: none !important;
+}
+
+html.show-advanced .advanced-only {
+  display: revert !important;
+}
+
+html.show-advanced .advanced-inline {
+  display: inline !important;
+}
+
+.diagnosis-guide {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.8fr);
+  gap: 20px;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--stroke);
+  border-left-width: 3px;
+  border-radius: var(--radius);
+  background: var(--bg-subtle);
+}
+
+.diagnosis-guide-ok { border-left-color: var(--ok); }
+.diagnosis-guide-warn { border-left-color: var(--warn); }
+.diagnosis-guide-crit { border-left-color: var(--crit); }
+
+.diagnosis-guide-kicker {
+  margin-bottom: 4px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.diagnosis-guide h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.diagnosis-guide p {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.diagnosis-actions {
+  border-left: 1px solid var(--stroke);
+  padding-left: 18px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.diagnosis-actions > span {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.diagnosis-actions ol {
+  margin: 7px 0 0;
+  padding-left: 18px;
+  line-height: 1.55;
+}
+
+.repair-verdict {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  font-size: 12px;
+}
+
+.repair-verdict.ok { border-left: 3px solid var(--ok); }
+.repair-verdict.warn { border-left: 3px solid var(--warn); }
+
+.technical-details {
+  margin-top: 14px;
+  border-top: 1px solid var(--stroke);
+  padding-top: 10px;
+}
+
+.technical-details > summary {
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.technical-error {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  max-height: 180px;
+  overflow: auto;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.device-class-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.device-class-tile {
+  display: grid;
+  gap: 5px;
+  padding: 11px 12px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.device-class-tile strong {
+  color: var(--text);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.field-label-wrap {
+  display: grid;
+  gap: 2px;
+}
+
+.field-help {
+  max-width: 420px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .result-panel.result-ok {
-  border-color: var(--ok);
-  background: var(--ok-bg);
+  border-color: transparent;
+  background: transparent;
 }
 
 .result-panel.result-warn {
-  border-color: var(--warn);
-  background: var(--warn-bg);
+  border-color: transparent;
+  background: transparent;
 }
 
 .result-panel.result-crit {
-  border-color: var(--crit);
-  background: var(--crit-bg);
+  border-color: transparent;
+  background: transparent;
 }
 
 .result-empty {
@@ -680,6 +1136,474 @@ input {
   font-size: 13px;
 }
 
+.bsod-root-cause {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.bsod-confidence {
+  margin-top: 6px;
+}
+
+.bsod-fix-list {
+  margin-bottom: 10px;
+}
+
+.bsod-repair-results {
+  margin-top: 10px;
+}
+
+/* ── Toolkit device rows ── */
+.device-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.device-row {
+  border-bottom: 1px solid var(--stroke);
+  padding: 8px 0;
+}
+
+.audio-device-row,
+.toolkit-device-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 10px 0;
+}
+
+.audio-io-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.audio-io-section {
+  min-width: 0;
+  border: 1px solid var(--stroke-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.audio-io-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--stroke);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.audio-device-count {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.audio-category-group + .audio-category-group {
+  border-top: 1px solid var(--stroke);
+}
+
+.audio-category-title {
+  padding: 10px 14px 4px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.audio-category-list {
+  padding: 0 14px 6px;
+}
+
+.audio-category-list .audio-device-row:last-child {
+  border-bottom: 0;
+}
+
+.audio-device-row {
+  display: block;
+  padding: 10px 0 12px;
+}
+
+.audio-device-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.audio-device-heading .device-name {
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.audio-device-heading .result-badge {
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 10px;
+  vertical-align: 1px;
+}
+
+.audio-volume-control {
+  display: grid;
+  grid-template-columns: auto minmax(80px, 1fr) 38px auto;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.audio-control-label,
+.audio-volume-value {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.audio-volume-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.audio-volume-slider {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.btn-audio-mute.is-active {
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--stroke-strong));
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.audio-advanced {
+  margin-top: 10px;
+  border-top: 1px solid var(--stroke);
+  padding-top: 8px;
+}
+
+.audio-advanced summary {
+  width: fit-content;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.audio-mode-options {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.audio-option {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.audio-option input {
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.audio-option strong,
+.audio-option small {
+  display: block;
+}
+
+.audio-option strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.audio-option small {
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.audio-option.is-disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.audio-services {
+  margin-top: 16px;
+}
+
+.audio-services .result-section:first-child {
+  margin-top: 0;
+}
+
+.audio-empty {
+  padding: 14px;
+}
+
+.audio-device-info,
+.toolkit-device-info {
+  min-width: 0;
+}
+
+.audio-device-actions,
+.toolkit-device-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.toolkit-device-row .lock-list {
+  grid-column: 1 / -1;
+}
+
+.usb-volume-summary {
+  white-space: pre-line;
+}
+
+.card-reader-slots {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.card-reader-device-row {
+  align-items: start;
+}
+
+.card-reader-device-row > .toolkit-device-info {
+  display: contents;
+}
+
+.card-reader-device-row > .toolkit-device-info > .device-name {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  min-width: 0;
+}
+
+.card-reader-device-row > .toolkit-device-actions {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
+}
+
+.card-reader-device-row > .toolkit-device-info > .card-reader-slots {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: 100%;
+  margin-top: 0;
+}
+
+.card-reader-device-row > .toolkit-device-info > .advanced-only {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
+
+.card-reader-slot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--stroke);
+  border-radius: 7px;
+}
+
+.card-reader-slot-empty {
+  background: color-mix(in srgb, var(--bg-subtle) 72%, transparent);
+}
+
+.card-reader-slot-warn {
+  border-left: 3px solid var(--warn);
+}
+
+.card-reader-slot-title {
+  margin-bottom: 3px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.card-reader-slot-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.card-reader-slot .usb-lock-list {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
+.audio-device-row .btn-audio-default {
+  min-width: 72px;
+}
+
+@media (max-width: 720px) {
+  .health-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .health-item {
+    border-right: 0;
+    border-bottom: 1px solid var(--stroke);
+  }
+
+  .diagnosis-guide {
+    grid-template-columns: 1fr;
+  }
+
+  .diagnosis-actions {
+    border-left: 0;
+    border-top: 1px solid var(--stroke);
+    padding: 12px 0 0;
+  }
+
+  .device-class-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .audio-io-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .audio-device-row,
+  .toolkit-device-row {
+    grid-template-columns: 1fr;
+  }
+
+  .audio-device-actions,
+  .toolkit-device-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+
+  .audio-device-heading {
+    align-items: flex-start;
+  }
+
+  .card-reader-slot {
+    grid-template-columns: 1fr;
+  }
+
+  .card-reader-device-row > .toolkit-device-info > .device-name {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .card-reader-device-row > .toolkit-device-actions {
+    grid-column: 1;
+    grid-row: 2;
+    justify-content: flex-start;
+  }
+
+  .card-reader-device-row > .toolkit-device-info > .card-reader-slots {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .card-reader-device-row > .toolkit-device-info > .advanced-only {
+    grid-column: 1;
+    grid-row: 4;
+  }
+
+  .card-reader-slot-actions {
+    justify-content: flex-start;
+  }
+
+  .audio-volume-control {
+    grid-template-columns: auto minmax(72px, 1fr) 38px;
+  }
+
+  .audio-volume-control .btn-audio-mute {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
+.device-row:last-child {
+  border-bottom: none;
+}
+
+.device-name {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.lock-list {
+  list-style: none;
+  width: 100%;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.lock-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.lock-row > span:first-child {
+  min-width: 0;
+}
+
+.lock-row small {
+  display: block;
+  max-width: 560px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.port-sort-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.port-sort-select {
+  min-width: 140px;
+}
+
+.port-toolbar {
+  justify-content: space-between;
+}
+
+.settings-advanced {
+  display: grid;
+  gap: 16px;
+}
+
+.advanced-block h3 {
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.advanced-block .result-panel {
+  margin-top: 10px;
+}
+
 .result-msg {
   margin-top: 8px;
   font-size: 13px;
@@ -745,6 +1669,13 @@ input {
   flex: 1;
   overflow-y: auto;
   margin: -16px;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--panel-scrollbar-idle) transparent;
+}
+
+.port-table.is-scrolling {
+  scrollbar-color: var(--panel-scrollbar-active) transparent;
 }
 
 .port-table .empty-state {
@@ -830,6 +1761,10 @@ input {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.btn-port-release {
+  min-width: 64px;
 }
 
 /* ── Settings ── */
@@ -1081,13 +2016,6 @@ html[dir="rtl"] .topbar {
   box-shadow: var(--focus-ring);
 }
 
-.settings-footer {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 4px;
-  flex-shrink: 0;
-}
-
 /* 设置页：内容区变窄时表单项改为上下排列 */
 @container pages (max-width: 560px) {
   .field {
@@ -1165,37 +2093,39 @@ html[dir="rtl"] .topbar {
   display: none;
 }
 
-/* ── Scrollbars (Windows-like) ── */
+/* ── Scrollbars (auto-hide) ── */
 .event-list::-webkit-scrollbar,
 .port-table::-webkit-scrollbar,
-.diag-grid::-webkit-scrollbar {
-  width: 8px;
-}
-
-.event-list::-webkit-scrollbar-thumb,
-.port-table::-webkit-scrollbar-thumb,
-.diag-grid::-webkit-scrollbar-thumb {
-  background: var(--stroke-strong);
-  border-radius: 4px;
-}
-
-/* 设置页：滚动时显示滚动条，停止后渐隐 */
+.diag-grid::-webkit-scrollbar,
+.card-fill > .result-panel::-webkit-scrollbar,
 .settings-layout::-webkit-scrollbar {
   width: 8px;
 }
 
+.event-list::-webkit-scrollbar-track,
+.port-table::-webkit-scrollbar-track,
+.diag-grid::-webkit-scrollbar-track,
+.card-fill > .result-panel::-webkit-scrollbar-track,
 .settings-layout::-webkit-scrollbar-track {
   background: transparent;
 }
 
+.event-list::-webkit-scrollbar-thumb,
+.port-table::-webkit-scrollbar-thumb,
+.diag-grid::-webkit-scrollbar-thumb,
+.card-fill > .result-panel::-webkit-scrollbar-thumb,
 .settings-layout::-webkit-scrollbar-thumb {
-  background-color: var(--settings-scrollbar-idle);
+  background-color: var(--panel-scrollbar-idle);
   border-radius: 4px;
-  transition: background-color var(--settings-scrollbar-fade) ease;
+  transition: background-color var(--panel-scrollbar-fade) ease;
 }
 
+.event-list.is-scrolling::-webkit-scrollbar-thumb,
+.port-table.is-scrolling::-webkit-scrollbar-thumb,
+.diag-grid.is-scrolling::-webkit-scrollbar-thumb,
+.card-fill > .result-panel.is-scrolling::-webkit-scrollbar-thumb,
 .settings-layout.is-scrolling::-webkit-scrollbar-thumb {
-  background-color: var(--settings-scrollbar-active);
+  background-color: var(--panel-scrollbar-active);
   transition-duration: 0.15s;
 }
 

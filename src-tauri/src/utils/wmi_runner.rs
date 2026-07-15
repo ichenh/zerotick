@@ -42,7 +42,10 @@ fn worker() -> &'static WmiWorker {
             .name("zerotick-wmi".into())
             .spawn(move || worker_main(rx))
             .expect("spawn zerotick-wmi thread");
-        WmiWorker { tx, _handle: handle }
+        WmiWorker {
+            tx,
+            _handle: handle,
+        }
     })
 }
 

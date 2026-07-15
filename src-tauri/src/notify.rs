@@ -18,10 +18,5 @@ pub fn send_if_background(app: &AppHandle, title: &str, body: &str) {
         return;
     }
 
-    let _ = app
-        .notification()
-        .builder()
-        .title(title)
-        .body(body)
-        .show();
+    let _ = app.notification().builder().title(title).body(body).show();
 }

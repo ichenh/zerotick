@@ -25,5 +25,6 @@ const match = md.match(re);
 if (match) {
   process.stdout.write(match[0].trim());
 } else {
-  process.stdout.write(`## ZeroTick v${version}\n\nSee [CHANGELOG.md](CHANGELOG.md).`);
+  console.error(`CHANGELOG.md does not contain a ## [${version}] release section.`);
+  process.exit(1);
 }

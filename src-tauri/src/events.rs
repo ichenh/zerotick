@@ -40,6 +40,15 @@ pub struct BluetoothIssue {
     pub code: Option<u32>,
 }
 
+/// 蓝牙已配对/连接设备
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BluetoothDeviceEntry {
+    pub name: String,
+    pub instance_id: String,
+    pub status: String,
+    pub connected: bool,
+}
+
 /// 蓝牙诊断结果 — 通过 `bluetooth-status` 通道推送
 #[derive(Debug, Clone, Serialize)]
 pub struct BluetoothStatusEvent {
@@ -47,32 +56,64 @@ pub struct BluetoothStatusEvent {
     pub healthy: bool,
     pub bthserv_state: Option<String>,
     pub issues: Vec<BluetoothIssue>,
-    pub radio_count: usize,
+    pub adapter_count: usize,
+    pub adapters: Vec<String>,
+    pub devices: Vec<BluetoothDeviceEntry>,
 }
 
 /// BSOD 扫描结果 — 通过 `bsod-alert` 通道推送
+#[derive(Debug, Clone, Serialize)]
+pub struct BsodFixAction {
+    pub id: String,
+    pub automatic: bool,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct BsodAlertEvent {
     pub timestamp: String,
     pub is_recent: bool,
     pub dump_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dump_time: Option<String>,
     pub bugcheck_code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code_name: Option<String>,
+    pub analysis_id: String,
+    /// `root_cause` only when debugger module evidence exists; otherwise `error_type`.
+    pub analysis_kind: String,
     pub faulting_driver: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub faulting_module: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stack_summary: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub debugger: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub failure_bucket: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub root_cause: Option<String>,
+    pub fixes: Vec<BsodFixAction>,
     pub message: Option<String>,
 }
 
-/// 一键修复完成 — 通过 `repair-complete` 通道推送
-#[derive(Debug, Clone, Serialize)]
-pub struct RepairCompleteEvent {
-    pub timestamp: String,
-    pub success: bool,
-    pub needs_admin: bool,
-    pub services_restarted: Vec<String>,
-    pub service_errors: Vec<String>,
-    pub usb_power_warnings: Vec<String>,
-    pub power_scan_error: Option<String>,
-    /// 前端翻译键：`ok_clean` | `ok_usb_warnings` | `needs_admin` | `usb_scan_error` | `service_errors`
-    pub summary_id: String,
+/// 系统服务状态项
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServiceEntry {
+    pub name: String,
+    pub label_id: String,
+    pub state: Option<String>,
+    pub start_mode: Option<String>,
+    /// The service is intentionally idle and will be started by Windows when needed.
+    #[serde(default)]
+    pub expected_stopped: bool,
+}
+
+/// 系统服务诊断问题项
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServiceIssue {
+    pub id: String,
+    pub service_name: String,
+    pub label_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub summary_count: Option<usize>,
+    pub state: Option<String>,
 }
