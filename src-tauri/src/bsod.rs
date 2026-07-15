@@ -4,12 +4,10 @@ use crate::events::{BsodAlertEvent, BsodFixAction};
 use crate::notify;
 use crate::settings;
 use crate::tray::{self, TrayLevel};
-use crate::utils::{logging, powershell, wmi_runner};
+use crate::utils::{logging, powershell, process::CommandExt, wmi_runner};
 use chrono::{DateTime, Duration, Local, Utc};
 use serde::{Deserialize, Serialize};
 use std::io::Read;
-#[cfg(windows)]
-use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::OnceLock;
@@ -592,6 +590,7 @@ fn analyze_dump_with_debugger(dump_path: &Path) -> Option<DebuggerEvidence> {
     );
     let mut command = Command::new(&debugger);
     command
+        .hide_window()
         .args(["-y", &symbol_path, "-z"])
         .arg(dump_path)
         .args([
@@ -601,8 +600,6 @@ fn analyze_dump_with_debugger(dump_path: &Path) -> Option<DebuggerEvidence> {
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    #[cfg(windows)]
-    command.creation_flags(0x08000000);
     let debugger_timeout = StdDuration::from_secs(settings::get().bsod_debugger_timeout_secs);
     let output = match run_with_timeout(command, debugger_timeout) {
         Ok(output) => output,
@@ -660,8 +657,8 @@ fn find_cdb() -> Option<PathBuf> {
         return Some(path);
     }
     let output = Command::new("where.exe")
+        .hide_window()
         .arg("cdb.exe")
-        .creation_flags(0x08000000)
         .output()
         .ok()?;
     if !output.status.success() {

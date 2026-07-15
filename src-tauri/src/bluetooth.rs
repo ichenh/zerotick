@@ -5,7 +5,7 @@ use crate::events::{BluetoothDeviceEntry, BluetoothIssue};
 use crate::notify;
 use crate::settings;
 use crate::tray::{self, TrayLevel};
-use crate::utils::{logging, wmi_runner};
+use crate::utils::{logging, process::CommandExt, wmi_runner};
 use chrono::Local;
 use serde::Deserialize;
 use std::sync::{Mutex, OnceLock};
@@ -280,6 +280,7 @@ fn is_bluetooth_peripheral_id(device_id: &str) -> bool {
 
 pub fn remove_device(instance_id: &str) -> Result<(), String> {
     let output = std::process::Command::new("pnputil")
+        .hide_window()
         .args(["/remove-device", instance_id, "/force"])
         .output()
         .map_err(|e| format!("pnputil 失败: {e}"))?;

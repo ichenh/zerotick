@@ -1,4 +1,5 @@
 //! Windows 本地端口占用扫描与释放
+use crate::utils::process::CommandExt;
 
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
@@ -325,6 +326,7 @@ fn parse_port(addr: &str) -> Option<u16> {
 
 fn parse_netstat() -> Result<Vec<NetRow>, String> {
     let output = Command::new("netstat")
+        .hide_window()
         .args(["-ano"])
         .output()
         .map_err(|e| format!("执行 netstat 失败: {e}"))?;
@@ -379,6 +381,7 @@ fn is_local_binding(addr: &str) -> bool {
 
 fn load_excluded_ranges() -> Result<Vec<(u16, u16)>, String> {
     let output = Command::new("netsh")
+        .hide_window()
         .args([
             "interface",
             "ipv4",

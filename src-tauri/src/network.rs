@@ -2,6 +2,7 @@
 
 use crate::services::{self, ServicesReport, NETWORK};
 use crate::utils::powershell;
+use crate::utils::process::CommandExt;
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 use std::time::Instant;
@@ -113,6 +114,7 @@ pub fn diagnose() -> Result<NetworkDiagReport, String> {
 
 pub fn flush_dns() -> Result<(), String> {
     let output = Command::new("ipconfig")
+        .hide_window()
         .args(["/flushdns"])
         .output()
         .map_err(|e| format!("ipconfig 失败: {e}"))?;
@@ -194,7 +196,7 @@ fn download_speed_sample_curl(url: &str, ipv4_only: bool) -> Result<(u64, u64), 
     let connect_timeout_arg = connect_timeout_secs.to_string();
     let timeout_arg = timeout_secs.to_string();
     let mut command = Command::new("curl.exe");
-    command.args([
+    command.hide_window().args([
         "--location",
         "--fail",
         "--silent",
@@ -498,6 +500,7 @@ impl Default for VpnReport {
 
 fn detect_gateway() -> Option<String> {
     let output = Command::new("powershell")
+        .hide_window()
         .args([
             "-NoProfile",
             "-NonInteractive",
@@ -516,6 +519,7 @@ fn detect_gateway() -> Option<String> {
 
 fn ping_once(host: &str) -> bool {
     Command::new("ping")
+        .hide_window()
         .args(["-n", "1", "-w", "1500", host])
         .output()
         .map(|o| o.status.success())

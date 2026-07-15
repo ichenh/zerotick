@@ -1,6 +1,6 @@
 //! Windows 设备与驱动诊断：聚合常用硬件类别，并把设备管理器错误转成稳定的语义标识。
 
-use crate::utils::{elevated, wmi_runner};
+use crate::utils::{elevated, process::CommandExt, wmi_runner};
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 use wmi::WMIConnection;
@@ -127,6 +127,7 @@ fn error_reason(code: u32) -> &'static str {
 
 pub fn rescan() -> Result<DeviceRescanResult, String> {
     let output = Command::new("pnputil.exe")
+        .hide_window()
         .args(["/scan-devices"])
         .output()
         .map_err(|error| format!("无法启动 Windows 设备扫描: {error}"))?;

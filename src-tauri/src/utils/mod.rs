@@ -6,4 +6,5 @@ pub mod elevated;
 pub mod guid;
 pub mod logging;
 pub mod powershell;
+pub mod process;
 pub mod wmi_runner;

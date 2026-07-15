@@ -1,10 +1,12 @@
 //! 执行 PowerShell 并解析 JSON 输出
 
+use crate::utils::process::CommandExt;
 use std::process::{Command, Output, Stdio};
 use std::time::{Duration, Instant};
 
 fn execute_with_timeout(wrapped: &str, timeout: Duration) -> Result<Output, String> {
     let mut child = Command::new("powershell")
+        .hide_window()
         .args(["-NoProfile", "-NonInteractive", "-Command", wrapped])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
