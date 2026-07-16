@@ -69,7 +69,7 @@ tokio = { version = "1", features = [
 ] }
 
 chrono = { version = "0.4", features = ["clock", "std", "serde"] }
-wmi = "0.14"
+wmi = "0.18"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls-native-roots"] }
 
 # 后端日志（文件 + stderr，不依赖前端）
