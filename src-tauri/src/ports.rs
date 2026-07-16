@@ -4,11 +4,17 @@ use crate::utils::process::CommandExt;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::process::Command;
+use std::sync::{Mutex, OnceLock};
+use std::time::{Duration, Instant};
 use windows::Win32::Foundation::CloseHandle;
 use windows::Win32::System::Diagnostics::ToolHelp::{
     CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
 };
 use windows::Win32::System::Threading::{OpenProcess, TerminateProcess, PROCESS_TERMINATE};
+
+const EXCLUDED_RANGES_TTL: Duration = Duration::from_secs(30);
+type ExcludedRangesCache = Option<(Instant, Vec<(u16, u16)>)>;
+static EXCLUDED_RANGES_CACHE: OnceLock<Mutex<ExcludedRangesCache>> = OnceLock::new();
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ExcludedRange {
@@ -380,6 +386,22 @@ fn is_local_binding(addr: &str) -> bool {
 }
 
 fn load_excluded_ranges() -> Result<Vec<(u16, u16)>, String> {
+    let cache = EXCLUDED_RANGES_CACHE.get_or_init(|| Mutex::new(None));
+    let mut cache = cache
+        .lock()
+        .map_err(|_| "Reserved port range cache lock failed".to_string())?;
+    if let Some((finished_at, ranges)) = cache.as_ref() {
+        if finished_at.elapsed() <= EXCLUDED_RANGES_TTL {
+            return Ok(ranges.clone());
+        }
+    }
+
+    let ranges = query_excluded_ranges()?;
+    *cache = Some((Instant::now(), ranges.clone()));
+    Ok(ranges)
+}
+
+fn query_excluded_ranges() -> Result<Vec<(u16, u16)>, String> {
     let output = Command::new("netsh")
         .hide_window()
         .args([

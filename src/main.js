@@ -17,6 +17,7 @@ import {
   formatBluetoothIssue,
   renderPortScan,
   bindToolkitHandlers,
+  applyFullScanProgress,
 } from "./panels.js";
 
 const $ = (id) => document.getElementById(id);
@@ -24,6 +25,12 @@ let toastTimer = null;
 let settingsLoaded = false;
 let settingsSaveTimer = null;
 let settingsSaveChain = Promise.resolve();
+let portsLoaded = false;
+let portsScanPromise = null;
+let navItems = [];
+let pages = [];
+let activePageId = null;
+let elevatedStatePromise = null;
 let appSettings = {
   transient_threshold_ms: 500,
   tray_recovery_secs: 45,
@@ -71,19 +78,26 @@ function waitForTauri(maxMs = 8000) {
 }
 
 function switchPage(pageId) {
-  document.querySelectorAll(".nav-item").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.page === pageId);
-  });
-  document.querySelectorAll(".page").forEach((page) => {
-    page.classList.toggle("active", page.id === `page-${pageId}`);
-  });
+  const pageChanged = activePageId !== pageId;
+  if (pageChanged) {
+    navItems.forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.page === pageId);
+    });
+    pages.forEach((page) => {
+      page.classList.toggle("active", page.id === `page-${pageId}`);
+    });
+    activePageId = pageId;
+  }
   const meta = getPageMeta(pageId);
   if (meta) {
     $("page-title").textContent = meta.title;
     $("page-desc").textContent = meta.desc;
   }
-  if (pageId === "repair") {
-    refreshAdminHint();
+  if (pageChanged && pageId === "repair") {
+    void refreshAdminHint();
+  }
+  if (pageId === "ports" && !portsLoaded) {
+    void scanPorts();
   }
 }
 
@@ -530,18 +544,26 @@ function saveSettingsImmediately() {
   settingsSaveChain = settingsSaveChain
     .catch(() => {})
     .then(async () => {
-      const shouldElevate = !appSettings.run_as_admin && payload.run_as_admin;
+      const previous = appSettings;
+      const shouldElevate = !previous.run_as_admin && payload.run_as_admin;
       try {
         const saved = await invoke("save_settings", { settings: payload });
+        const localeChanged = normalizeLocale(previous.locale) !== normalizeLocale(saved.locale);
+        const timelineLimitChanged = previous.timeline_display_max !== saved.timeline_display_max;
+        const advancedDisplayChanged = previous.advanced_display !== saved.advanced_display;
         appSettings = { ...appSettings, ...saved };
         window.__zerotickSettings = appSettings;
-        document.documentElement.classList.toggle("show-advanced", Boolean(saved.advanced_display));
-        setLocale(saved.locale);
-        await syncWindowTitle();
-        await reloadTimeline();
-        await refreshAdminHint();
+        if (advancedDisplayChanged) {
+          document.documentElement.classList.toggle("show-advanced", Boolean(saved.advanced_display));
+        }
+        if (localeChanged) {
+          setLocale(saved.locale);
+          await Promise.all([syncWindowTitle(), reloadTimeline()]);
+        } else if (timelineLimitChanged) {
+          trimTimeline();
+        }
         if (shouldElevate) {
-          const elevated = await invoke("is_elevated");
+          const elevated = await getElevatedState();
           if (!elevated) {
             try {
               await invoke("restart_elevated");
@@ -566,10 +588,18 @@ function scheduleSettingsSave(immediate = false) {
   }
 }
 
+function getElevatedState() {
+  elevatedStatePromise ??= invoke("is_elevated").catch((error) => {
+    elevatedStatePromise = null;
+    throw error;
+  });
+  return elevatedStatePromise;
+}
+
 async function refreshAdminHint() {
   const hint = $("repair-admin-hint");
   try {
-    const elevated = await invoke("is_elevated");
+    const elevated = await getElevatedState();
     if (elevated) {
       hint.classList.add("hidden");
       hint.textContent = "";
@@ -616,15 +646,27 @@ async function bindEvents() {
     }
   });
 
+  await listen("full-scan-progress", ({ payload }) => {
+    applyFullScanProgress(payload);
+  });
+
 }
 
-async function scanPorts() {
+async function scanPorts(force = false) {
+  if (portsScanPromise) return portsScanPromise;
+  if (portsLoaded && !force) return;
   $("port-list").innerHTML = `<li class="empty-state">${escapeHtml(t("ports.scanning"))}</li>`;
-  try {
-    renderPortScan(await invoke("scan_ports"));
-  } catch (e) {
-    $("port-list").innerHTML = `<li class="empty-state">${renderOperationError(e, "scan_ports")}</li>`;
-  }
+  portsScanPromise = (async () => {
+    try {
+      renderPortScan(await invoke("scan_ports"));
+      portsLoaded = true;
+    } catch (e) {
+      $("port-list").innerHTML = `<li class="empty-state">${renderOperationError(e, "scan_ports")}</li>`;
+    } finally {
+      portsScanPromise = null;
+    }
+  })();
+  return portsScanPromise;
 }
 
 async function releasePort(pid) {
@@ -636,7 +678,7 @@ async function releasePort(pid) {
         : t("toast.processEnded"),
       false,
     );
-    await scanPorts();
+    await scanPorts(true);
   } catch (e) {
     showOperationError(e, "release_port");
   }
@@ -653,14 +695,17 @@ async function releaseAllPorts() {
     } else {
       showToast(t("toast.nothingToRelease"), false);
     }
-    await scanPorts();
+    await scanPorts(true);
   } catch (e) {
     showOperationError(e, "release_releasable_ports");
   }
 }
 
 function bindNavigation() {
-  document.querySelectorAll(".nav-item").forEach((btn) => {
+  navItems = [...document.querySelectorAll(".nav-item")];
+  pages = [...document.querySelectorAll(".page")];
+  activePageId = document.querySelector(".nav-item.active")?.dataset.page ?? null;
+  navItems.forEach((btn) => {
     btn.addEventListener("click", () => switchPage(btn.dataset.page));
   });
 }
@@ -764,25 +809,22 @@ async function init() {
   initScrollPanels();
   updateTimelineEmpty();
 
-  $("set-locale").addEventListener("change", async () => {
+  $("set-locale").addEventListener("change", () => {
     setLocale($("set-locale").value);
     applyDom();
-    await syncWindowTitle();
     refreshStaticPanels();
-    await reloadTimeline();
   });
 
   try {
     await waitForTauri();
     await bindEvents();
-    const version = await invoke("get_app_version");
+    const [version] = await Promise.all([
+      invoke("get_app_version"),
+      loadSettings(),
+    ]);
     $("app-version").textContent = `v${version}`;
-    await loadSettings();
-    await syncWindowTitle();
-    await loadHistory();
+    await Promise.all([syncWindowTitle(), loadHistory()]);
     trimTimeline();
-    await refreshAdminHint();
-    await scanPorts();
   } catch (e) {
     console.error("[ZeroTick:init]", e);
     const message = userErrorMessage(e, "errors.operationFailed");
@@ -836,7 +878,7 @@ async function init() {
   $("btn-export-json").addEventListener("click", () => exportHistory("json"));
   $("btn-export-csv").addEventListener("click", () => exportHistory("csv"));
 
-  $("btn-scan-ports").addEventListener("click", () => scanPorts());
+  $("btn-scan-ports").addEventListener("click", () => scanPorts(true));
   $("btn-release-all-ports").addEventListener("click", () => releaseAllPorts());
   $("port-list").addEventListener("click", (e) => {
     const btn = e.target.closest(".btn-port-release");

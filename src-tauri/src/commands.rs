@@ -18,8 +18,13 @@ use crate::usb_storage::{self, LockingProcess, UsbDiagReport, UsbDrive};
 use crate::utils;
 use chrono::Local;
 use serde::Serialize;
-use tauri::AppHandle;
+use serde_json::{json, Value};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, OnceLock};
+use std::time::{Duration, Instant};
+use tauri::{AppHandle, Emitter};
 use tauri_plugin_dialog::DialogExt;
+use tokio::sync::{Mutex as AsyncMutex, Semaphore};
 
 async fn run_blocking<T, F>(task: F) -> Result<T, String>
 where
@@ -29,6 +34,213 @@ where
     tokio::task::spawn_blocking(task)
         .await
         .map_err(|error| format!("后台任务异常终止: {error}"))?
+}
+
+const DIAGNOSTIC_CONCURRENCY: usize = 4;
+const FULL_SCAN_CACHE_TTL: Duration = Duration::from_secs(2);
+
+static DIAGNOSTIC_PERMITS: OnceLock<Arc<Semaphore>> = OnceLock::new();
+static FULL_SCAN_CACHE: OnceLock<AsyncMutex<FullScanCache>> = OnceLock::new();
+static FULL_SCAN_ID: AtomicU64 = AtomicU64::new(0);
+
+#[derive(Default)]
+struct FullScanCache {
+    finished_at: Option<Instant>,
+    payload: Option<Value>,
+}
+
+fn diagnostic_permits() -> &'static Arc<Semaphore> {
+    DIAGNOSTIC_PERMITS.get_or_init(|| Arc::new(Semaphore::new(DIAGNOSTIC_CONCURRENCY)))
+}
+
+fn full_scan_cache() -> &'static AsyncMutex<FullScanCache> {
+    FULL_SCAN_CACHE.get_or_init(|| AsyncMutex::new(FullScanCache::default()))
+}
+
+async fn invalidate_full_scan_cache() {
+    let mut cache = full_scan_cache().lock().await;
+    cache.finished_at = None;
+    cache.payload = None;
+}
+
+async fn run_diagnostic_blocking<T, F>(name: &'static str, task: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, String> + Send + 'static,
+{
+    let queued_at = Instant::now();
+    let _permit = diagnostic_permits()
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|_| "Diagnostic scheduler is unavailable".to_string())?;
+    let queue_ms = queued_at.elapsed().as_millis();
+    run_blocking(move || {
+        // Keep the permit inside the blocking job. If an async caller times out,
+        // the underlying Windows query still counts against the concurrency cap
+        // until it actually exits.
+        let _permit = _permit;
+        let started = Instant::now();
+        let result = task();
+        utils::logging::info(format!(
+            "performance diagnostic={name} queue_ms={queue_ms} run_ms={}",
+            started.elapsed().as_millis()
+        ));
+        result
+    })
+    .await
+}
+
+#[derive(Debug, Serialize)]
+struct FullScanItem {
+    duration_ms: u64,
+    result: Option<Value>,
+    error: Option<String>,
+}
+
+async fn full_scan_item<T, F>(name: &'static str, task: F) -> FullScanItem
+where
+    T: Serialize + Send + 'static,
+    F: FnOnce() -> Result<T, String> + Send + 'static,
+{
+    let started = Instant::now();
+    let timeout = Duration::from_secs(settings::get().full_scan_timeout_secs);
+    let outcome = match tokio::time::timeout(timeout, run_diagnostic_blocking(name, task)).await {
+        Ok(outcome) => outcome,
+        Err(_) => Err(format!(
+            "{name} scan timed out after {} seconds",
+            timeout.as_secs()
+        )),
+    };
+    let duration_ms = started.elapsed().as_millis().min(u64::MAX as u128) as u64;
+    match outcome {
+        Ok(value) => match serde_json::to_value(value) {
+            Ok(result) => FullScanItem {
+                duration_ms,
+                result: Some(result),
+                error: None,
+            },
+            Err(error) => FullScanItem {
+                duration_ms,
+                result: None,
+                error: Some(format!("Serialize {name} result failed: {error}")),
+            },
+        },
+        Err(error) => FullScanItem {
+            duration_ms,
+            result: None,
+            error: Some(error),
+        },
+    }
+}
+
+#[tauri::command]
+pub async fn full_scan(
+    app: AppHandle,
+    force: Option<bool>,
+    request_id: Option<u64>,
+) -> Result<Value, String> {
+    // Holding this lock across the scan intentionally coalesces concurrent full-scan
+    // requests. A waiter receives the freshly cached result instead of starting the
+    // same expensive Windows queries again.
+    let mut cache = full_scan_cache().lock().await;
+    if !force.unwrap_or(false) {
+        if let (Some(finished_at), Some(payload)) = (cache.finished_at, cache.payload.as_ref()) {
+            if finished_at.elapsed() <= FULL_SCAN_CACHE_TTL {
+                let mut cached = payload.clone();
+                if let Some(object) = cached.as_object_mut() {
+                    object.insert("cached".into(), Value::Bool(true));
+                }
+                return Ok(cached);
+            }
+        }
+    }
+
+    let scan_id = FULL_SCAN_ID.fetch_add(1, Ordering::Relaxed) + 1;
+    let started = Instant::now();
+    let mut tasks = tokio::task::JoinSet::new();
+    tasks.spawn(async {
+        (
+            "network",
+            full_scan_item("network", network::diagnose).await,
+        )
+    });
+    tasks.spawn(async { ("audio", full_scan_item("audio", audio::diagnose).await) });
+    tasks.spawn(async { ("usb", full_scan_item("usb", usb_storage::diagnose).await) });
+    tasks.spawn(async {
+        (
+            "bluetooth",
+            full_scan_item("bluetooth", || {
+                let report = bluetooth::diagnose()?;
+                Ok(BluetoothStatusEvent {
+                    timestamp: Local::now().to_rfc3339(),
+                    healthy: !report.has_issues(),
+                    bthserv_state: report.bthserv_state,
+                    issues: report.issues,
+                    adapter_count: report.adapter_devices.len(),
+                    adapters: report.adapter_devices,
+                    devices: report.devices,
+                })
+            })
+            .await,
+        )
+    });
+    tasks.spawn(async {
+        (
+            "devices",
+            full_scan_item("devices", devices::diagnose).await,
+        )
+    });
+
+    let mut items = serde_json::Map::new();
+    while let Some(outcome) = tasks.join_next().await {
+        match outcome {
+            Ok((name, item)) => {
+                let item_value = serde_json::to_value(&item)
+                    .map_err(|error| format!("Serialize {name} result failed: {error}"))?;
+                if let Err(error) = app.emit(
+                    "full-scan-progress",
+                    json!({
+                        "scan_id": scan_id,
+                        "request_id": request_id,
+                        "id": name,
+                        "item": &item_value,
+                    }),
+                ) {
+                    utils::logging::warn(format!(
+                        "emit full-scan-progress failed for {name}: {error}"
+                    ));
+                }
+                items.insert(name.into(), item_value);
+            }
+            Err(error) => {
+                utils::logging::error(format!("full scan task terminated unexpectedly: {error}"));
+            }
+        }
+    }
+
+    for name in ["network", "audio", "usb", "bluetooth", "devices"] {
+        items.entry(name).or_insert_with(|| {
+            json!(FullScanItem {
+                duration_ms: 0,
+                result: None,
+                error: Some(format!("{name} scan terminated unexpectedly")),
+            })
+        });
+    }
+    let total_ms = started.elapsed().as_millis().min(u64::MAX as u128) as u64;
+    let payload = json!({
+        "scan_id": scan_id,
+        "cached": false,
+        "total_ms": total_ms,
+        "items": items,
+    });
+    utils::logging::info(format!(
+        "performance full_scan id={scan_id} total_ms={total_ms}"
+    ));
+    cache.finished_at = Some(Instant::now());
+    cache.payload = Some(payload.clone());
+    Ok(payload)
 }
 
 #[derive(Debug, Serialize)]
@@ -63,7 +275,7 @@ fn scoped_repair(restarted: Vec<String>, errors: Vec<String>) -> ScopedRepairRes
 
 #[tauri::command]
 pub async fn check_bluetooth() -> Result<BluetoothStatusEvent, String> {
-    run_blocking(|| {
+    run_diagnostic_blocking("bluetooth", || {
         let report = bluetooth::diagnose()?;
         Ok(BluetoothStatusEvent {
             timestamp: Local::now().to_rfc3339(),
@@ -90,16 +302,18 @@ pub async fn bluetooth_reconnect_device(instance_id: String) -> Result<(), Strin
 
 #[tauri::command]
 pub async fn repair_bluetooth() -> Result<ScopedRepairResult, String> {
-    run_blocking(|| {
+    let result = run_blocking(|| {
         let (ok, err) = bluetooth::repair_service();
         Ok(scoped_repair(ok, err))
     })
-    .await
+    .await?;
+    invalidate_full_scan_cache().await;
+    Ok(result)
 }
 
 #[tauri::command]
 pub async fn diagnose_network() -> Result<NetworkDiagReport, String> {
-    run_blocking(network::diagnose).await
+    run_diagnostic_blocking("network", network::diagnose).await
 }
 
 #[tauri::command]
@@ -114,16 +328,18 @@ pub async fn network_flush_dns() -> Result<(), String> {
 
 #[tauri::command]
 pub async fn repair_network() -> Result<ScopedRepairResult, String> {
-    run_blocking(|| {
+    let result = run_blocking(|| {
         let (ok, err) = network::repair();
         Ok(scoped_repair(ok, err))
     })
-    .await
+    .await?;
+    invalidate_full_scan_cache().await;
+    Ok(result)
 }
 
 #[tauri::command]
 pub async fn diagnose_audio() -> Result<AudioDiagReport, String> {
-    run_blocking(audio::diagnose).await
+    run_diagnostic_blocking("audio", audio::diagnose).await
 }
 
 #[tauri::command]
@@ -148,16 +364,18 @@ pub async fn set_audio_mute(device_id: String, muted: bool) -> Result<(), String
 
 #[tauri::command]
 pub async fn repair_audio() -> Result<ScopedRepairResult, String> {
-    run_blocking(|| {
+    let result = run_blocking(|| {
         let (ok, err) = audio::repair();
         Ok(scoped_repair(ok, err))
     })
-    .await
+    .await?;
+    invalidate_full_scan_cache().await;
+    Ok(result)
 }
 
 #[tauri::command]
 pub async fn diagnose_usb() -> Result<UsbDiagReport, String> {
-    run_blocking(usb_storage::diagnose).await
+    run_diagnostic_blocking("usb", usb_storage::diagnose).await
 }
 
 #[tauri::command]
@@ -197,16 +415,18 @@ pub async fn usb_format_volume(
 
 #[tauri::command]
 pub async fn repair_usb() -> Result<ScopedRepairResult, String> {
-    run_blocking(|| {
+    let result = run_blocking(|| {
         let (ok, err) = usb_storage::repair();
         Ok(scoped_repair(ok, err))
     })
-    .await
+    .await?;
+    invalidate_full_scan_cache().await;
+    Ok(result)
 }
 
 #[tauri::command]
 pub async fn diagnose_devices() -> Result<DevicesDiagReport, String> {
-    run_blocking(devices::diagnose).await
+    run_diagnostic_blocking("devices", devices::diagnose).await
 }
 
 #[tauri::command]
@@ -216,7 +436,7 @@ pub async fn rescan_devices() -> Result<DeviceRescanResult, String> {
 
 #[tauri::command]
 pub async fn scan_bsod() -> Result<Option<BsodAlertEvent>, String> {
-    run_blocking(|| {
+    run_diagnostic_blocking("bsod", || {
         let report = bsod::analyze_latest_dump().map_err(|e| format!("BSOD scan failed: {e}"))?;
         Ok(report.map(|r| bsod::report_to_event(&r)))
     })
@@ -234,6 +454,7 @@ pub async fn run_repair(app: AppHandle) -> Result<RepairResult, String> {
     let report =
         run_blocking(|| repair::run_auto_repair().map_err(|e| format!("Repair failed: {e}")))
             .await?;
+    invalidate_full_scan_cache().await;
 
     let success = report.service_errors.is_empty() && report.power_scan_error.is_none();
     let needs_admin = !elevated && repair::errors_need_elevation(&report.service_errors);
@@ -329,10 +550,14 @@ pub fn get_settings() -> AppSettings {
 
 #[tauri::command]
 pub fn save_settings(app: AppHandle, settings: AppSettings) -> Result<AppSettings, String> {
-    let launch = settings.launch_at_startup;
+    let previous = settings::get();
     let saved = settings::save(settings)?;
-    autostart::sync(&app, launch)?;
-    crate::tray::refresh_locale(&app);
+    if previous.launch_at_startup != saved.launch_at_startup {
+        autostart::sync(&app, saved.launch_at_startup)?;
+    }
+    if previous.locale != saved.locale {
+        crate::tray::refresh_locale(&app);
+    }
     Ok(saved)
 }
 
@@ -343,7 +568,7 @@ pub fn get_app_version() -> String {
 
 #[tauri::command]
 pub async fn scan_ports() -> Result<PortScanReport, String> {
-    run_blocking(ports::scan).await
+    run_diagnostic_blocking("ports", ports::scan).await
 }
 
 #[tauri::command]

@@ -1,4 +1,4 @@
-import { bundles, LOCALE_OPTIONS } from "../src/i18n.js";
+import { bundles, LOCALE_OPTIONS } from "../../src/i18n.js";
 
 function flatten(value, prefix = "", output = {}) {
   for (const [key, child] of Object.entries(value)) {

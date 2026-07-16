@@ -1,8 +1,9 @@
 //! 持久 WMI 工作线程 — COM 按 wmi crate 要求在同一线程单例初始化，避免 0x80010106
 
-use std::sync::mpsc::{self, SyncSender};
+use std::sync::mpsc::{self, RecvTimeoutError, SyncSender, TrySendError};
 use std::sync::OnceLock;
 use std::thread::{self, JoinHandle};
+use std::time::Duration;
 use wmi::{COMLibrary, WMIConnection, WMIError};
 
 type WmiJob = Box<dyn FnOnce(&WMIConnection) + Send>;
@@ -58,13 +59,22 @@ where
     let (reply_tx, reply_rx) = mpsc::channel();
     worker()
         .tx
-        .send(Box::new(move |wmi| {
+        .try_send(Box::new(move |wmi| {
             let result = f(wmi).map_err(|e| format!("{e}"));
             let _ = reply_tx.send(result);
         }))
-        .map_err(|_| "WMI 工作线程已退出".to_string())?;
+        .map_err(|error| match error {
+            TrySendError::Full(_) => "WMI query queue is full".to_string(),
+            TrySendError::Disconnected(_) => "WMI worker has stopped".to_string(),
+        })?;
 
-    reply_rx
-        .recv()
-        .map_err(|_| "WMI 工作线程无响应".to_string())?
+    let timeout = Duration::from_secs(crate::settings::get().system_query_timeout_secs);
+    match reply_rx.recv_timeout(timeout) {
+        Ok(result) => result,
+        Err(RecvTimeoutError::Timeout) => Err(format!(
+            "WMI query timed out after {} seconds",
+            timeout.as_secs()
+        )),
+        Err(RecvTimeoutError::Disconnected) => Err("WMI worker did not respond".to_string()),
+    }
 }

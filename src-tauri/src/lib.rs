@@ -100,6 +100,7 @@ fn run_inner() -> Result<(), Box<dyn std::error::Error>> {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::full_scan,
             commands::check_bluetooth,
             commands::bluetooth_remove_device,
             commands::bluetooth_reconnect_device,

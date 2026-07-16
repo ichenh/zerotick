@@ -7,7 +7,7 @@ use std::sync::{Mutex, OnceLock};
 
 static STORE: OnceLock<Mutex<SettingsStore>> = OnceLock::new();
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct AppSettings {
     /// 瞬断判定阈值（毫秒）：断连到此时间内重连视为瞬断
@@ -134,8 +134,11 @@ pub fn save(mut settings: AppSettings) -> Result<AppSettings, String> {
     settings.validate()?;
     let mutex = STORE.get().ok_or("设置存储未初始化")?;
     let mut store = mutex.lock().map_err(|_| "设置存储锁失败")?;
+    if store.current == settings {
+        return Ok(store.current.clone());
+    }
+    persist(&store.path, &settings)?;
     store.current = settings;
-    persist(&store.path, &store.current)?;
     Ok(store.current.clone())
 }
 

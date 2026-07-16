@@ -3,7 +3,7 @@
  * 源图：仓库根目录 app-icon.png
  */
 import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,3 +26,26 @@ if (!existsSync(source)) {
 
 console.log("[ensure-icons] Generating Tauri icons from app-icon.png …");
 execSync("npm run tauri icon app-icon.png", { cwd: root, stdio: "inherit" });
+
+// ZeroTick only ships NSIS/MSI packages. Keep the runtime and configured desktop
+// bundle icons, but do not retain mobile or Microsoft Store generator outputs.
+for (const generatedPath of [
+  "android",
+  "ios",
+  "64x64.png",
+  "Square107x107Logo.png",
+  "Square142x142Logo.png",
+  "Square150x150Logo.png",
+  "Square284x284Logo.png",
+  "Square30x30Logo.png",
+  "Square310x310Logo.png",
+  "Square44x44Logo.png",
+  "Square71x71Logo.png",
+  "Square89x89Logo.png",
+  "StoreLogo.png",
+]) {
+  rmSync(path.join(root, "src-tauri", "icons", generatedPath), {
+    recursive: true,
+    force: true,
+  });
+}

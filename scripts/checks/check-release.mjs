@@ -1,11 +1,11 @@
-import fs from "node:fs";
+import { readFileSync } from "node:fs";
 
-const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
-const packageLock = JSON.parse(fs.readFileSync("package-lock.json", "utf8"));
-const tauriConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.conf.json", "utf8"));
-const cargoToml = fs.readFileSync("src-tauri/Cargo.toml", "utf8");
-const cargoLock = fs.readFileSync("src-tauri/Cargo.lock", "utf8").replaceAll("\r\n", "\n");
-const changelog = fs.readFileSync("CHANGELOG.md", "utf8");
+const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+const packageLock = JSON.parse(readFileSync("package-lock.json", "utf8"));
+const tauriConfig = JSON.parse(readFileSync("src-tauri/tauri.conf.json", "utf8"));
+const cargoToml = readFileSync("src-tauri/Cargo.toml", "utf8");
+const cargoLock = readFileSync("src-tauri/Cargo.lock", "utf8").replaceAll("\r\n", "\n");
+const changelog = readFileSync("CHANGELOG.md", "utf8");
 
 const cargoVersion = cargoToml.match(/^version\s*=\s*"([^"]+)"/m)?.[1];
 const cargoLockVersion = cargoLock.match(/\[\[package\]\]\nname = "zerotick"\nversion = "([^"]+)"/)?.[1];

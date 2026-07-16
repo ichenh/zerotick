@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-07-16
+
+### Changed
+
+- 全面体检改由单个 Rust 后端命令统一编排，限制昂贵系统查询的并发量，短时复用重复请求，并记录分项排队、执行与总耗时。
+- 全面体检现在按诊断项完成顺序逐项推送并即时渲染，不再等待最慢项目结束后才一次性显示全部结果。
+- 网络、音频、USB 与蓝牙诊断共享短时服务状态快照，将全面体检中的重复服务查询合并为一次，并复用稳定的 Windows 版本判断；修复后立即失效状态缓存以保证后验结果新鲜。
+- 端口扫描改为首次进入端口页时按需执行，避免应用启动阶段无条件运行 `netstat` 与 `netsh`。
+- Windows 保留端口范围使用短时缓存，重复刷新仍会实时获取监听连接与进程，仅避免反复启动不必要的 `netsh` 查询。
+- 启动阶段并行读取版本与设置、窗口标题与历史记录，并将管理员状态检查延迟到首次进入修复页。
+- 页面切换复用导航与页面节点，跳过重复的 class 切换，并在当前进程内复用稳定的管理员状态检查结果。
+- 设置保存改为按差异触发副作用：仅在对应选项变化时同步开机自启、刷新托盘语言、窗口标题或历史列表，并跳过内容未变化的设置文件写入。
+- 一键修复在保持组内服务依赖顺序的前提下，并行处理网络、音频、蓝牙、USB 服务组及 USB 电源配置检查。
+- 将长期复用的语言与发布元数据校验脚本集中到 `scripts/checks/`，并清理不参与 Windows NSIS/MSI 构建的生成图标。
+- CI 与发布门禁新增 Rust 格式检查、全 feature 严格 Clippy，并限制常规 CI 的 GitHub Token 为只读权限。
+
+### Added
+
+- 新增安全漏洞报告策略、结构化 Issue/PR 模板与 npm、Cargo、GitHub Actions 的 Dependabot 周期更新配置。
+
+### Fixed
+
+- 修复蓝牙后台轮询直接占用异步运行时线程，以及手动扫描与轮询在短时间内重复查询的问题。
+- 为 WMI 查询增加后端超时与队列满保护，避免前端停止等待后系统查询仍无限堆积。
+
 ## [0.2.2] - 2026-07-15
 
 ### Fixed
@@ -163,7 +188,8 @@ CLI 版核心诊断模块。
 
 项目初始化。
 
-[Unreleased]: https://github.com/ichenh/zerotick/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/ichenh/zerotick/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/ichenh/zerotick/compare/v0.2.2...v0.2.4
 [0.2.2]: https://github.com/ichenh/zerotick/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/ichenh/zerotick/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/ichenh/zerotick/compare/v0.1.4...v0.2.0

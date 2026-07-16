@@ -1,0 +1,75 @@
+name: Bug report / 缺陷报告
+description: Report a reproducible ZeroTick problem / 报告可复现的 ZeroTick 问题
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve ZeroTick. Remove personal paths, device instance IDs, and other sensitive data before submitting.
+        感谢帮助改进 ZeroTick。提交前请移除个人路径、设备实例 ID 等敏感信息。
+
+  - type: input
+    id: version
+    attributes:
+      label: ZeroTick version / ZeroTick 版本
+      placeholder: e.g. 0.2.3
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version / Windows 版本
+      placeholder: e.g. Windows 11 24H2, build 26100
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area / 影响模块
+      options:
+        - Full scan / 全面体检
+        - Network / 网络
+        - Audio / 音频
+        - USB storage / USB 存储
+        - Bluetooth / 蓝牙
+        - Devices and drivers / 设备与驱动
+        - BSOD / 蓝屏
+        - Ports / 端口
+        - Repair / 修复
+        - Other / 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps / 复现步骤
+      placeholder: Tell us what you did, what happened, and how often it occurs.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior / 预期行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Relevant evidence / 相关证据
+      description: Paste sanitized advanced details or logs from %APPDATA%\com.zerotick.desktop\zerotick_debug.log.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist / 检查项
+      options:
+        - label: I searched existing issues for duplicates. / 我已搜索现有 Issue，确认没有重复报告。
+          required: true
+        - label: I removed sensitive information from the report. / 我已移除报告中的敏感信息。
+          required: true

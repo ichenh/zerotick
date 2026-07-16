@@ -4,7 +4,13 @@ use crate::events::{ServiceEntry, ServiceIssue};
 use crate::repair;
 use crate::utils::wmi_runner;
 use serde::{Deserialize, Serialize};
+use std::sync::{Mutex, OnceLock};
+use std::time::{Duration, Instant};
 use wmi::WMIConnection;
+
+const SNAPSHOT_TTL: Duration = Duration::from_secs(2);
+static SNAPSHOT_CACHE: OnceLock<Mutex<ServiceSnapshotCache>> = OnceLock::new();
+static WINDOWS_11_WORKSTATION: OnceLock<bool> = OnceLock::new();
 
 /// 监控项：name = Win32 服务名，label_id = 前端 i18n 键
 pub struct ServiceDef {
@@ -72,16 +78,22 @@ pub const USB: &[ServiceDef] = &[ServiceDef {
     run_policy: ServiceRunPolicy::Required,
 }];
 
-pub fn all_repair_targets() -> Vec<&'static str> {
-    let mut names = Vec::new();
+/// Independent service groups may be repaired in parallel. Ordering inside a
+/// group is preserved for dependencies such as AudioEndpointBuilder -> Audiosrv.
+pub fn repair_target_groups() -> Vec<Vec<&'static str>> {
+    let mut groups = Vec::new();
     for group in [NETWORK, AUDIO, BLUETOOTH, USB] {
+        let mut names = Vec::new();
         for def in group {
             if def.repairable {
                 names.push(def.name);
             }
         }
+        if !names.is_empty() {
+            groups.push(names);
+        }
     }
-    names
+    groups
 }
 
 pub fn repair_group(defs: &'static [ServiceDef]) -> (Vec<String>, Vec<String>) {
@@ -90,10 +102,12 @@ pub fn repair_group(defs: &'static [ServiceDef]) -> (Vec<String>, Vec<String>) {
         .filter(|d| d.repairable)
         .map(|d| d.name)
         .collect();
-    repair::restart_services(&names)
+    let result = repair::restart_services(&names);
+    invalidate_diagnostic_cache();
+    result
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 struct Win32Service {
     #[serde(rename = "Name")]
     name: Option<String>,
@@ -111,6 +125,18 @@ struct Win32OperatingSystem {
     product_type: Option<u32>,
 }
 
+#[derive(Debug, Clone)]
+struct ServiceSnapshot {
+    services: Vec<Win32Service>,
+    windows_11_workstation: bool,
+}
+
+#[derive(Default)]
+struct ServiceSnapshotCache {
+    finished_at: Option<Instant>,
+    snapshot: Option<ServiceSnapshot>,
+}
+
 #[derive(Debug, Default, Serialize)]
 pub struct ServicesReport {
     pub services: Vec<ServiceEntry>,
@@ -118,33 +144,64 @@ pub struct ServicesReport {
 }
 
 pub fn diagnose_group(defs: &'static [ServiceDef]) -> Result<ServicesReport, String> {
-    wmi_runner::run(move |wmi| diagnose_subset(wmi, defs))
+    let snapshot = service_snapshot()?;
+    Ok(build_report(defs, &snapshot))
 }
 
-fn diagnose_subset(
-    wmi: &WMIConnection,
-    defs: &'static [ServiceDef],
-) -> Result<ServicesReport, wmi::WMIError> {
-    if defs.is_empty() {
-        return Ok(ServicesReport::default());
+pub fn invalidate_diagnostic_cache() {
+    if let Some(cache) = SNAPSHOT_CACHE.get() {
+        if let Ok(mut cache) = cache.lock() {
+            cache.finished_at = None;
+            cache.snapshot = None;
+        }
     }
-    let conditions: Vec<String> = defs
-        .iter()
-        .map(|s| format!("Name='{}'", s.name.replace('\'', "''")))
-        .collect();
+}
+
+fn service_snapshot() -> Result<ServiceSnapshot, String> {
+    let cache = SNAPSHOT_CACHE.get_or_init(|| Mutex::new(ServiceSnapshotCache::default()));
+    let mut cache = cache
+        .lock()
+        .map_err(|_| "Service diagnostic cache lock failed".to_string())?;
+    if let (Some(finished_at), Some(snapshot)) = (cache.finished_at, cache.snapshot.as_ref()) {
+        if finished_at.elapsed() <= SNAPSHOT_TTL {
+            return Ok(snapshot.clone());
+        }
+    }
+
+    let snapshot = wmi_runner::run(query_service_snapshot)?;
+    cache.finished_at = Some(Instant::now());
+    cache.snapshot = Some(snapshot.clone());
+    Ok(snapshot)
+}
+
+fn query_service_snapshot(wmi: &WMIConnection) -> Result<ServiceSnapshot, wmi::WMIError> {
+    let conditions = [NETWORK, AUDIO, BLUETOOTH, USB]
+        .into_iter()
+        .flat_map(|group| group.iter())
+        .map(|service| format!("Name='{}'", service.name.replace('\'', "''")))
+        .collect::<Vec<_>>();
     let query = format!(
         "SELECT Name, State, StartMode FROM Win32_Service WHERE {}",
         conditions.join(" OR ")
     );
-    let found: Vec<Win32Service> = wmi.raw_query(&query)?;
-    let windows_11_workstation = defs
-        .iter()
-        .any(|def| def.run_policy == ServiceRunPolicy::Windows11OnDemand)
-        && is_windows_11_workstation(wmi);
+    let services = wmi.raw_query(&query)?;
+    Ok(ServiceSnapshot {
+        services,
+        windows_11_workstation: is_windows_11_workstation(wmi),
+    })
+}
+
+fn build_report(defs: &'static [ServiceDef], snapshot: &ServiceSnapshot) -> ServicesReport {
+    if defs.is_empty() {
+        return ServicesReport::default();
+    }
 
     let mut report = ServicesReport::default();
     for def in defs {
-        let svc = found.iter().find(|s| s.name.as_deref() == Some(def.name));
+        let svc = snapshot
+            .services
+            .iter()
+            .find(|service| service.name.as_deref() == Some(def.name));
         let (state, start_mode) = match svc {
             Some(s) => (s.state.clone(), s.start_mode.clone()),
             None => (None, None),
@@ -154,7 +211,7 @@ fn diagnose_subset(
             def.run_policy,
             state.as_deref(),
             start_mode.as_deref(),
-            windows_11_workstation,
+            snapshot.windows_11_workstation,
         );
 
         report.services.push(ServiceEntry {
@@ -203,21 +260,28 @@ fn diagnose_subset(
         }
     }
 
-    Ok(report)
+    report
 }
 
 fn is_windows_11_workstation(wmi: &WMIConnection) -> bool {
-    let systems: Vec<Win32OperatingSystem> = wmi
-        .raw_query("SELECT BuildNumber, ProductType FROM Win32_OperatingSystem")
-        .unwrap_or_default();
-    systems.first().is_some_and(|system| {
+    if let Some(cached) = WINDOWS_11_WORKSTATION.get() {
+        return *cached;
+    }
+    let Ok(systems) = wmi.raw_query::<Win32OperatingSystem>(
+        "SELECT BuildNumber, ProductType FROM Win32_OperatingSystem",
+    ) else {
+        return false;
+    };
+    let value = systems.first().is_some_and(|system| {
         system.product_type == Some(1)
             && system
                 .build_number
                 .as_deref()
                 .and_then(|build| build.parse::<u32>().ok())
                 .is_some_and(|build| build >= 22_000)
-    })
+    });
+    let _ = WINDOWS_11_WORKSTATION.set(value);
+    value
 }
 
 fn is_expected_stopped(

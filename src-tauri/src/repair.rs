@@ -37,18 +37,57 @@ pub struct UsbPowerConfig {
 pub fn run_auto_repair() -> windows::core::Result<RepairReport> {
     let mut report = RepairReport::default();
     logging::info("── 开始自动修复 ──");
-    let service_result = repair_services(&services::all_repair_targets());
+    let started = std::time::Instant::now();
+    let (service_result, power_result) = std::thread::scope(|scope| {
+        let service_tasks = services::repair_target_groups()
+            .into_iter()
+            .map(|names| {
+                scope.spawn(move || {
+                    let label = names.join(",");
+                    let group_started = std::time::Instant::now();
+                    let result = repair_services(&names);
+                    logging::info(format!(
+                        "performance repair_group={label} run_ms={}",
+                        group_started.elapsed().as_millis()
+                    ));
+                    result
+                })
+            })
+            .collect::<Vec<_>>();
+        let power_task =
+            scope.spawn(|| scan_usb_power_management().map_err(|error| format!("{error}")));
+
+        let mut combined = ServiceRepairResult::default();
+        for (index, task) in service_tasks.into_iter().enumerate() {
+            match task.join() {
+                Ok(result) => combined.merge(result),
+                Err(_) => combined
+                    .errors
+                    .push(format!("repair group {index} terminated unexpectedly")),
+            }
+        }
+        let power_result = power_task
+            .join()
+            .unwrap_or_else(|_| Err("USB power scan terminated unexpectedly".into()));
+        (combined, power_result)
+    });
     report.services_restarted = service_result.repaired;
     report.services_healthy = service_result.healthy;
     report.service_errors = service_result.errors;
-    match scan_usb_power_management() {
+    match power_result {
         Ok(configs) => {
             report.usb_power_configs = configs;
         }
         Err(e) => {
-            report.power_scan_error = Some(format!("{e}"));
+            report.power_scan_error = Some(e);
         }
     }
+    logging::info(format!(
+        "performance repair_total_ms={}",
+        started.elapsed().as_millis()
+    ));
+    services::invalidate_diagnostic_cache();
+    crate::bluetooth::invalidate_diagnostic_cache();
     logging::info("── 自动修复完成 ──");
     Ok(report)
 }
@@ -64,6 +103,14 @@ struct ServiceRepairResult {
     repaired: Vec<String>,
     healthy: Vec<String>,
     errors: Vec<String>,
+}
+
+impl ServiceRepairResult {
+    fn merge(&mut self, mut other: Self) {
+        self.repaired.append(&mut other.repaired);
+        self.healthy.append(&mut other.healthy);
+        self.errors.append(&mut other.errors);
+    }
 }
 
 fn repair_services(names: &[&str]) -> ServiceRepairResult {

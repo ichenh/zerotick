@@ -863,6 +863,13 @@ input {
 .health-dot-ok { background: var(--ok); }
 .health-dot-warn { background: var(--warn); }
 .health-dot-crit { background: var(--crit); }
+.health-dot-pending {
+  animation: health-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes health-pulse {
+  to { opacity: 0.35; }
+}
 
 .result-panel.result-idle {
   border-style: dashed;

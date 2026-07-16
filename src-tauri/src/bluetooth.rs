@@ -3,18 +3,27 @@
 use crate::events::BluetoothStatusEvent;
 use crate::events::{BluetoothDeviceEntry, BluetoothIssue};
 use crate::notify;
+use crate::services::{self, BLUETOOTH};
 use crate::settings;
 use crate::tray::{self, TrayLevel};
 use crate::utils::{logging, process::CommandExt, wmi_runner};
 use chrono::Local;
 use serde::Deserialize;
 use std::sync::{Mutex, OnceLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
 use tokio::time;
 use wmi::WMIConnection;
 
 static LAST_HEALTHY: OnceLock<Mutex<Option<bool>>> = OnceLock::new();
+static DIAGNOSE_CACHE: OnceLock<Mutex<BluetoothDiagnoseCache>> = OnceLock::new();
+const DIAGNOSE_CACHE_TTL: Duration = Duration::from_secs(2);
+
+#[derive(Default)]
+struct BluetoothDiagnoseCache {
+    finished_at: Option<Instant>,
+    report: Option<BluetoothReport>,
+}
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
@@ -31,20 +40,7 @@ struct PnPDevice {
     device_id: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
-struct Win32Service {
-    #[serde(rename = "Name")]
-    name: Option<String>,
-    #[serde(rename = "State")]
-    state: Option<String>,
-    #[serde(rename = "StartMode")]
-    start_mode: Option<String>,
-    #[serde(rename = "Status")]
-    status: Option<String>,
-}
-
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct BluetoothReport {
     pub adapter_devices: Vec<String>,
     pub error_devices: Vec<String>,
@@ -61,7 +57,26 @@ impl BluetoothReport {
 }
 
 pub fn diagnose() -> Result<BluetoothReport, String> {
-    match wmi_runner::run(diagnose_inner) {
+    let cache = DIAGNOSE_CACHE.get_or_init(|| Mutex::new(BluetoothDiagnoseCache::default()));
+    let mut cache = cache
+        .lock()
+        .map_err(|_| "Bluetooth diagnostic cache lock failed".to_string())?;
+    if let (Some(finished_at), Some(report)) = (cache.finished_at, cache.report.as_ref()) {
+        if finished_at.elapsed() <= DIAGNOSE_CACHE_TTL {
+            return Ok(report.clone());
+        }
+    }
+
+    let primary = wmi_runner::run(diagnose_pnp_inner).and_then(|mut report| {
+        let service_report = services::diagnose_group(BLUETOOTH)?;
+        if let Some(service) = service_report.services.first() {
+            report.bthserv_state = service.state.clone();
+            report.bthserv_start_mode = service.start_mode.clone();
+        }
+        apply_bthserv_issues(&mut report);
+        Ok(report)
+    });
+    let report = match primary {
         Ok(report) => Ok(report),
         Err(e) => match diagnose_powershell() {
             Ok(report) => {
@@ -77,10 +92,13 @@ pub fn diagnose() -> Result<BluetoothReport, String> {
                 Err(fallback_error)
             }
         },
-    }
+    }?;
+    cache.finished_at = Some(Instant::now());
+    cache.report = Some(report.clone());
+    Ok(report)
 }
 
-fn diagnose_inner(wmi: &WMIConnection) -> Result<BluetoothReport, wmi::WMIError> {
+fn diagnose_pnp_inner(wmi: &WMIConnection) -> Result<BluetoothReport, wmi::WMIError> {
     let mut report = BluetoothReport::default();
 
     let pnp_query = "SELECT Name, PNPClass, ConfigManagerErrorCode, DeviceID FROM Win32_PnPEntity WHERE PNPClass='Bluetooth'";
@@ -133,17 +151,16 @@ fn diagnose_inner(wmi: &WMIConnection) -> Result<BluetoothReport, wmi::WMIError>
             code: None,
         });
     }
-    let svc_query = "SELECT Name, State, StartMode FROM Win32_Service WHERE Name='bthserv'";
-    let services: Vec<Win32Service> = wmi.raw_query(svc_query).map_err(|error| {
-        logging::info(format!("Bluetooth WMI 失败阶段=服务查询: {error}"));
-        error
-    })?;
-    if let Some(svc) = services.first() {
-        report.bthserv_state = svc.state.clone();
-        report.bthserv_start_mode = svc.start_mode.clone();
-    }
-    apply_bthserv_issues(&mut report);
     Ok(report)
+}
+
+pub fn invalidate_diagnostic_cache() {
+    if let Some(cache) = DIAGNOSE_CACHE.get() {
+        if let Ok(mut cache) = cache.lock() {
+            cache.finished_at = None;
+            cache.report = None;
+        }
+    }
 }
 
 fn diagnose_powershell() -> Result<BluetoothReport, String> {
@@ -285,6 +302,7 @@ pub fn remove_device(instance_id: &str) -> Result<(), String> {
         .output()
         .map_err(|e| format!("pnputil 失败: {e}"))?;
     if output.status.success() {
+        invalidate_diagnostic_cache();
         Ok(())
     } else {
         Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
@@ -296,11 +314,15 @@ pub fn reconnect_device(instance_id: &str) -> Result<(), String> {
     let script = format!(
         "Disable-PnpDevice -InstanceId '{id}' -Confirm:$false; Start-Sleep -Milliseconds 500; Enable-PnpDevice -InstanceId '{id}' -Confirm:$false"
     );
-    crate::utils::powershell::run_void(&script)
+    crate::utils::powershell::run_void(&script)?;
+    invalidate_diagnostic_cache();
+    Ok(())
 }
 
 pub fn repair_service() -> (Vec<String>, Vec<String>) {
-    crate::services::repair_group(crate::services::BLUETOOTH)
+    let result = services::repair_group(BLUETOOTH);
+    invalidate_diagnostic_cache();
+    result
 }
 
 /// WMI 轮询监控，状态变更时才 emit `bluetooth-status`
@@ -313,12 +335,13 @@ pub async fn run_monitor(app: AppHandle) {
 }
 
 async fn run_cycle(app: &AppHandle) {
-    match diagnose() {
-        Ok(report) => {
+    match tokio::task::spawn_blocking(diagnose).await {
+        Ok(Ok(report)) => {
             emit_report(&report);
             emit_status_event(app, &report);
         }
-        Err(e) => logging::error(format!("Bluetooth diagnose failed: {e}")),
+        Ok(Err(e)) => logging::error(format!("Bluetooth diagnose failed: {e}")),
+        Err(e) => logging::error(format!("Bluetooth diagnose task failed: {e}")),
     }
 }
 

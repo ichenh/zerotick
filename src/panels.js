@@ -113,15 +113,6 @@ async function runButtonTask(button, task) {
   }
 }
 
-function invokeWithTimeout(command, timeoutMs = 25000) {
-  return Promise.race([
-    invoke(command),
-    new Promise((_, reject) => {
-      window.setTimeout(() => reject(new Error(`scan_timeout:${command}`)), timeoutMs);
-    }),
-  ]);
-}
-
 function renderServicesBlock(services, titleKey) {
   const rows = (services?.services ?? [])
     .map((svc) => {
@@ -1067,6 +1058,89 @@ function renderPortRow(entry) {
     </li>`;
 }
 
+const FULL_SCAN_CHECKS = [
+  ["network", "diagnose_network"],
+  ["audio", "diagnose_audio"],
+  ["usb", "diagnose_usb"],
+  ["bluetooth", "check_bluetooth"],
+  ["devices", "diagnose_devices"],
+];
+
+let activeFullScan = null;
+let fullScanRequestId = 0;
+
+function summarizeFullScanItem(id, command, scanItem) {
+  if (!scanItem) {
+    return {
+      id,
+      state: "pending",
+      detail: t("overview.fullScanning"),
+      technical: "",
+    };
+  }
+  if (scanItem.error || !scanItem.result) {
+    return {
+      id,
+      state: "warn",
+      detail: t("overview.checkFailed"),
+      technical: `${command} · ${rawErrorText(scanItem.error ?? "missing scan result")}`,
+    };
+  }
+
+  const report = scanItem.result;
+  if (id === "network") {
+    if ((report.adapter_count ?? 0) === 0) return { id, state: "crit", detail: t("overview.health.networkMissing") };
+    if (report.gateway_reachable === false || report.services?.issues?.length) return { id, state: "warn", detail: t("overview.health.networkIssue") };
+  } else if (id === "audio") {
+    const count = (report.playback?.length ?? 0) + (report.capture?.length ?? 0);
+    if (count === 0) return { id, state: "crit", detail: t("overview.health.audioMissing") };
+    if (report.services?.issues?.length) return { id, state: "warn", detail: t("overview.health.audioIssue") };
+  } else if (id === "usb") {
+    if ((report.devices ?? []).some((device) => Number(device.problem_code) !== 0)) return { id, state: "warn", detail: t("overview.health.usbIssue") };
+  } else if (id === "bluetooth") {
+    if ((report.issues ?? []).some((issue) => issue.id === "no_radio")) return { id, state: "crit", detail: t("overview.health.bluetoothMissing") };
+    if (!report.healthy) return { id, state: "warn", detail: t("overview.health.bluetoothIssue") };
+  } else if (id === "devices") {
+    if (report.network_missing || report.display_missing) return { id, state: "crit", detail: t("overview.health.devicesMissing") };
+    if (report.problems?.length) return { id, state: "warn", detail: t("overview.health.devicesIssue", { n: report.problems.length }) };
+  }
+  return {
+    id,
+    state: "ok",
+    detail: t("overview.health.ok"),
+    technical: `${scanItem.duration_ms ?? 0} ms`,
+  };
+}
+
+function renderFullScanOverview(el, scanItems) {
+  const items = FULL_SCAN_CHECKS.map(([id, command]) => summarizeFullScanItem(id, command, scanItems[id]));
+  const completed = items.filter((item) => item.state !== "pending").length;
+  const pending = completed < items.length;
+  const hasCritical = items.some((item) => item.state === "crit");
+  const hasWarning = items.some((item) => item.state === "warn");
+  const overall = hasCritical ? "crit" : hasWarning ? "warn" : "ok";
+  const headline = pending
+    ? t("overview.fullScanning")
+    : t(`overview.healthOverall.${overall}`);
+  const badge = pending
+    ? `<span class="result-badge">${completed}/${items.length}</span>`
+    : `<span class="result-badge result-badge-${overall}">${escapeHtml(t(`toolkit.verdict.${overall}`))}</span>`;
+  el.innerHTML = `<div class="health-overview-head">
+    <div><span>${escapeHtml(t("overview.healthTitle"))}</span><strong>${escapeHtml(headline)}</strong></div>
+    ${badge}
+  </div><div class="health-grid">${items.map((item) => `<div class="health-item">
+    <span class="health-dot health-dot-${item.state}"></span>
+    <div><strong>${escapeHtml(t(`nav.${item.id}`))}</strong><small>${escapeHtml(item.detail)}</small>${item.technical ? `<small class="advanced-only mono">${escapeHtml(item.technical)}</small>` : ""}</div>
+  </div>`).join("")}</div>`;
+}
+
+export function applyFullScanProgress(progress) {
+  if (!activeFullScan || !progress?.id || !progress.item) return;
+  if (activeFullScan.requestId !== progress.request_id) return;
+  activeFullScan.items[progress.id] = progress.item;
+  renderFullScanOverview(activeFullScan.element, activeFullScan.items);
+}
+
 export function bindToolkitHandlers({ showToast }) {
   $("btn-full-scan")?.addEventListener("click", (event) => {
     runButtonTask(event.currentTarget, async () => {
@@ -1076,59 +1150,21 @@ export function bindToolkitHandlers({ showToast }) {
         return;
       }
       el.classList.remove("hidden");
-      el.innerHTML = `<div class="health-scan-progress">${escapeHtml(t("overview.fullScanning"))}</div>`;
-      const checks = [
-        ["network", "diagnose_network"],
-        ["audio", "diagnose_audio"],
-        ["usb", "diagnose_usb"],
-        ["bluetooth", "check_bluetooth"],
-        ["devices", "diagnose_devices"],
-      ];
-      const settled = await Promise.allSettled(
-        checks.map(([, command]) => invokeWithTimeout(
-          command,
-          Math.max(10, Number(window.__zerotickSettings?.full_scan_timeout_secs ?? 25)) * 1000,
-        )),
-      );
-      const items = checks.map(([id], index) => {
-        const result = settled[index];
-        if (result.status === "rejected") {
-          return {
-            id,
-            state: "warn",
-            detail: t("overview.checkFailed"),
-            technical: `${checks[index][1]} · ${rawErrorText(result.reason)}`,
-          };
-        }
-        const report = result.value;
-        if (id === "network") {
-          if ((report.adapter_count ?? 0) === 0) return { id, state: "crit", detail: t("overview.health.networkMissing") };
-          if (report.gateway_reachable === false || report.services?.issues?.length) return { id, state: "warn", detail: t("overview.health.networkIssue") };
-        } else if (id === "audio") {
-          const count = (report.playback?.length ?? 0) + (report.capture?.length ?? 0);
-          if (count === 0) return { id, state: "crit", detail: t("overview.health.audioMissing") };
-          if (report.services?.issues?.length) return { id, state: "warn", detail: t("overview.health.audioIssue") };
-        } else if (id === "usb") {
-          if ((report.devices ?? []).some((device) => Number(device.problem_code) !== 0)) return { id, state: "warn", detail: t("overview.health.usbIssue") };
-        } else if (id === "bluetooth") {
-          if ((report.issues ?? []).some((issue) => issue.id === "no_radio")) return { id, state: "crit", detail: t("overview.health.bluetoothMissing") };
-          if (!report.healthy) return { id, state: "warn", detail: t("overview.health.bluetoothIssue") };
-        } else if (id === "devices") {
-          if (report.network_missing || report.display_missing) return { id, state: "crit", detail: t("overview.health.devicesMissing") };
-          if (report.problems?.length) return { id, state: "warn", detail: t("overview.health.devicesIssue", { n: report.problems.length }) };
-        }
-        return { id, state: "ok", detail: t("overview.health.ok") };
-      });
-      const hasCritical = items.some((item) => item.state === "crit");
-      const hasWarning = items.some((item) => item.state === "warn");
-      const overall = hasCritical ? "crit" : hasWarning ? "warn" : "ok";
-      el.innerHTML = `<div class="health-overview-head">
-        <div><span>${escapeHtml(t("overview.healthTitle"))}</span><strong>${escapeHtml(t(`overview.healthOverall.${overall}`))}</strong></div>
-        <span class="result-badge result-badge-${overall}">${escapeHtml(t(`toolkit.verdict.${overall}`))}</span>
-      </div><div class="health-grid">${items.map((item) => `<div class="health-item">
-        <span class="health-dot health-dot-${item.state}"></span>
-        <div><strong>${escapeHtml(t(`nav.${item.id}`))}</strong><small>${escapeHtml(item.detail)}</small>${item.technical ? `<small class="advanced-only mono">${escapeHtml(item.technical)}</small>` : ""}</div>
-      </div>`).join("")}</div>`;
+      const requestId = ++fullScanRequestId;
+      activeFullScan = { element: el, requestId, items: {} };
+      renderFullScanOverview(el, activeFullScan.items);
+      let fullScan;
+      try {
+        fullScan = await invoke("full_scan", { force: false, requestId });
+      } catch (error) {
+        activeFullScan = null;
+        el.innerHTML = `<div class="health-scan-progress">${renderOperationError(error, "full_scan")}</div>`;
+        showToast(t("overview.checkFailed"), true);
+        return;
+      }
+      const scanItems = fullScan?.items ?? {};
+      renderFullScanOverview(el, scanItems);
+      activeFullScan = null;
     });
   });
 

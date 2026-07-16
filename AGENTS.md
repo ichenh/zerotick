@@ -9,8 +9,8 @@ ZeroTick 是面向普通用户的 Windows 设备与系统故障诊断工具（Ta
 ## 版本策略
 
 ```
-v0.2.1  ← 当前版本
-v0.2.2  ← 下一版常规开发（patch）
+v0.2.4  ← 当前版本
+v0.2.5  ← 下一版常规开发（patch）
 …
 v0.3.0  ← 仅用户明确确认后才升 minor
 ```
@@ -63,7 +63,8 @@ src-tauri/src/
   settings.rs, i18n.rs, tray.rs, notify.rs, autostart.rs
   commands.rs, events.rs, engine.rs, lib.rs
 .github/workflows/ci.yml, release.yml
-scripts/ensure-icons.mjs, check-locales.mjs, check-release.mjs
+scripts/checks/check-locales.mjs, scripts/checks/check-release.mjs
+scripts/ensure-icons.mjs
 scripts/extract-changelog.mjs, prepare-dev.mjs, tauri-dev-admin.mjs
 README.md, CHANGELOG.md, CONTRIBUTING.md, README.zh-CN.md, LICENSE
 ```

@@ -1,7 +1,7 @@
 {
   "name": "zerotick",
   "private": true,
-  "version": "0.2.2",
+  "version": "0.2.4",
   "description": "Approachable Windows diagnostics and repair for network, audio, USB storage, Bluetooth, drivers, BSODs, and ports",
   "homepage": "https://github.com/ichenh/zerotick#readme",
   "repository": {
@@ -17,8 +17,8 @@
     "predev": "node scripts/prepare-dev.mjs",
     "ensure-icons": "node scripts/ensure-icons.mjs",
     "dev": "vite",
-    "check:i18n": "node scripts/check-locales.mjs",
-    "check:release": "node scripts/check-release.mjs",
+    "check:i18n": "node scripts/checks/check-locales.mjs",
+    "check:release": "node scripts/checks/check-release.mjs",
     "build": "npm run check:i18n && vite build",
     "preview": "vite preview",
     "tauri": "tauri",

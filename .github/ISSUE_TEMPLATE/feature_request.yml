@@ -1,0 +1,33 @@
+name: Feature request / 功能建议
+description: Propose a focused improvement for ZeroTick / 提议一项聚焦的 ZeroTick 改进
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / 问题
+      description: What user problem should this solve? / 这项功能需要解决什么用户问题？
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior / 建议行为
+      description: Describe the desired user-visible behavior. / 请描述期望的用户可见行为。
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives / 替代方案
+      description: What workarounds or alternatives have you considered? / 你考虑过哪些替代方案？
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope / 范围
+      options:
+        - label: This request fits ZeroTick's Windows diagnostics and repair scope. / 此建议符合 ZeroTick 的 Windows 诊断与修复范围。
+          required: true
