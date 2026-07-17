@@ -310,6 +310,8 @@ export default {
       connected: "Connected",
       disconnected: "Not connected",
       battery: "Battery {percent}%",
+      batteryRefreshing: "Reading current battery level…",
+      batteryUnavailable: "Current battery level unavailable",
       devicesTitle: "Paired devices",
       noDevices: "No Bluetooth peripherals found",
       radio: "Bluetooth adapter",

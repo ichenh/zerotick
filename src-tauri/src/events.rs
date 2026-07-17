@@ -46,9 +46,15 @@ pub struct BluetoothDeviceEntry {
     pub name: String,
     pub instance_id: String,
     pub status: String,
-    pub connected: bool,
+    /// Live WinRT connection evidence. `None` means the device is registered but
+    /// its current connection has not yet been verified.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub connected: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub battery_percent: Option<u8>,
+    /// `refreshing` | `cached` | `live` | `unavailable`
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub battery_state: Option<String>,
 }
 
 /// 蓝牙诊断结果 — 通过 `bluetooth-status` 通道推送

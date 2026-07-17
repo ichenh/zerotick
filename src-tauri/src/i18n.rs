@@ -230,23 +230,37 @@ pub fn format_device_notify(locale: &str, event_type: &str, event: &DeviceEvent)
         .or(event.vid_pid.as_deref())
         .unwrap_or("Unknown");
 
-    let key = match event_type {
-        "transient_reconnect" => "notify_body_transient",
+    if event_type == "transient_reconnect" {
+        return format!(
+            "{name} — {}",
+            format_duration_ms(event.disconnect_ms.unwrap_or(0))
+        );
+    }
 
+    let key = match event_type {
         "remove" => "notify_body_remove",
 
         _ => return name.to_string(),
     };
 
-    let tpl = pick(locale, key, "{name} ({ms}ms)");
+    let tpl = pick(locale, key, "{name}");
 
-    interpolate(
-        &tpl,
-        &[
-            ("name", name.to_string()),
-            ("ms", event.disconnect_ms.unwrap_or(0).to_string()),
-        ],
-    )
+    interpolate(&tpl, &[("name", name.to_string())])
+}
+
+pub fn format_duration_ms(milliseconds: u64) -> String {
+    if milliseconds < 1000 {
+        return format!("{milliseconds} ms");
+    }
+
+    let seconds = milliseconds / 1000;
+    let remainder = milliseconds % 1000;
+    if remainder == 0 {
+        return format!("{seconds} s");
+    }
+
+    let fraction = format!("{remainder:03}");
+    format!("{seconds}.{} s", fraction.trim_end_matches('0'))
 }
 
 pub fn format_bluetooth_issue(locale: &str, issue: &BluetoothIssue) -> String {
@@ -302,5 +316,14 @@ mod tests {
         assert_eq!(normalize_locale("zh-Hans"), "zh-CN");
 
         assert_eq!(normalize_locale("zh-Hant"), "zh-TW");
+    }
+
+    #[test]
+    fn formats_duration_in_ms_below_one_second_and_seconds_afterward() {
+        assert_eq!(format_duration_ms(999), "999 ms");
+        assert_eq!(format_duration_ms(1000), "1 s");
+        assert_eq!(format_duration_ms(1234), "1.234 s");
+        assert_eq!(format_duration_ms(12_340), "12.34 s");
+        assert_eq!(format_duration_ms(71_466), "71.466 s");
     }
 }

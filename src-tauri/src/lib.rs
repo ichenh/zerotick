@@ -28,6 +28,8 @@ use tauri::{
     Manager,
 };
 
+const BACKGROUND_LAUNCH_ARG: &str = "--background";
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     if let Err(e) = run_inner() {
@@ -37,12 +39,15 @@ pub fn run() {
 }
 
 fn run_inner() -> Result<(), Box<dyn std::error::Error>> {
+    let background_launch = std::env::args_os().any(|arg| arg == BACKGROUND_LAUNCH_ARG);
     let builder = tauri::Builder::default();
 
     // 开发模式允许多开，避免与已安装版抢单实例导致 dev 秒退
     #[cfg(not(debug_assertions))]
-    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-        show_main_window(app);
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+        if !args.iter().any(|arg| arg == BACKGROUND_LAUNCH_ARG) {
+            show_main_window(app);
+        }
     }));
 
     builder
@@ -50,10 +55,10 @@ fn run_inner() -> Result<(), Box<dyn std::error::Error>> {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            None,
+            Some(vec![BACKGROUND_LAUNCH_ARG]),
         ))
         .plugin(tauri_plugin_dialog::init())
-        .setup(|app| {
+        .setup(move |app| {
             let data_dir = app
                 .path()
                 .app_data_dir()
@@ -73,7 +78,7 @@ fn run_inner() -> Result<(), Box<dyn std::error::Error>> {
             // 正式版：若设置要求管理员启动且当前未提升，则 UAC 重启后退出本进程
             #[cfg(not(debug_assertions))]
             if settings::get().run_as_admin && !utils::elevated::is_elevated() {
-                match utils::elevated::relaunch_as_admin() {
+                match utils::elevated::relaunch_as_admin(background_launch) {
                     Ok(()) => std::process::exit(0),
                     Err(e) => utils::logging::warn(format!("管理员提升跳过: {e}")),
                 }
@@ -86,9 +91,11 @@ fn run_inner() -> Result<(), Box<dyn std::error::Error>> {
             engine::start(app.handle()).map_err(|e| format!("诊断引擎启动失败: {e}"))?;
             tray::sync_frontend_status(app.handle());
 
-            // 开发模式直接显示主窗口；正式版默认驻留托盘
-            #[cfg(debug_assertions)]
-            show_main_window(app.handle());
+            // 手动启动（包括安装器完成页、开始菜单和桌面快捷方式）应显示主窗口；
+            // 只有带专用参数的开机自启在后台驻留托盘。
+            if !background_launch {
+                show_main_window(app.handle());
+            }
 
             // 自启同步延后执行，避免注册表指向旧 exe 时阻断启动
             let handle = app.handle().clone();
@@ -117,6 +124,7 @@ fn run_inner() -> Result<(), Box<dyn std::error::Error>> {
             commands::set_audio_mute,
             commands::repair_audio,
             commands::diagnose_usb,
+            commands::diagnose_usb_progressive,
             commands::usb_list_drives,
             commands::usb_locking_processes,
             commands::usb_close_process,

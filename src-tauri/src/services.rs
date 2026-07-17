@@ -137,7 +137,7 @@ struct ServiceSnapshotCache {
     snapshot: Option<ServiceSnapshot>,
 }
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Clone, Default, Serialize)]
 pub struct ServicesReport {
     pub services: Vec<ServiceEntry>,
     pub issues: Vec<ServiceIssue>,

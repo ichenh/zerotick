@@ -334,6 +334,8 @@ export default {
       connected: "已连接",
       disconnected: "未连接",
       battery: "电量 {percent}%",
+      batteryRefreshing: "正在读取实时电量…",
+      batteryUnavailable: "暂时无法读取实时电量",
       devicesTitle: "已配对设备",
       noDevices: "未发现蓝牙外设",
       radio: "蓝牙适配器",

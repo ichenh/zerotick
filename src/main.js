@@ -17,12 +17,18 @@ import {
 import {
   escapeHtml,
   renderBluetoothReport,
+  applyBluetoothBatteryRefresh,
   formatBluetoothIssue,
+  renderUsbReport,
   renderPortScan,
   bindToolkitHandlers,
   applyFullScanProgress,
 } from "./panels.js";
 import { enhanceSelectMenus, refreshSelectMenus } from "./select-menu.js";
+
+if (import.meta.env.PROD) {
+  document.addEventListener("contextmenu", (event) => event.preventDefault());
+}
 
 const $ = (id) => document.getElementById(id);
 let toastTimer = null;
@@ -170,10 +176,10 @@ function formatEventMessage(ev) {
   const category = categoryLabel(ev.category);
   const ms = ev.disconnect_ms ?? 0;
   if (ev.event_type === "transient_reconnect") {
-    return t("events.msg.transient", { category, name, ms });
+    return `${t("events.transient")} · ${category} · ${name} · ${formatDuration(ms)}`;
   }
   if (ev.event_type === "arrival" && ev.disconnect_ms != null) {
-    return t("events.msg.reconnect", { category, name, ms });
+    return `${t("tray.reason.device_reconnect")} · ${category} · ${name} · ${formatDuration(ms)}`;
   }
   if (ev.event_type === "arrival") {
     return t("events.msg.arrival", { category, name });
@@ -409,7 +415,9 @@ function appendTimeline(ev, { animate = true } = {}) {
   if (ev.vid_pid) technicalParts.push(ev.vid_pid);
   if (ev.disconnect_ms != null) technicalParts.push(formatDuration(ev.disconnect_ms));
   if (ev.device_path) technicalParts.push(ev.device_path);
-  if (ev.message) technicalParts.push(ev.message);
+  // Duration-bearing backend messages repeat the same timing in a raw diagnostic
+  // form. The formatted duration above is the user-facing source of truth.
+  if (ev.message && ev.disconnect_ms == null) technicalParts.push(ev.message);
 
   li.innerHTML = `
     <span class="tl-time">${formatTime(ev.timestamp)}</span>
@@ -819,6 +827,14 @@ async function bindEvents() {
       const msg = ev.issues?.[0] ? formatBluetoothIssue(ev.issues[0]) : t("toolkit.unknown");
       showToast(t("toast.bluetooth", { msg }), true);
     }
+  });
+
+  await listen("bluetooth-battery-refresh", ({ payload: ev }) => {
+    applyBluetoothBatteryRefresh(ev.devices);
+  });
+
+  await listen("usb-storage-refresh", ({ payload: report }) => {
+    renderUsbReport(report);
   });
 
   await listen("bsod-alert", ({ payload: ev }) => {

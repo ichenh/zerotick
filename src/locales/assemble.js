@@ -60,6 +60,11 @@ export function assembleLocaleBundle(definition) {
   const source = definition.source ?? definition.base;
   const base = structuredClone(sourceBundles[source]);
   if (!base) throw new Error(`Missing source locale: ${source}`);
+  // Newly introduced status labels fall back to user-facing English text until
+  // that locale supplies its own translation. Never expose internal state IDs.
+  for (const key of ["batteryRefreshing", "batteryUnavailable"]) {
+    base.toolkit.bluetooth[key] ??= en.toolkit.bluetooth[key];
+  }
   const localized = definition.spelling === "british"
     ? mapStrings(base, (text) => britishSpelling.reduce(
         (value, [pattern, replacement]) => value.replace(pattern, replacement),

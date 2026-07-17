@@ -4,6 +4,7 @@ use crate::events::DeviceEvent;
 use crate::notify;
 use crate::settings;
 use crate::tray::{self, TrayLevel};
+use crate::usb_storage;
 use crate::utils::device_name;
 use crate::utils::device_path::{is_transient_disconnect, parse_device_path, DeviceCategory};
 use crate::utils::guid::{DEVINTERFACE_BLUETOOTH, DEVINTERFACE_USB_DEVICE};
@@ -83,6 +84,9 @@ fn push_event(
     tray_level: TrayLevel,
     tray_reason_id: &str,
 ) {
+    if category == DeviceCategory::Usb {
+        usb_storage::invalidate_diagnostic_cache();
+    }
     let category_code = category.as_str().to_string();
     let friendly_name = device_name::resolve(&device_path, vid_pid.as_deref());
     let message = build_message(
@@ -143,14 +147,14 @@ fn build_message(
     match event_type {
         "transient_reconnect" => {
             format!(
-                "[transient] [{category}] {label} — {}ms",
-                disconnect_ms.unwrap_or(0)
+                "[transient] [{category}] {label} — {}",
+                crate::i18n::format_duration_ms(disconnect_ms.unwrap_or(0))
             )
         }
         "arrival" if disconnect_ms.is_some() => {
             format!(
-                "[{category}] {label} — reconnect {}ms",
-                disconnect_ms.unwrap_or(0)
+                "[{category}] {label} — reconnect {}",
+                crate::i18n::format_duration_ms(disconnect_ms.unwrap_or(0))
             )
         }
         "arrival" => format!("[{category}] {label} — arrival"),

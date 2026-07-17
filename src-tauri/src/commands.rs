@@ -172,16 +172,8 @@ pub async fn full_scan(
         (
             "bluetooth",
             full_scan_item("bluetooth", || {
-                let report = bluetooth::diagnose()?;
-                Ok(BluetoothStatusEvent {
-                    timestamp: Local::now().to_rfc3339(),
-                    healthy: !report.has_issues(),
-                    bthserv_state: report.bthserv_state,
-                    issues: report.issues,
-                    adapter_count: report.adapter_devices.len(),
-                    adapters: report.adapter_devices,
-                    devices: report.devices,
-                })
+                let report = bluetooth::diagnose_health()?;
+                Ok(bluetooth_status_event(report))
             })
             .await,
         )
@@ -275,20 +267,64 @@ fn scoped_repair(restarted: Vec<String>, errors: Vec<String>) -> ScopedRepairRes
 }
 
 #[tauri::command]
-pub async fn check_bluetooth() -> Result<BluetoothStatusEvent, String> {
-    run_diagnostic_blocking("bluetooth", || {
+pub async fn check_bluetooth(app: AppHandle) -> Result<BluetoothStatusEvent, String> {
+    let initial = run_diagnostic_blocking("bluetooth", || {
         let report = bluetooth::diagnose()?;
-        Ok(BluetoothStatusEvent {
-            timestamp: Local::now().to_rfc3339(),
-            healthy: !report.has_issues(),
-            bthserv_state: report.bthserv_state,
-            issues: report.issues,
-            adapter_count: report.adapter_devices.len(),
-            adapters: report.adapter_devices.clone(),
-            devices: report.devices,
-        })
+        Ok(bluetooth_status_event(report))
     })
-    .await
+    .await?;
+    let app_handle = app.clone();
+    tauri::async_runtime::spawn(async move {
+        match tokio::task::spawn_blocking(bluetooth::refresh_cached_battery_levels).await {
+            Ok(Ok(report)) => {
+                if let Err(error) =
+                    app_handle.emit("bluetooth-battery-refresh", bluetooth_status_event(report))
+                {
+                    utils::logging::warn(format!(
+                        "emit cached bluetooth-battery-refresh failed: {error}"
+                    ));
+                }
+            }
+            Ok(Err(error)) => utils::logging::info(format!(
+                "Bluetooth cached battery refresh unavailable: {error}"
+            )),
+            Err(error) => utils::logging::warn(format!(
+                "Bluetooth cached battery refresh task terminated: {error}"
+            )),
+        }
+    });
+    let app_handle = app.clone();
+    tauri::async_runtime::spawn(async move {
+        match tokio::task::spawn_blocking(bluetooth::refresh_gatt_battery_levels).await {
+            Ok(Ok(Some(report))) => {
+                if let Err(error) =
+                    app_handle.emit("bluetooth-battery-refresh", bluetooth_status_event(report))
+                {
+                    utils::logging::warn(format!("emit bluetooth-battery-refresh failed: {error}"));
+                }
+            }
+            Ok(Ok(None)) => {}
+            Ok(Err(error)) => {
+                utils::logging::info(format!("Bluetooth live battery refresh skipped: {error}"));
+            }
+            Err(error) => utils::logging::warn(format!(
+                "Bluetooth live battery refresh task terminated: {error}"
+            )),
+        }
+    });
+    Ok(initial)
+}
+
+fn bluetooth_status_event(report: bluetooth::BluetoothReport) -> BluetoothStatusEvent {
+    BluetoothStatusEvent {
+        timestamp: Local::now().to_rfc3339(),
+        healthy: !report.has_issues(),
+        bthserv_state: report.bthserv_state,
+        issues: report.issues,
+        adapter_count: report.adapter_devices.len(),
+        adapters: report.adapter_devices,
+        devices: report.devices,
+    }
 }
 
 #[tauri::command]
@@ -380,6 +416,24 @@ pub async fn diagnose_usb() -> Result<UsbDiagReport, String> {
 }
 
 #[tauri::command]
+pub async fn diagnose_usb_progressive(app: AppHandle) -> Result<UsbDiagReport, String> {
+    let initial = run_diagnostic_blocking("usb_quick", usb_storage::diagnose_quick).await?;
+    tauri::async_runtime::spawn(async move {
+        match run_diagnostic_blocking("usb", usb_storage::diagnose).await {
+            Ok(report) => {
+                if let Err(error) = app.emit("usb-storage-refresh", report) {
+                    utils::logging::warn(format!("emit usb-storage-refresh failed: {error}"));
+                }
+            }
+            Err(error) => utils::logging::warn(format!(
+                "USB complete background diagnostic failed: {error}"
+            )),
+        }
+    });
+    Ok(initial)
+}
+
+#[tauri::command]
 pub async fn usb_list_drives() -> Result<Vec<UsbDrive>, String> {
     run_blocking(usb_storage::list_drives).await
 }
@@ -401,7 +455,10 @@ pub async fn usb_open_volume(drive_letter: String) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn usb_eject(drive_letter: String) -> Result<usb_storage::UsbEjectResult, String> {
-    run_blocking(move || usb_storage::eject_drive(&drive_letter)).await
+    let result = run_blocking(move || usb_storage::eject_drive(&drive_letter)).await?;
+    usb_storage::invalidate_diagnostic_cache();
+    invalidate_full_scan_cache().await;
+    Ok(result)
 }
 
 #[tauri::command]
@@ -411,7 +468,11 @@ pub async fn usb_format_volume(
     label: String,
     full: bool,
 ) -> Result<(), String> {
-    run_blocking(move || usb_storage::format_volume(&drive_letter, &filesystem, &label, full)).await
+    run_blocking(move || usb_storage::format_volume(&drive_letter, &filesystem, &label, full))
+        .await?;
+    usb_storage::invalidate_diagnostic_cache();
+    invalidate_full_scan_cache().await;
+    Ok(())
 }
 
 #[tauri::command]
@@ -421,6 +482,7 @@ pub async fn repair_usb() -> Result<ScopedRepairResult, String> {
         Ok(scoped_repair(ok, err))
     })
     .await?;
+    usb_storage::invalidate_diagnostic_cache();
     invalidate_full_scan_cache().await;
     Ok(result)
 }
@@ -539,7 +601,7 @@ pub fn is_elevated() -> bool {
 
 #[tauri::command]
 pub fn restart_elevated(app: AppHandle) -> Result<(), String> {
-    utils::elevated::relaunch_as_admin()?;
+    utils::elevated::relaunch_as_admin(false)?;
     app.exit(0);
     Ok(())
 }

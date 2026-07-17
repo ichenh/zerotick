@@ -572,6 +572,9 @@ function renderCardReaderSlots(device, drivesByLetter) {
 
 export function renderUsbReport(report) {
   const el = $("usb-result");
+  const completionHint = report.complete === false
+    ? `<p class="result-muted">${escapeHtml(t("toolkit.loading"))}</p>`
+    : "";
   const drivesByLetter = new Map((report.drives ?? []).map((drive) => [drive.letter.replace(":", "").toUpperCase(), drive]));
   const claimedLetters = new Set();
   const groups = (report.devices ?? []).map((device) => {
@@ -691,6 +694,7 @@ export function renderUsbReport(report) {
     el,
     state,
     `
+    ${completionHint}
     ${guide}
     ${renderServicesBlock(report.services, "toolkit.usb.servicesTitle")}
     <div class="result-section">
@@ -904,7 +908,10 @@ export function formatBluetoothIssue(issue) {
   return text !== key ? text : t("toolkit.bluetooth.issue.unknown");
 }
 
+let latestBluetoothReport = null;
+
 export function renderBluetoothReport(ev) {
+  latestBluetoothReport = ev;
   const el = $("bluetooth-result");
   const issueIds = new Set((ev.issues ?? []).map((issue) => issue.id));
   const state = issueIds.has("no_radio") ? "crit" : ev.healthy ? "ok" : "warn";
@@ -922,12 +929,24 @@ export function renderBluetoothReport(ev) {
   );
   const devices = (ev.devices ?? [])
     .map((d) => {
-      const statusBadge = d.connected ? "ok" : "warn";
+      const connectionKnown = typeof d.connected === "boolean";
+      const statusBadge = d.connected === true ? "ok" : d.connected === false ? "warn" : "neutral";
+      const connectionText = connectionKnown
+        ? t(d.connected ? "toolkit.bluetooth.connected" : "toolkit.bluetooth.disconnected")
+        : t("toolkit.unknown");
       const batteryPercent = Number.isFinite(Number(d.battery_percent))
         ? Math.min(100, Math.max(0, Number(d.battery_percent)))
         : null;
-      const battery = batteryPercent !== null
+      const battery = batteryPercent !== null && (!d.battery_state || d.battery_state === "live")
         ? `<span class="result-badge result-badge-${batteryPercent <= 20 ? "warn" : "ok"}">${escapeHtml(t("toolkit.bluetooth.battery", { percent: batteryPercent }))}</span>`
+        : "";
+      const batteryState = d.connected !== false && ["refreshing", "cached"].includes(d.battery_state)
+        ? t("toolkit.bluetooth.batteryRefreshing")
+        : d.connected !== false && d.battery_state === "unavailable"
+          ? t("toolkit.bluetooth.batteryUnavailable")
+          : "";
+      const batteryStateBadge = batteryState
+        ? `<span class="result-badge result-badge-${d.battery_state === "live" ? "ok" : "neutral"}">${escapeHtml(batteryState)}</span>`
         : "";
       return `
       <li class="device-row toolkit-device-row bt-device-row" data-instance="${escapeHtml(d.instance_id)}">
@@ -937,7 +956,8 @@ export function renderBluetoothReport(ev) {
         </div>
         <div class="toolkit-device-actions">
           ${battery}
-          <span class="result-badge result-badge-${statusBadge}">${escapeHtml(t(d.connected ? "toolkit.bluetooth.connected" : "toolkit.bluetooth.disconnected"))}</span>
+          ${batteryStateBadge}
+          <span class="result-badge result-badge-${statusBadge}">${escapeHtml(connectionText)}</span>
           <button type="button" class="btn btn-default btn-sm btn-bt-reconnect" data-id="${escapeHtml(d.instance_id)}">${escapeHtml(t("toolkit.bluetooth.reconnect"))}</button>
           <button type="button" class="btn btn-subtle btn-sm btn-bt-remove" data-id="${escapeHtml(d.instance_id)}" data-name="${escapeHtml(d.name)}">${escapeHtml(t("toolkit.bluetooth.remove"))}</button>
         </div>
@@ -980,6 +1000,37 @@ export function renderBluetoothReport(ev) {
     </details>
   `,
   );
+}
+
+export function applyBluetoothBatteryRefresh(devices) {
+  if (!latestBluetoothReport || !Array.isArray(devices)) return;
+  const batteryById = new Map(devices
+    .filter((device) => device?.instance_id
+      && (device.battery_state || typeof device.connected === "boolean"))
+    .map((device) => [device.instance_id, device]));
+  if (!batteryById.size) return;
+  const stateRank = { refreshing: 0, cached: 0, unavailable: 1, live: 2 };
+  renderBluetoothReport({
+    ...latestBluetoothReport,
+    devices: (latestBluetoothReport.devices ?? []).map((device) => {
+      const update = batteryById.get(device.instance_id);
+      if (!update) return device;
+      const next = { ...device };
+      if (typeof update.connected === "boolean") {
+        next.connected = update.connected;
+        if (!update.battery_state) {
+          next.battery_percent = null;
+          next.battery_state = null;
+        }
+      }
+      if (next.connected !== false && update.battery_state
+        && (stateRank[update.battery_state] ?? -1) >= (stateRank[device.battery_state] ?? -1)) {
+        next.battery_percent = update.battery_percent ?? device.battery_percent;
+        next.battery_state = update.battery_state;
+      }
+      return next;
+    }),
+  });
 }
 
 function formatDeviceProblem(problem) {
@@ -1563,7 +1614,7 @@ export function bindToolkitHandlers({ showToast }) {
   $("btn-usb-scan")?.addEventListener("click", async () => {
     setPanel($("usb-result"), "loading", `<p class="result-empty">${escapeHtml(t("toolkit.loading"))}</p>`);
     try {
-      renderUsbReport(await invoke("diagnose_usb"));
+      renderUsbReport(await invoke("diagnose_usb_progressive"));
     } catch (err) {
       setPanel($("usb-result"), "crit", renderOperationError(err, "diagnose_usb"));
     }

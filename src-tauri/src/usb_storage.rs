@@ -3,7 +3,8 @@
 use crate::services::{self, ServicesReport, USB};
 use crate::utils::{powershell, wmi_runner};
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use std::sync::{Condvar, Mutex, OnceLock};
+use std::time::{Duration, Instant};
 use windows::core::PCWSTR;
 use windows::Win32::Devices::DeviceAndDriverInstallation::{
     CM_Get_DevNode_Registry_PropertyW, CM_Get_Parent, CM_Locate_DevNodeW, CM_Request_Device_EjectW,
@@ -11,8 +12,9 @@ use windows::Win32::Devices::DeviceAndDriverInstallation::{
 };
 use windows::Win32::Foundation::{CloseHandle, GENERIC_READ, GENERIC_WRITE, HANDLE};
 use windows::Win32::Storage::FileSystem::{
-    CreateFileW, FlushFileBuffers, GetLogicalDrives, QueryDosDeviceW, FILE_ATTRIBUTE_NORMAL,
-    FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
+    CreateFileW, FlushFileBuffers, GetDiskFreeSpaceExW, GetDriveTypeW, GetLogicalDrives,
+    GetVolumeInformationW, QueryDosDeviceW, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ,
+    FILE_SHARE_WRITE, OPEN_EXISTING,
 };
 use windows::Win32::System::Ioctl::{
     FSCTL_DISMOUNT_VOLUME, FSCTL_LOCK_VOLUME, FSCTL_UNLOCK_VOLUME,
@@ -71,12 +73,26 @@ pub struct LockingProcess {
     pub can_close: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct UsbDiagReport {
     pub services: ServicesReport,
     pub drives: Vec<UsbDrive>,
     pub devices: Vec<UsbStorageDevice>,
+    /// False only for the immediate Win32 volume snapshot while full topology
+    /// and driver inspection continues in the background.
+    pub complete: bool,
 }
+
+#[derive(Default)]
+struct UsbDiagCache {
+    running: bool,
+    finished_at: Option<Instant>,
+    report: Option<UsbDiagReport>,
+}
+
+static USB_DIAG_CACHE: OnceLock<(Mutex<UsbDiagCache>, Condvar)> = OnceLock::new();
+const USB_DIAG_CACHE_TTL: Duration = Duration::from_secs(2);
+const DRIVE_TYPE_REMOVABLE: u32 = 2;
 
 #[derive(Debug, Deserialize)]
 struct LogicalDisk {
@@ -93,10 +109,100 @@ struct LogicalDisk {
 }
 
 pub fn diagnose() -> Result<UsbDiagReport, String> {
-    let (services, drives, mut devices) = std::thread::scope(|scope| {
+    let (lock, ready) =
+        USB_DIAG_CACHE.get_or_init(|| (Mutex::new(UsbDiagCache::default()), Condvar::new()));
+    let mut cache = lock
+        .lock()
+        .map_err(|_| "USB diagnostic cache lock failed".to_string())?;
+    loop {
+        if let (Some(finished_at), Some(report)) = (cache.finished_at, cache.report.as_ref()) {
+            if finished_at.elapsed() <= USB_DIAG_CACHE_TTL {
+                return Ok(report.clone());
+            }
+        }
+        if !cache.running {
+            cache.running = true;
+            break;
+        }
+        cache = ready
+            .wait(cache)
+            .map_err(|_| "USB diagnostic cache wait failed".to_string())?;
+    }
+    drop(cache);
+
+    let result = diagnose_uncached();
+    if let Ok(mut cache) = lock.lock() {
+        cache.running = false;
+        if let Ok(report) = &result {
+            cache.finished_at = Some(Instant::now());
+            cache.report = Some(report.clone());
+        }
+        ready.notify_all();
+    }
+    result
+}
+
+/// Fast first paint: Windows already exposes mounted volume metadata without
+/// waiting for the slower Storage/PnP topology walk. The complete scan still
+/// runs immediately afterward and replaces this report.
+pub fn diagnose_quick() -> Result<UsbDiagReport, String> {
+    let (services, drives) = std::thread::scope(|scope| {
         let services_task = scope.spawn(|| services::diagnose_group(USB));
-        let drives_task = scope.spawn(list_drives);
-        let devices_task = scope.spawn(list_storage_devices);
+        let drives_task = scope.spawn(list_removable_drives_native);
+        let services = services_task
+            .join()
+            .map_err(|_| "USB service quick scan terminated unexpectedly".to_string())??;
+        let drives = drives_task
+            .join()
+            .map_err(|_| "USB volume quick scan terminated unexpectedly".to_string())??;
+        Ok::<_, String>((services, drives))
+    })?;
+    Ok(UsbDiagReport {
+        services,
+        drives,
+        devices: Vec::new(),
+        complete: false,
+    })
+}
+
+pub fn invalidate_diagnostic_cache() {
+    if let Some((lock, _)) = USB_DIAG_CACHE.get() {
+        if let Ok(mut cache) = lock.lock() {
+            cache.finished_at = None;
+            cache.report = None;
+        }
+    }
+}
+
+fn diagnose_uncached() -> Result<UsbDiagReport, String> {
+    let (services, mut drives, mut devices) = std::thread::scope(|scope| {
+        let services_task = scope.spawn(|| {
+            let started = std::time::Instant::now();
+            let result = services::diagnose_group(USB);
+            crate::utils::logging::info(format!(
+                "performance usb_component=services run_ms={}",
+                started.elapsed().as_millis()
+            ));
+            result
+        });
+        let drives_task = scope.spawn(|| {
+            let started = std::time::Instant::now();
+            let result = list_drives();
+            crate::utils::logging::info(format!(
+                "performance usb_component=drives run_ms={}",
+                started.elapsed().as_millis()
+            ));
+            result
+        });
+        let devices_task = scope.spawn(|| {
+            let started = std::time::Instant::now();
+            let result = list_storage_devices();
+            crate::utils::logging::info(format!(
+                "performance usb_component=devices run_ms={}",
+                started.elapsed().as_millis()
+            ));
+            result
+        });
         let services = services_task
             .join()
             .map_err(|_| "USB 服务扫描异常终止".to_string())??;
@@ -112,12 +218,97 @@ pub fn diagnose() -> Result<UsbDiagReport, String> {
             });
         Ok::<_, String>((services, drives, devices))
     })?;
+    let attach_started = std::time::Instant::now();
     attach_drive_letters_to_slots(&drives, &mut devices);
+    crate::utils::logging::info(format!(
+        "performance usb_component=slot_mapping run_ms={}",
+        attach_started.elapsed().as_millis()
+    ));
+    let bitlocker_started = std::time::Instant::now();
+    refresh_bitlocker_states(&mut drives, &devices);
+    crate::utils::logging::info(format!(
+        "performance usb_component=bitlocker run_ms={}",
+        bitlocker_started.elapsed().as_millis()
+    ));
     Ok(UsbDiagReport {
         services,
         drives,
         devices,
+        complete: true,
     })
+}
+
+fn list_removable_drives_native() -> Result<Vec<UsbDrive>, String> {
+    let mask = unsafe { GetLogicalDrives() };
+    if mask == 0 {
+        return Err("GetLogicalDrives failed".into());
+    }
+    let mut drives = Vec::new();
+    for index in 0..26_u32 {
+        if mask & (1 << index) == 0 {
+            continue;
+        }
+        let letter = (b'A' + index as u8) as char;
+        let root = format!("{letter}:\\");
+        let wide = root
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect::<Vec<_>>();
+        if unsafe { GetDriveTypeW(PCWSTR(wide.as_ptr())) } != DRIVE_TYPE_REMOVABLE {
+            continue;
+        }
+
+        let drive_letter = format!("{letter}:");
+        let mut available = 0_u64;
+        let mut total = 0_u64;
+        let mut free = 0_u64;
+        let space = unsafe {
+            GetDiskFreeSpaceExW(
+                PCWSTR(wide.as_ptr()),
+                Some(&mut available),
+                Some(&mut total),
+                Some(&mut free),
+            )
+        };
+        let mut label_buffer = [0_u16; 261];
+        let mut filesystem_buffer = [0_u16; 64];
+        let volume = unsafe {
+            GetVolumeInformationW(
+                PCWSTR(wide.as_ptr()),
+                Some(&mut label_buffer),
+                None,
+                None,
+                None,
+                Some(&mut filesystem_buffer),
+            )
+        };
+        let label = wide_buffer_string(&label_buffer).filter(|value| !value.is_empty());
+        let filesystem = wide_buffer_string(&filesystem_buffer)
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| "—".into());
+        drives.push(UsbDrive {
+            letter: drive_letter.clone(),
+            label: label.unwrap_or_else(|| drive_letter.clone()),
+            size_gb: total as f64 / 1_073_741_824.0,
+            free_gb: available as f64 / 1_073_741_824.0,
+            filesystem,
+            access_state: if space.is_ok() && volume.is_ok() {
+                "ready".into()
+            } else {
+                "unavailable".into()
+            },
+            disk_number: query_drive_disk_number(&drive_letter),
+        });
+    }
+    Ok(drives)
+}
+
+fn wide_buffer_string(buffer: &[u16]) -> Option<String> {
+    let length = buffer
+        .iter()
+        .position(|value| *value == 0)
+        .unwrap_or(buffer.len());
+    String::from_utf16(&buffer[..length]).ok()
 }
 
 #[derive(Debug, Serialize)]
@@ -250,7 +441,9 @@ $usbDisks | ForEach-Object {
 # USBSTOR 是传统大容量存储；UASPStor 常表现为 SCSI 路径，不能按实例前缀过滤。
 if ($devices.Count -eq 0) {
   Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object {
-    $_.Service -in @('USBSTOR', 'UASPStor')
+    $_.Service -in @('USBSTOR', 'UASPStor') -and
+      $_.Present -ne $false -and
+      [uint32]$_.ConfigManagerErrorCode -notin @(45, 47)
   } | ForEach-Object {
     $bus = if ($_.Service -eq 'UASPStor') { 'USB (UASP)' } else { 'USB' }
     Add-StorageDevice $_.Name $_.PNPDeviceID $bus $_.Status $_.ConfigManagerErrorCode 'unknown' @() $_.PNPDeviceID 'unknown' $null
@@ -258,7 +451,7 @@ if ($devices.Count -eq 0) {
 
   # 保留 PnP 兜底，兼容未暴露 Storage Management 对象的普通 U 盘。
   Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | Where-Object {
-    $_.InstanceId -like 'USBSTOR\*'
+    $_.InstanceId -like 'USBSTOR\*' -and [uint32]$_.Problem -notin @(45, 47)
   } | ForEach-Object {
     Add-StorageDevice $_.FriendlyName $_.InstanceId 'USB' $_.Status $_.Problem 'unknown' @() $_.InstanceId 'unknown' $null
   }
@@ -276,7 +469,7 @@ if ($devices.Count -eq 0) {
     let devices = arr
         .into_iter()
         .filter_map(|item| {
-            Some(UsbStorageDevice {
+            let device = UsbStorageDevice {
                 name: item.get("name")?.as_str()?.to_string(),
                 instance_id: item.get("instance_id")?.as_str()?.to_string(),
                 bus_type: item
@@ -333,7 +526,8 @@ if ($devices.Count -eq 0) {
                     })
                     .unwrap_or_default(),
                 slots: Vec::new(),
-            })
+            };
+            (!is_detached_storage_node(&device)).then_some(device)
         })
         .map(|mut device| {
             device.slots.push(UsbStorageSlot {
@@ -347,6 +541,15 @@ if ($devices.Count -eq 0) {
         })
         .collect::<Vec<_>>();
     Ok(group_physical_devices(devices))
+}
+
+fn is_detached_storage_node(device: &UsbStorageDevice) -> bool {
+    // Windows keeps safely removed USBSTOR nodes in Win32_PnPEntity briefly (and
+    // sometimes until the next enumeration). Codes 45 and 47 mean disconnected or
+    // prepared for removal, not a driver fault that should be shown to the user.
+    matches!(device.problem_code, 45 | 47)
+        && device.volume_letters.is_empty()
+        && matches!(device.access_state.as_str(), "unknown" | "no_media")
 }
 
 fn group_physical_devices(devices: Vec<UsbStorageDevice>) -> Vec<UsbStorageDevice> {
@@ -560,12 +763,6 @@ fn map_logical_disk(d: LogicalDisk) -> Option<UsbDrive> {
 fn list_drives_powershell() -> Result<Vec<UsbDrive>, String> {
     let script = r#"
 $byLetter = @{}
-$lockedLetters = @{}
-if (Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue) {
-  Get-BitLockerVolume -ErrorAction SilentlyContinue | Where-Object { [string]$_.LockStatus -eq 'Locked' } | ForEach-Object {
-    if ($_.MountPoint) { $lockedLetters[[string]$_.MountPoint.TrimEnd(':').ToUpperInvariant()] = $true }
-  }
-}
 function Add-Vol($letter, $label, $size, $free, $fs, $access) {
   if (-not $letter) { return }
   $ch = [string]$letter
@@ -583,7 +780,7 @@ function Add-Vol($letter, $label, $size, $free, $fs, $access) {
     size_gb = [math]::Round($sz / 1GB, 2)
     free_gb = [math]::Round($fr / 1GB, 2)
     filesystem = if ($fs) { [string]$fs } else { '—' }
-    access_state = if ($lockedLetters.ContainsKey($key)) { 'locked' } elseif ($access) { [string]$access } elseif (-not $fs -and $sz -eq 0) { 'unavailable' } else { 'ready' }
+    access_state = if ($access) { [string]$access } elseif (-not $fs -and $sz -eq 0) { 'unavailable' } else { 'ready' }
   }
 }
 
@@ -594,20 +791,14 @@ function Add-Vol($letter, $label, $size, $free, $fs, $access) {
 } | ForEach-Object {
   if ($_.IsReady) {
     Add-Vol $_.Name $_.VolumeLabel $_.TotalSize $_.AvailableFreeSpace $_.DriveFormat 'ready'
-  } elseif ($lockedLetters.ContainsKey($_.Name.Substring(0, 1).ToUpperInvariant())) {
-    Add-Vol $_.Name $_.Name 0 0 '—' 'locked'
+  } else {
+    Add-Vol $_.Name $_.Name 0 0 '—' 'unavailable'
   }
 }
 
 Get-CimInstance Win32_LogicalDisk -Filter "DriveType=2" -ErrorAction SilentlyContinue | ForEach-Object {
   $ltr = if ($_.DeviceID) { $_.DeviceID[0] } else { $null }
   Add-Vol $ltr $_.VolumeName $_.Size $_.FreeSpace $_.FileSystem
-}
-
-Get-Volume -ErrorAction SilentlyContinue | Where-Object {
-  $_.DriveLetter -and ($_.DriveType -eq 'Removable' -or $_.DriveType -eq 'Unknown')
-} | ForEach-Object {
-  Add-Vol $_.DriveLetter $_.FileSystemLabel $_.Size $_.SizeRemaining $_.FileSystem
 }
 
 Get-Disk -ErrorAction SilentlyContinue | Where-Object {
@@ -634,6 +825,62 @@ Get-CimInstance Win32_DiskDrive -Filter "InterfaceType='USB'" -ErrorAction Silen
 "#;
     let val = powershell::run_json(script)?;
     parse_drives_json(val)
+}
+
+fn refresh_bitlocker_states(drives: &mut [UsbDrive], devices: &[UsbStorageDevice]) {
+    use std::collections::HashSet;
+
+    let candidates = bitlocker_candidate_letters(drives, devices);
+    if candidates.is_empty() {
+        return;
+    }
+
+    let letters = candidates
+        .iter()
+        .map(|letter| format!("'{}'", powershell_literal(letter)))
+        .collect::<Vec<_>>()
+        .join(",");
+    let script = format!(
+        r#"$targets = @({letters})
+@(Get-BitLockerVolume -ErrorAction SilentlyContinue | Where-Object {{
+  $_.MountPoint -and $targets -contains ([string]$_.MountPoint).TrimEnd(':').ToUpperInvariant() -and [string]$_.LockStatus -eq 'Locked'
+}} | ForEach-Object {{ ([string]$_.MountPoint).TrimEnd(':').ToUpperInvariant() }})"#
+    );
+    let Ok(value) = powershell::run_json(&script) else {
+        return;
+    };
+    let locked = match value {
+        serde_json::Value::Array(items) => items,
+        serde_json::Value::String(_) => vec![value],
+        _ => Vec::new(),
+    }
+    .into_iter()
+    .filter_map(|item| item.as_str().map(str::to_string))
+    .collect::<HashSet<_>>();
+    for drive in drives {
+        let letter = drive.letter.trim_end_matches(':').to_ascii_uppercase();
+        if locked.contains(&letter) {
+            drive.access_state = "locked".into();
+        }
+    }
+}
+
+fn bitlocker_candidate_letters(drives: &[UsbDrive], devices: &[UsbStorageDevice]) -> Vec<String> {
+    use std::collections::HashSet;
+
+    let no_media_letters = devices
+        .iter()
+        .flat_map(|device| &device.slots)
+        .filter(|slot| slot.access_state == "no_media")
+        .flat_map(|slot| &slot.volume_letters)
+        .map(|letter| letter.trim_end_matches(':').to_ascii_uppercase())
+        .collect::<HashSet<_>>();
+    drives
+        .iter()
+        .filter(|drive| drive.access_state == "unavailable")
+        .map(|drive| drive.letter.trim_end_matches(':').to_ascii_uppercase())
+        .filter(|letter| !no_media_letters.contains(letter))
+        .collect()
 }
 
 fn parse_drives_json(val: serde_json::Value) -> Result<Vec<UsbDrive>, String> {
@@ -1275,6 +1522,7 @@ mod tests {
         assert_eq!(devices[0].volume_letters, vec!["E:"]);
         assert_eq!(devices[0].slots[0].volume_letters, vec!["E:"]);
         assert_eq!(devices[0].slots[0].access_state, "no_media");
+        assert!(bitlocker_candidate_letters(&drives, &devices).is_empty());
     }
 
     #[test]
@@ -1305,6 +1553,26 @@ mod tests {
         assert_eq!(grouped.len(), 1);
         assert_eq!(grouped[0].access_state, "mounted");
         assert_eq!(grouped[0].volume_letters, vec!["E:"]);
+    }
+
+    #[test]
+    fn safely_removed_storage_nodes_are_not_driver_errors() {
+        for problem_code in [45, 47] {
+            let mut removed = storage_device("removed", "reader", "unknown", "E:");
+            removed.problem_code = problem_code;
+            removed.access_state = "unknown".into();
+            removed.volume_letters.clear();
+            assert!(is_detached_storage_node(&removed));
+
+            removed.volume_letters.push("E:".into());
+            assert!(!is_detached_storage_node(&removed));
+        }
+
+        let mut broken = storage_device("broken", "reader", "unknown", "E:");
+        broken.problem_code = 10;
+        broken.access_state = "unknown".into();
+        broken.volume_letters.clear();
+        assert!(!is_detached_storage_node(&broken));
     }
 
     #[test]
