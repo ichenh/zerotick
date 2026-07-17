@@ -10,7 +10,6 @@ mod engine;
 mod events;
 mod history;
 mod i18n;
-mod language_packs;
 mod monitor;
 mod network;
 mod notify;
@@ -69,7 +68,6 @@ fn run_inner() -> Result<(), Box<dyn std::error::Error>> {
             ));
             settings::init(data_dir.join("settings.json"))
                 .map_err(|e| format!("设置加载失败: {e}"))?;
-            language_packs::init(data_dir.join("language-pack.json"));
             bsod::init_seen_store(data_dir.join("bsod_seen.json"));
 
             // 正式版：若设置要求管理员启动且当前未提升，则 UAC 重启后退出本进程
@@ -141,9 +139,6 @@ fn run_inner() -> Result<(), Box<dyn std::error::Error>> {
             commands::get_app_version,
             commands::check_for_updates,
             commands::open_project_url,
-            commands::install_language_pack,
-            commands::load_language_pack,
-            commands::persist_language_pack,
             commands::scan_ports,
             commands::release_port,
             commands::release_releasable_ports,

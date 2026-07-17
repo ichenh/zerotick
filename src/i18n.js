@@ -1,39 +1,10 @@
 import en from "./locales/en.js";
-import zhCN from "./locales/zh-CN.js";
-import {
-  ALL_LANGUAGE_OPTIONS,
-  BUILTIN_LANGUAGE_OPTIONS,
-  OPTIONAL_LANGUAGE_OPTIONS,
-} from "./locales/catalog.js";
-
-/** @typedef {Record<string, unknown>} LocaleBundle */
-
-export function deepMerge(base, patch) {
-  const out = { ...base };
-  for (const [key, val] of Object.entries(patch ?? {})) {
-    if (
-      val &&
-      typeof val === "object" &&
-      !Array.isArray(val) &&
-      base[key] &&
-      typeof base[key] === "object" &&
-      !Array.isArray(base[key])
-    ) {
-      out[key] = deepMerge(/** @type {LocaleBundle} */ (base[key]), /** @type {LocaleBundle} */ (val));
-    } else {
-      out[key] = val;
-    }
-  }
-  return out;
-}
-
-const devBuiltinBundles = import.meta.env?.DEV
-  ? { "zh-CN": zhCN }
-  : {};
+import { assembleOptionalBundles } from "./locales/assemble.js";
+import { ALL_LANGUAGE_OPTIONS } from "./locales/catalog.js";
 
 export const bundles = {
   en,
-  ...devBuiltinBundles,
+  ...assembleOptionalBundles(),
 };
 
 const LEGACY_KEY_ALIASES = {
@@ -46,70 +17,11 @@ const LEGACY_KEY_ALIASES = {
   "toolkit.bluetooth.noIssues": "diag.bluetooth.noIssues",
 };
 
-export const LOCALE_OPTIONS = [
-  ...BUILTIN_LANGUAGE_OPTIONS,
-  ...OPTIONAL_LANGUAGE_OPTIONS.filter(({ code }) => Boolean(devBuiltinBundles[code])),
-];
-export const OPTIONAL_LOCALE_OPTIONS = OPTIONAL_LANGUAGE_OPTIONS;
+export const LOCALE_OPTIONS = ALL_LANGUAGE_OPTIONS;
 export const LANGUAGE_CATALOG = ALL_LANGUAGE_OPTIONS;
 
 export function isLocaleInstalled(code) {
   return Boolean(bundles[code]);
-}
-
-function flattenStrings(value, prefix = "", out = {}) {
-  for (const [key, item] of Object.entries(value ?? {})) {
-    const fullKey = prefix ? `${prefix}.${key}` : key;
-    if (item && typeof item === "object" && !Array.isArray(item)) {
-      flattenStrings(item, fullKey, out);
-    } else {
-      out[fullKey] = String(item);
-    }
-  }
-  return out;
-}
-
-function placeholderSignature(text) {
-  return [...String(text).matchAll(/\{(\w+)\}/g)]
-    .map((match) => match[1])
-    .sort()
-    .join(",");
-}
-
-export function registerLanguagePack(pack, appVersion) {
-  if (!pack || pack.schema_version !== 1 || pack.app_version !== appVersion) {
-    throw new Error("language_pack:version_mismatch");
-  }
-  if (!Array.isArray(pack.locales) || !pack.bundles || typeof pack.bundles !== "object") {
-    throw new Error("language_pack:invalid_structure");
-  }
-
-  const reference = flattenStrings(en);
-  const referenceKeys = Object.keys(reference);
-  const additions = [];
-  for (const option of pack.locales) {
-    const code = String(option?.code ?? "");
-    const label = String(option?.label ?? "");
-    if (!/^[a-z]{2,3}(?:-[A-Z]{2})?$/.test(code) || !label || label.length > 80) {
-      throw new Error("language_pack:invalid_locale");
-    }
-    const bundle = pack.bundles[code];
-    const translated = flattenStrings(bundle);
-    const complete = referenceKeys.every(
-      (key) => key in translated
-        && placeholderSignature(reference[key]) === placeholderSignature(translated[key]),
-    );
-    if (!complete) throw new Error(`language_pack:incomplete:${code}`);
-    additions.push({ code, label, bundle });
-  }
-
-  for (const { code, label, bundle } of additions) {
-    bundles[code] = bundle;
-    if (!LOCALE_OPTIONS.some((option) => option.code === code)) {
-      LOCALE_OPTIONS.push({ code, label });
-    }
-  }
-  return additions.length;
 }
 
 let currentLocale = "zh-CN";

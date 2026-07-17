@@ -13,7 +13,6 @@ import {
   LANGUAGE_CATALOG,
   matchSupportedLocale,
   normalizeLocale,
-  registerLanguagePack,
 } from "./i18n.js";
 import {
   escapeHtml,
@@ -39,8 +38,6 @@ let elevatedStatePromise = null;
 let appVersion = "";
 let updateInfo = null;
 let updateCheckState = "idle";
-let installedLanguageCount = 0;
-let languagePackState = "idle";
 let appSettings = {
   transient_threshold_ms: 500,
   tray_recovery_secs: 45,
@@ -278,7 +275,6 @@ function refreshStaticPanels() {
 
   refreshSpinLabels();
   renderUpdateStatus();
-  renderLanguagePackStatus();
   renderLanguageList();
   refreshSelectMenus();
 
@@ -650,20 +646,6 @@ function getElevatedState() {
   return elevatedStatePromise;
 }
 
-function renderLanguagePackStatus() {
-  const status = $("language-pack-status");
-  if (!status) return;
-  if (languagePackState === "installing") {
-    status.textContent = t("settings.languagePackInstalling");
-  } else if (languagePackState === "failed") {
-    status.textContent = t("settings.languagePackFailed");
-  } else if (installedLanguageCount > 0) {
-    status.textContent = t("settings.languagePackInstalled", { count: installedLanguageCount });
-  } else {
-    status.textContent = t("settings.languagePacksHint");
-  }
-}
-
 function renderLanguageList() {
   const list = $("language-list");
   if (!list) return;
@@ -672,15 +654,12 @@ function renderLanguageList() {
   const currentLabel = $("current-language-label");
   if (currentLabel) currentLabel.textContent = currentOption?.label ?? current;
   list.innerHTML = LANGUAGE_CATALOG.map((locale) => {
-    const installed = isLocaleInstalled(locale.code);
-    const active = installed && locale.code === current;
+    const active = locale.code === current;
     return `<div class="language-row${active ? " is-active" : ""}">
-      <button class="language-choice" type="button" data-code="${escapeHtml(locale.code)}"${installed ? "" : " disabled"} aria-pressed="${active}">
+      <button class="language-choice" type="button" data-code="${escapeHtml(locale.code)}" aria-pressed="${active}">
         <span>${escapeHtml(locale.label)}</span>
       </button>
-      ${installed
-        ? `<span class="language-installed" aria-hidden="true">✓</span>`
-        : `<button class="btn btn-default btn-sm btn-language-download" type="button" data-code="${escapeHtml(locale.code)}"${languagePackState === "installing" ? " disabled aria-busy=\"true\"" : ""}>${escapeHtml(t("settings.manageLanguagePacks"))}</button>`}
+      <span class="language-installed" aria-hidden="true">✓</span>
     </div>`;
   }).join("");
 }
@@ -691,30 +670,6 @@ function setLanguagePopover(open) {
   if (!popover || !trigger) return;
   popover.classList.toggle("hidden", !open);
   trigger.setAttribute("aria-expanded", String(open));
-}
-
-function bindLanguagePicker() {
-  $("language-picker-trigger").addEventListener("click", () => {
-    const open = $("language-picker-trigger").getAttribute("aria-expanded") !== "true";
-    setLanguagePopover(open);
-  });
-  $("language-list").addEventListener("click", (event) => {
-    const download = event.target.closest(".btn-language-download");
-    if (download) {
-      installLanguagePack(download.dataset.code);
-      return;
-    }
-    const choice = event.target.closest(".language-choice");
-    if (choice) chooseInstalledLanguage(choice.dataset.code);
-  });
-  document.addEventListener("click", (event) => {
-    if (!event.target.closest(".language-picker-control")) setLanguagePopover(false);
-  });
-  document.addEventListener("keydown", (event) => {
-    if (event.key !== "Escape" || $("language-popover").classList.contains("hidden")) return;
-    setLanguagePopover(false);
-    $("language-picker-trigger").focus();
-  });
 }
 
 function chooseInstalledLanguage(code) {
@@ -728,37 +683,6 @@ function chooseInstalledLanguage(code) {
   saveSettingsImmediately();
 }
 
-async function installLanguagePack(targetLocale) {
-  languagePackState = "installing";
-  renderLanguagePackStatus();
-  renderLanguageList();
-  try {
-    const pack = await invoke("install_language_pack", { locale: targetLocale });
-    registerLanguagePack(pack, appVersion);
-    installedLanguageCount = LANGUAGE_CATALOG.filter(
-      (locale) => locale.code !== "en" && isLocaleInstalled(locale.code),
-    ).length;
-    await invoke("persist_language_pack", { pack });
-    languagePackState = "ready";
-    if (isLocaleInstalled(targetLocale)) {
-      appSettings.locale_auto_configured = true;
-      $("set-locale").value = targetLocale;
-      setLocale(targetLocale);
-      refreshStaticPanels();
-      setLanguagePopover(false);
-      saveSettingsImmediately();
-    }
-    renderLanguagePackStatus();
-    renderLanguageList();
-    showToast(t("settings.languagePackInstalled", { count: installedLanguageCount }), false);
-  } catch (error) {
-    languagePackState = "failed";
-    renderLanguagePackStatus();
-    renderLanguageList();
-    showOperationError(error, "install_language_pack", "settings.languagePackFailed");
-  }
-}
-
 function preferredSystemLocale() {
   for (const locale of navigator.languages ?? [navigator.language]) {
     const matched = matchSupportedLocale(locale);
@@ -767,23 +691,34 @@ function preferredSystemLocale() {
   return "en";
 }
 
-async function configureInitialLanguage() {
+function configureInitialLanguage() {
   if (appSettings.locale_auto_configured) return;
   const saved = matchSupportedLocale(appSettings.locale);
   const target = saved !== "en" ? saved : preferredSystemLocale();
-  if (target !== "en" && !isLocaleInstalled(target)) {
-    await installLanguagePack(target);
-    if (!isLocaleInstalled(target)) {
-      appSettings.locale_auto_configured = false;
-      saveSettingsImmediately();
-    }
-    return;
-  }
   appSettings.locale_auto_configured = true;
   $("set-locale").value = target;
   setLocale(target);
   refreshStaticPanels();
   saveSettingsImmediately();
+}
+
+function bindLanguagePicker() {
+  $("language-picker-trigger").addEventListener("click", () => {
+    const open = $("language-picker-trigger").getAttribute("aria-expanded") !== "true";
+    setLanguagePopover(open);
+  });
+  $("language-list").addEventListener("click", (event) => {
+    const choice = event.target.closest(".language-choice");
+    if (choice) chooseInstalledLanguage(choice.dataset.code);
+  });
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".language-picker-control")) setLanguagePopover(false);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || $("language-popover").classList.contains("hidden")) return;
+    setLanguagePopover(false);
+    $("language-picker-trigger").focus();
+  });
 }
 
 function renderUpdateStatus() {
@@ -1053,9 +988,9 @@ function initScrollPanels() {
 }
 
 async function init() {
+  bindLanguagePicker();
   bindNavigation();
   bindToolkitHandlers({ showToast });
-  bindLanguagePicker();
   $("set-locale").value = "en";
   setLocale($("set-locale").value);
   renderLanguageList();
@@ -1068,27 +1003,8 @@ async function init() {
   try {
     await waitForTauri();
     await bindEvents();
-    const [version, installedPack] = await Promise.all([
-      invoke("get_app_version"),
-      invoke("load_language_pack").catch((error) => {
-        console.warn("[ZeroTick:load_language_pack]", error);
-        return null;
-      }),
-    ]);
+    const version = await invoke("get_app_version");
     appVersion = version;
-    if (installedPack) {
-      try {
-        registerLanguagePack(installedPack, version);
-        installedLanguageCount = LANGUAGE_CATALOG.filter(
-          (locale) => locale.code !== "en" && isLocaleInstalled(locale.code),
-        ).length;
-        languagePackState = "ready";
-        renderLanguageList();
-      } catch (error) {
-        languagePackState = "failed";
-        console.warn("[ZeroTick:validate_language_pack]", error);
-      }
-    }
     await loadSettings();
     await configureInitialLanguage();
     $("app-version").textContent = `v${version}`;

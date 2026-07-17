@@ -85,7 +85,7 @@ ZeroTick supports Windows 10/11 x64 and uses Microsoft Edge WebView2. WebView2 i
 4. Read the status and recommended actions. Use **Repair** only when it matches the issue shown.
 5. Enable **Advanced mode** in Settings when raw evidence or scan parameters are needed.
 
-ZeroTick exposes all 37 supported interface languages in Settings. English is always available as the offline fallback; the other 36 translations are published as independent, version-matched GitHub Release assets for on-demand installation. On first launch, ZeroTick matches the ordered Windows language preferences and installs the closest available translation automatically. Build-time checks reject incomplete language packs.
+ZeroTick includes all 37 supported interface languages in the application. On first launch, it matches the ordered Windows language preferences and selects the closest available translation automatically. Every language remains available for instant switching in Settings without a download or reinstall, and build-time checks reject incomplete translations.
 
 ## Safety and privacy
 
@@ -143,7 +143,7 @@ npm run tauri:dev:admin
 
 | Layer | Implementation |
 |-------|----------------|
-| UI | Vite, Vanilla JavaScript, CSS, one offline fallback plus independently validated language packs |
+| UI | Vite, Vanilla JavaScript, CSS, 37 bundled and independently validated interface languages |
 | Desktop shell | Tauri 2, tray integration, notifications, autostart, native dialogs |
 | Diagnostics | Rust orchestration with Win32 APIs, WMI, PowerShell fallbacks, Event Log, and Minidump/WinDbg analysis |
 | Monitoring | Event-driven `WM_DEVICECHANGE` message pump plus bounded background checks |

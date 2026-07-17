@@ -8,7 +8,6 @@ use crate::devices::{self, DeviceRescanResult, DevicesDiagReport};
 use crate::events::{BluetoothStatusEvent, BsodAlertEvent, DeviceEvent};
 use crate::history;
 use crate::i18n;
-use crate::language_packs;
 use crate::network::{self, NetworkDiagReport, SpeedTestResult};
 use crate::notify;
 use crate::ports::{self, PortScanReport, ReleaseReport};
@@ -576,26 +575,6 @@ pub async fn check_for_updates(force: bool) -> Result<UpdateInfo, String> {
 #[tauri::command]
 pub fn open_project_url(app: AppHandle, url: String) -> Result<(), String> {
     updates::open_project_url(&app, &url)
-}
-
-#[tauri::command]
-pub async fn install_language_pack(locale: String) -> Result<Value, String> {
-    let requested_locale = locale.clone();
-    let result = run_blocking(move || language_packs::install(&locale)).await;
-    if let Err(error) = &result {
-        utils::logging::warn(format!("语言包安装失败 locale={requested_locale}: {error}"));
-    }
-    result
-}
-
-#[tauri::command]
-pub fn load_language_pack() -> Result<Option<Value>, String> {
-    language_packs::load()
-}
-
-#[tauri::command]
-pub fn persist_language_pack(pack: Value) -> Result<(), String> {
-    language_packs::persist(&pack)
 }
 
 #[tauri::command]
