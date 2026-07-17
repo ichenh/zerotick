@@ -747,12 +747,15 @@ async function configureInitialLanguage() {
   if (appSettings.locale_auto_configured) return;
   const saved = matchSupportedLocale(appSettings.locale);
   const target = saved !== "en" ? saved : preferredSystemLocale();
-  appSettings.locale_auto_configured = true;
   if (target !== "en" && !isLocaleInstalled(target)) {
     await installLanguagePack(target);
-    if (!isLocaleInstalled(target)) saveSettingsImmediately();
+    if (!isLocaleInstalled(target)) {
+      appSettings.locale_auto_configured = false;
+      saveSettingsImmediately();
+    }
     return;
   }
+  appSettings.locale_auto_configured = true;
   $("set-locale").value = target;
   setLocale(target);
   refreshStaticPanels();

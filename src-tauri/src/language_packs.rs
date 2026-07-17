@@ -1,8 +1,7 @@
 //! 与应用版本严格匹配的可选完整语言包。
 
 use reqwest::blocking::Client;
-use reqwest::header::{ACCEPT, USER_AGENT};
-use serde::Deserialize;
+use reqwest::header::USER_AGENT;
 use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
@@ -10,20 +9,9 @@ use std::sync::OnceLock;
 use std::time::Duration;
 
 const MAX_PACK_BYTES: usize = 8 * 1024 * 1024;
-const RELEASE_BY_TAG_API: &str = "https://api.github.com/repos/ichenh/zerotick/releases/tags/";
+const RELEASE_DOWNLOAD_BASE: &str = "https://github.com/ichenh/zerotick/releases/download/";
 
 static PACK_PATH: OnceLock<PathBuf> = OnceLock::new();
-
-#[derive(Debug, Deserialize)]
-struct GitHubRelease {
-    assets: Vec<GitHubAsset>,
-}
-
-#[derive(Debug, Deserialize)]
-struct GitHubAsset {
-    name: String,
-    browser_download_url: String,
-}
 
 pub fn init(path: PathBuf) {
     let _ = PACK_PATH.set(path);
@@ -45,37 +33,14 @@ pub fn install(locale: &str) -> Result<Value, String> {
         return Err("不支持的可下载语言".into());
     }
     let asset_name = format!("zerotick-language-pack-v{version}.json");
+    let asset_url = format!("{RELEASE_DOWNLOAD_BASE}v{version}/{asset_name}");
     let client = Client::builder()
         .connect_timeout(Duration::from_secs(8))
         .timeout(Duration::from_secs(30))
         .build()
         .map_err(|error| format!("创建语言包下载客户端失败: {error}"))?;
-    let release_url = format!("{RELEASE_BY_TAG_API}v{version}");
     let response = client
-        .get(release_url)
-        .header(USER_AGENT, format!("ZeroTick/{version}"))
-        .header(ACCEPT, "application/vnd.github+json")
-        .header("X-GitHub-Api-Version", "2022-11-28")
-        .send()
-        .map_err(|error| format!("无法连接 GitHub Releases: {error}"))?;
-    if !response.status().is_success() {
-        return Err(format!(
-            "未找到 ZeroTick v{version} 的 GitHub Release（HTTP {}）",
-            response.status().as_u16()
-        ));
-    }
-    let release_raw = response
-        .text()
-        .map_err(|error| format!("读取 GitHub Release 响应失败: {error}"))?;
-    let release: GitHubRelease = serde_json::from_str(&release_raw)
-        .map_err(|error| format!("解析 GitHub Release 失败: {error}"))?;
-    let asset = release
-        .assets
-        .iter()
-        .find(|asset| asset.name == asset_name)
-        .ok_or_else(|| format!("该版本尚未提供语言包 {asset_name}"))?;
-    let response = client
-        .get(&asset.browser_download_url)
+        .get(asset_url)
         .header(USER_AGENT, format!("ZeroTick/{version}"))
         .send()
         .map_err(|error| format!("下载语言包失败: {error}"))?;
