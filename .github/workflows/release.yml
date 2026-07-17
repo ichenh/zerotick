@@ -94,7 +94,7 @@ jobs:
         if: steps.gate.outputs.skip != 'true'
         run: node scripts/extract-changelog.mjs ${{ steps.version.outputs.version }} > release-notes.md
 
-      - name: Build language manifest and per-language packs
+      - name: Build consolidated language pack
         if: steps.gate.outputs.skip != 'true'
         run: node scripts/build-language-pack.mjs release-assets
 

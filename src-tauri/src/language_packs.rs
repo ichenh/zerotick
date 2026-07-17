@@ -44,7 +44,7 @@ pub fn install(locale: &str) -> Result<Value, String> {
     if locale == "en" || !crate::i18n::SUPPORTED.contains(&locale.as_str()) {
         return Err("不支持的可下载语言".into());
     }
-    let asset_name = format!("zerotick-language-{locale}-v{version}.json");
+    let asset_name = format!("zerotick-language-pack-v{version}.json");
     let client = Client::builder()
         .connect_timeout(Duration::from_secs(8))
         .timeout(Duration::from_secs(30))
@@ -98,18 +98,31 @@ pub fn install(locale: &str) -> Result<Value, String> {
         return Err("语言包超过 8 MiB 安全限制".into());
     }
     let pack = validate_pack(&raw)?;
-    let contains_requested_locale =
-        pack.get("locales")
-            .and_then(Value::as_array)
-            .is_some_and(|locales| {
-                locales
-                    .iter()
-                    .any(|item| item.get("code").and_then(Value::as_str) == Some(locale.as_str()))
-            });
-    if !contains_requested_locale {
+    let locale_metadata = pack
+        .get("locales")
+        .and_then(Value::as_array)
+        .and_then(|locales| {
+            locales
+                .iter()
+                .find(|item| item.get("code").and_then(Value::as_str) == Some(locale.as_str()))
+        })
+        .cloned();
+    let bundle = pack
+        .get("bundles")
+        .and_then(Value::as_object)
+        .and_then(|bundles| bundles.get(&locale))
+        .cloned();
+    let (Some(locale_metadata), Some(bundle)) = (locale_metadata, bundle) else {
         return Err("下载的语言包与请求语言不匹配".into());
-    }
-    Ok(pack)
+    };
+    let mut selected_bundles = serde_json::Map::new();
+    selected_bundles.insert(locale, bundle);
+    Ok(serde_json::json!({
+        "schema_version": 1,
+        "app_version": version,
+        "locales": [locale_metadata],
+        "bundles": selected_bundles,
+    }))
 }
 
 pub fn persist(pack: &Value) -> Result<(), String> {

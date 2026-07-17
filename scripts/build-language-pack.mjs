@@ -99,7 +99,12 @@ function placeholders(text) {
 }
 
 const reference = flatten(en);
-const outputPacks = [];
+const outputPack = {
+  schema_version: 1,
+  app_version: packageJson.version,
+  locales: [],
+  bundles: {},
+};
 for (const definition of localeDefinitions) {
   const bundle = cloneBundle(definition);
   const translated = flatten(bundle);
@@ -112,12 +117,8 @@ for (const definition of localeDefinitions) {
       `${definition.code} failed validation: ${missing.length} missing, ${mismatched.length} placeholder mismatches`,
     );
   }
-  outputPacks.push({
-    schema_version: 1,
-    app_version: packageJson.version,
-    locales: [{ code: definition.code, label: definition.label }],
-    bundles: { [definition.code]: bundle },
-  });
+  outputPack.locales.push({ code: definition.code, label: definition.label });
+  outputPack.bundles[definition.code] = bundle;
 }
 
 if (checkOnly) {
@@ -126,22 +127,9 @@ if (checkOnly) {
 }
 
 fs.mkdirSync(outputDir, { recursive: true });
-for (const pack of outputPacks) {
-  const code = pack.locales[0].code;
-  const outputPath = path.join(outputDir, `zerotick-language-${code}-v${packageJson.version}.json`);
-  fs.writeFileSync(outputPath, `${JSON.stringify(pack)}\n`, "utf8");
-  console.log(`Language pack: ${outputPath}`);
-}
-
-const manifest = {
-  schema_version: 1,
-  app_version: packageJson.version,
-  languages: localeDefinitions.map(({ code, label }) => ({
-    code,
-    label,
-    asset: `zerotick-language-${code}-v${packageJson.version}.json`,
-  })),
-};
-const manifestPath = path.join(outputDir, `zerotick-languages-v${packageJson.version}.json`);
-fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-console.log(`Language manifest: ${manifestPath}`);
+const outputPath = path.join(
+  outputDir,
+  `zerotick-language-pack-v${packageJson.version}.json`,
+);
+fs.writeFileSync(outputPath, `${JSON.stringify(outputPack)}\n`, "utf8");
+console.log(`Language pack (${localeDefinitions.length} locales): ${outputPath}`);

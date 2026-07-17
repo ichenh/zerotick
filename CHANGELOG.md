@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- GitHub Release 中的可选语言资源合并为单一版本化语言包，应用下载后仍只安装用户选择的语言，避免大量语言附件干扰安装包查找。
 - 构建工具升级至 Vite 8 与 Oxc，Windows 管理查询升级至 WMI 0.18，并完成相应 API 迁移。
 - 普通模式优先显示 Windows 的友好名称和总线报告产品名，不再把 `USB Composite Device`、VID/PID、实例路径等技术标识当作设备名称；原始标识仅在高级模式显示。
 - “USB 存储”统一简化为“可移动存储”，不再在普通界面重复说明 USB、Type-C 或内部检测实现。
