@@ -6,13 +6,16 @@ use std::collections::{HashMap, HashSet};
 use std::process::Command;
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
-use windows::Win32::Foundation::CloseHandle;
+use windows::Win32::Foundation::{CloseHandle, WAIT_OBJECT_0};
 use windows::Win32::System::Diagnostics::ToolHelp::{
     CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
 };
-use windows::Win32::System::Threading::{OpenProcess, TerminateProcess, PROCESS_TERMINATE};
+use windows::Win32::System::Threading::{
+    OpenProcess, TerminateProcess, WaitForSingleObject, PROCESS_ACCESS_RIGHTS, PROCESS_TERMINATE,
+};
 
 const EXCLUDED_RANGES_TTL: Duration = Duration::from_secs(30);
+const PROCESS_SYNCHRONIZE: PROCESS_ACCESS_RIGHTS = PROCESS_ACCESS_RIGHTS(0x0010_0000);
 type ExcludedRangesCache = Option<(Instant, Vec<(u16, u16)>)>;
 static EXCLUDED_RANGES_CACHE: OnceLock<Mutex<ExcludedRangesCache>> = OnceLock::new();
 
@@ -39,7 +42,8 @@ pub struct PortEntry {
     pub message: String,
     /// 排序权重：可解除残留 < 可解除连接 < 普通占用 < 系统保留
     pub sort_priority: u8,
-    /// 残留连接解除键（local|remote|port|proto）
+    /// Reserved for backward-compatible payloads. Windows does not expose a
+    /// supported API for deleting an individual TCP TIME_WAIT entry.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub connection_key: Option<String>,
 }
@@ -134,16 +138,6 @@ pub fn release_all_releasable() -> Result<ReleaseReport, String> {
     let mut seen = HashSet::new();
 
     for entry in report.entries.iter().filter(|e| e.can_release) {
-        if let Some(key) = &entry.connection_key {
-            if !seen.insert(key.clone()) {
-                continue;
-            }
-            match release_connection_key(key) {
-                Ok(()) => released.push(entry.pid.unwrap_or(0)),
-                Err(e) => errors.push(e),
-            }
-            continue;
-        }
         let Some(pid) = entry.pid else { continue };
         if !seen.insert(format!("pid:{pid}")) {
             continue;
@@ -158,30 +152,6 @@ pub fn release_all_releasable() -> Result<ReleaseReport, String> {
         released_pids: released.into_iter().filter(|p| *p > 0).collect(),
         errors,
     })
-}
-
-pub fn release_connection(connection_key: &str) -> Result<(), String> {
-    release_connection_key(connection_key)
-}
-
-fn release_connection_key(key: &str) -> Result<(), String> {
-    let parts: Vec<&str> = key.splitn(4, '|').collect();
-    if parts.len() < 4 {
-        return Err("无效连接键".into());
-    }
-    let local = parts[0].replace('\'', "''");
-    let remote = parts[1].replace('\'', "''");
-    let port: u16 = parts[2].parse().map_err(|_| "无效端口")?;
-    let proto = parts[3];
-    let state_filter = if proto.eq_ignore_ascii_case("UDP") {
-        ""
-    } else {
-        "-State TimeWait,CloseWait,FinWait2,LastAck"
-    };
-    let script = format!(
-        "Get-NetTCPConnection -LocalAddress '{local}' -LocalPort {port} -RemoteAddress '{remote}' {state_filter} -ErrorAction SilentlyContinue | Remove-NetTCPConnection -Confirm:$false"
-    );
-    crate::utils::powershell::run_void(&script)
 }
 
 #[derive(Debug)]
@@ -204,23 +174,15 @@ fn build_entry(
     let process_name = pid_opt.and_then(|p| process_name(p, process_cache));
 
     let (category, category_label, message_id, can_release, message, sort_priority, connection_key) =
-        if row.state.eq_ignore_ascii_case("TIME_WAIT")
-            || row.state.eq_ignore_ascii_case("CLOSE_WAIT")
-            || row.state.eq_ignore_ascii_case("FIN_WAIT_2")
-        {
-            let key = format!("{}|{}|{}|{}", row.local, row.remote, port, row.protocol);
+        if row.state.eq_ignore_ascii_case("TIME_WAIT") {
             (
                 "time_wait",
                 "time_wait",
-                if row.state.eq_ignore_ascii_case("TIME_WAIT") {
-                    "time_wait_releasable"
-                } else {
-                    "residual_releasable"
-                },
-                true,
+                "time_wait",
+                false,
                 row.state.as_str(),
                 1,
-                Some(key),
+                None,
             )
         } else if port_in_excluded(port, excluded) && row.state.eq_ignore_ascii_case("LISTENING") {
             (
@@ -468,10 +430,17 @@ fn process_name(pid: u32, cache: &HashMap<u32, String>) -> Option<String> {
 
 fn terminate_pid(pid: u32) -> Result<(), String> {
     unsafe {
-        let handle = OpenProcess(PROCESS_TERMINATE, false, pid)
+        let handle = OpenProcess(PROCESS_TERMINATE | PROCESS_SYNCHRONIZE, false, pid)
             .map_err(|e| format!("OpenProcess 失败 (PID {pid}): {e}"))?;
-        TerminateProcess(handle, 1).map_err(|e| format!("结束进程失败 (PID {pid}): {e}"))?;
+        if let Err(error) = TerminateProcess(handle, 1) {
+            let _ = CloseHandle(handle);
+            return Err(format!("结束进程失败 (PID {pid}): {error}"));
+        }
+        let wait_result = WaitForSingleObject(handle, 5_000);
         let _ = CloseHandle(handle);
+        if wait_result != WAIT_OBJECT_0 {
+            return Err(format!("进程未在预期时间内退出 (PID {pid})"));
+        }
     }
     Ok(())
 }
@@ -489,5 +458,20 @@ mod tests {
     fn detects_dev_residual_node() {
         assert!(is_releasable_process("node.exe", 123, 1));
         assert!(!is_releasable_process("chrome.exe", 123, 1));
+    }
+
+    #[test]
+    fn time_wait_is_informational_not_a_fake_release_action() {
+        let row = NetRow {
+            protocol: "TCP".into(),
+            local: "127.0.0.1:55555".into(),
+            remote: "127.0.0.1:60000".into(),
+            state: "TIME_WAIT".into(),
+            pid: 0,
+        };
+        let entry = build_entry(&row, &[], 999, &HashMap::new());
+        assert_eq!(entry.category, "time_wait");
+        assert!(!entry.can_release);
+        assert!(entry.connection_key.is_none());
     }
 }

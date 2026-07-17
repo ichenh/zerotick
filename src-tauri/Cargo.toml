@@ -1,6 +1,6 @@
 [package]
 name = "zerotick"
-version = "0.2.4"
+version = "0.2.5"
 description = "ZeroTick — Windows 系统故障诊断与实时追踪桌面软件"
 authors = ["ZeroTick Contributors"]
 license = "MIT"
@@ -29,12 +29,18 @@ serde_json = "1"
 
 # Windows Win32 API 投影
 windows = { version = "0.62", features = [
+    "Devices_Bluetooth",
+    "Devices_Bluetooth_GenericAttributeProfile",
+    "Foundation",
+    "Foundation_Collections",
+    "Storage_Streams",
     "Win32_Foundation",
     "Win32_Security",
     "Win32_Graphics_Gdi",
     "Win32_UI_WindowsAndMessaging",
     "Win32_UI_Shell",
     "Win32_Devices_DeviceAndDriverInstallation",
+    "Win32_Devices_Properties",
     "Win32_System_Console",
     "Win32_System_Com",
     "Win32_System_Diagnostics_Debug",
@@ -57,6 +63,7 @@ windows = { version = "0.62", features = [
     "Win32_Storage_FileSystem",
     "Win32_System_Com_StructuredStorage",
     "Win32_System_Variant",
+    "Win32_System_WinRT",
 ] }
 
 # 异步任务调度
@@ -69,7 +76,7 @@ tokio = { version = "1", features = [
 ] }
 
 chrono = { version = "0.4", features = ["clock", "std", "serde"] }
-wmi = "0.14"
+wmi = "0.18.4"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls-native-roots"] }
 
 # 后端日志（文件 + stderr，不依赖前端）

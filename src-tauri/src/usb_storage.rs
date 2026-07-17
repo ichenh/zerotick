@@ -157,6 +157,41 @@ impl Drop for VolumeHandle {
 fn list_storage_devices() -> Result<Vec<UsbStorageDevice>, String> {
     let script = r#"
 $devices = @{}
+
+function Test-GenericStorageName($name) {
+  if (-not $name) { return $true }
+  $value = ([string]$name).Trim()
+  return $value -match '(?i)^(USB Composite Device|USB Mass Storage Device|USB Storage Device|Generic(?:-\w+)?(?: USB)? Device|Disk drive|UAS Mass Storage Device)$'
+}
+
+function Convert-StorageIdentity($instanceId) {
+  $value = [string]$instanceId
+  if ($value -match '(?i)VEN_([^&\\]+)&PROD_([^&\\]+)') {
+    $vendor = $Matches[1].Replace('_', ' ').Trim()
+    $product = $Matches[2].Replace('_', ' ').Trim()
+    return "$vendor $product".Trim()
+  }
+  return $null
+}
+
+function Get-StorageDisplayName($disk, $diskDrive, $pnpId) {
+  $candidates = @($diskDrive.Model, $disk.FriendlyName, $diskDrive.Caption)
+  $currentId = [string]$pnpId
+  for ($depth = 0; $currentId -and $depth -lt 4; $depth++) {
+    $device = Get-PnpDevice -InstanceId $currentId -ErrorAction SilentlyContinue
+    if ($device) { $candidates += $device.FriendlyName }
+    $parent = Get-PnpDeviceProperty -InstanceId $currentId -KeyName 'DEVPKEY_Device_Parent' -ErrorAction SilentlyContinue
+    $currentId = if ($parent -and $parent.Data) { [string]$parent.Data } else { $null }
+  }
+  $specific = $candidates | Where-Object { -not (Test-GenericStorageName $_) } | Select-Object -First 1
+  if ($specific) { return ([string]$specific).Trim() }
+  $identity = Convert-StorageIdentity $pnpId
+  if ($identity) { return $identity }
+  $fallback = $candidates | Where-Object { $_ } | Select-Object -First 1
+  if ($fallback) { return ([string]$fallback).Trim() }
+  return 'USB Storage Device'
+}
+
 function Add-StorageDevice($name, $id, $bus, $status, $problem, $accessState, $letters, $physicalId, $deviceKind, $diskNumber) {
   if (-not $id) { return }
   $key = [string]$id
@@ -208,7 +243,8 @@ $usbDisks | ForEach-Object {
   } else {
     'mounted'
   }
-  Add-StorageDevice $_.FriendlyName $id 'USB' $operational 0 $accessState $letters $physicalId $deviceKind $_.Number
+  $displayName = Get-StorageDisplayName $_ $diskDrive $pnpId
+  Add-StorageDevice $displayName $id 'USB' $operational 0 $accessState $letters $physicalId $deviceKind $_.Number
 }
 
 # USBSTOR 是传统大容量存储；UASPStor 常表现为 SCSI 路径，不能按实例前缀过滤。

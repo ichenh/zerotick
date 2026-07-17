@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
-import { t, formatTime } from "./i18n.js";
+import { t, formatDuration, formatTime } from "./i18n.js";
+import { enhanceSelectMenus } from "./select-menu.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -10,6 +11,10 @@ export function escapeHtml(s) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function isGenericHardwareName(name) {
+  return /^(?:USB Composite Device|USB Mass Storage Device|USB Storage Device|USB device|Unknown USB Device|Unknown device|Generic(?:-\w+)?(?: USB)? Device|Disk drive|UAS Mass Storage Device)$/i.test(String(name ?? "").trim());
 }
 
 function setPanel(el, state, html) {
@@ -153,18 +158,37 @@ function renderGuidance(level, titleKey, summaryKey, actionKeys = []) {
   </section>`;
 }
 
-function renderRepairBlock(result) {
+function renderRepairBlock(result, remainingIssue = false) {
   if (!result) return "";
-  const restarted = renderList(result.services_restarted, t("toolkit.repairResult.noneRestarted"));
+  const changed = (result.services_restarted?.length ?? 0) > 0;
+  const restarted = changed ? renderList(result.services_restarted, "") : "";
   const errors = result.service_errors?.length ? renderList(result.service_errors, "") : "";
+  const needsAttention = Boolean(errors || remainingIssue);
+  const verdictKey = needsAttention
+    ? "toolkit.repairResult.needsAttention"
+    : changed
+      ? "toolkit.repairResult.rechecked"
+      : "toolkit.repairResult.noneRestarted";
   return `
     ${result.needs_admin ? `<p class="info-banner">${escapeHtml(t("toolkit.repairResult.adminBanner"))}</p>` : ""}
-    <p class="repair-verdict ${errors ? "warn" : "ok"}">${escapeHtml(t(errors ? "toolkit.repairResult.needsAttention" : "toolkit.repairResult.rechecked"))}</p>
-    <div class="result-section">
+    <p class="repair-verdict ${needsAttention ? "warn" : "ok"}">${escapeHtml(t(verdictKey))}</p>
+    ${changed ? `<div class="result-section">
       <div class="result-section-title">${escapeHtml(t("toolkit.repairResult.restarted"))}</div>
       ${restarted}
-    </div>
+    </div>` : ""}
     ${errors ? `<div class="result-section advanced-only"><div class="result-section-title">${escapeHtml(t("toolkit.repairResult.failed"))}</div>${errors}</div>` : ""}`;
+}
+
+function showRepairOutcome(showToast, result, remainingIssue) {
+  const hasErrors = (result.service_errors?.length ?? 0) > 0;
+  const changed = (result.services_restarted?.length ?? 0) > 0;
+  const failed = hasErrors || remainingIssue;
+  const key = failed
+    ? "toolkit.repairResult.needsAttention"
+    : changed
+      ? "toolkit.repairResult.rechecked"
+      : "toolkit.repairResult.noneRestarted";
+  showToast(t(key), failed);
 }
 
 function renderVpnBlock(vpn) {
@@ -271,7 +295,7 @@ export function renderNetworkSpeedResult(result) {
     </div>
     <div class="result-row"><span class="result-label">${escapeHtml(t("toolkit.network.speedMbps"))}</span><span class="result-value mono">${escapeHtml(mbps)} Mbps</span></div>
     <div class="result-row advanced-only"><span class="result-label">${escapeHtml(t("toolkit.network.speedBytes"))}</span><span class="result-value mono">${escapeHtml(kb)} KB</span></div>
-    <div class="result-row advanced-only"><span class="result-label">${escapeHtml(t("toolkit.network.speedDuration"))}</span><span class="result-value mono">${escapeHtml(String(result.duration_ms ?? 0))} ms</span></div>
+    <div class="result-row advanced-only"><span class="result-label">${escapeHtml(t("toolkit.network.speedDuration"))}</span><span class="result-value mono">${escapeHtml(formatDuration(result.duration_ms))}</span></div>
     ${vpnNote}
   `,
   );
@@ -581,6 +605,7 @@ export function renderUsbReport(report) {
       ? (hasReadyVolume ? "mounted" : volumeState || device.access_state || "no_media")
       : volumeState || (hasReadyVolume ? "mounted" : device.access_state) || "unknown";
     const needsAccess = ["locked", "unavailable"].includes(accessState);
+    const canPromptUnlock = accessState === "locked";
     const readyVolumes = volumes.filter((volume) => volume.access_state === "ready");
     const letter = (readyVolumes[0]?.letter || nonEmptyVolumes[0]?.letter || letters[0] || "").replace(":", "").toUpperCase();
     const slotIssues = isCardReader
@@ -611,15 +636,15 @@ export function renderUsbReport(report) {
         ? `<button type="button" class="btn btn-accent btn-sm btn-usb-eject-all" data-letters="${escapeHtml(ejectLetters.join(","))}">${escapeHtml(t("toolkit.usb.cardReader.ejectAll"))}</button>`
         : ""
       : letter
-      ? `${needsAccess ? `<button type="button" class="btn btn-accent btn-sm btn-usb-unlock" data-letter="${escapeHtml(letter)}">${escapeHtml(t("toolkit.usb.unlock"))}</button>` : `<button type="button" class="btn btn-default btn-sm btn-usb-scan-lock" data-letter="${escapeHtml(letter)}">${escapeHtml(t("toolkit.usb.scanLock"))}</button>`}
+      ? `${canPromptUnlock ? `<button type="button" class="btn btn-accent btn-sm btn-usb-unlock" data-letter="${escapeHtml(letter)}">${escapeHtml(t("toolkit.usb.unlock"))}</button>` : accessState === "mounted" ? `<button type="button" class="btn btn-default btn-sm btn-usb-scan-lock" data-letter="${escapeHtml(letter)}">${escapeHtml(t("toolkit.usb.scanLock"))}</button>` : ""}
          ${formatActions}
          <button type="button" class="btn btn-accent btn-sm btn-usb-eject" data-letter="${escapeHtml(letter)}">${escapeHtml(t("toolkit.usb.ejectDevice"))}</button>`
       : "";
     return `<li class="device-row toolkit-device-row usb-device-row${isCardReader ? " card-reader-device-row" : ""}" data-drive="${escapeHtml(letter)}">
       <div class="toolkit-device-info">
-        <div class="device-name">${escapeHtml(device.name)} <span class="result-badge result-badge-${statusWarn ? "warn" : "ok"}">${escapeHtml(statusText)}</span></div>
+        <div class="device-name">${escapeHtml(isGenericHardwareName(device.name) ? t("terms.usb") : device.name)} <span class="result-badge result-badge-${statusWarn ? "warn" : "ok"}">${escapeHtml(statusText)}</span></div>
         ${isCardReader ? `<div class="card-reader-slots">${renderCardReaderSlots(device, drivesByLetter)}</div>` : `<div class="result-muted usb-volume-summary">${escapeHtml(volumeSummary)}</div>`}
-        <div class="result-muted mono advanced-only">${escapeHtml(device.physical_id || device.instance_id || "")}${device.disk_numbers?.length ? ` · Disk ${escapeHtml(device.disk_numbers.join(", "))}` : ""}</div>
+        <div class="result-muted mono advanced-only">${escapeHtml(device.instance_id || device.physical_id || "")}${device.physical_id && device.physical_id !== device.instance_id ? ` · Container ${escapeHtml(device.physical_id)}` : ""}${device.disk_numbers?.length ? ` · Disk ${escapeHtml(device.disk_numbers.join(", "))}` : ""}</div>
       </div>
       <div class="toolkit-device-actions">${actions}</div>
       ${!isCardReader && letter ? `<ul class="lock-list usb-lock-list" id="usb-locks-${escapeHtml(letter)}"></ul>` : ""}
@@ -735,6 +760,7 @@ function openUsbFormatDialog({ letter, label, filesystem, size }) {
         </div>
       </form>`;
     document.body.appendChild(dialog);
+    enhanceSelectMenus(dialog);
 
     const form = dialog.querySelector("form");
     const confirmButton = dialog.querySelector(".format-confirm");
@@ -897,6 +923,12 @@ export function renderBluetoothReport(ev) {
   const devices = (ev.devices ?? [])
     .map((d) => {
       const statusBadge = d.connected ? "ok" : "warn";
+      const batteryPercent = Number.isFinite(Number(d.battery_percent))
+        ? Math.min(100, Math.max(0, Number(d.battery_percent)))
+        : null;
+      const battery = batteryPercent !== null
+        ? `<span class="result-badge result-badge-${batteryPercent <= 20 ? "warn" : "ok"}">${escapeHtml(t("toolkit.bluetooth.battery", { percent: batteryPercent }))}</span>`
+        : "";
       return `
       <li class="device-row toolkit-device-row bt-device-row" data-instance="${escapeHtml(d.instance_id)}">
         <div class="toolkit-device-info">
@@ -904,6 +936,7 @@ export function renderBluetoothReport(ev) {
           <div class="result-muted mono advanced-only">${escapeHtml(d.instance_id)} · ${escapeHtml(d.status)}</div>
         </div>
         <div class="toolkit-device-actions">
+          ${battery}
           <span class="result-badge result-badge-${statusBadge}">${escapeHtml(t(d.connected ? "toolkit.bluetooth.connected" : "toolkit.bluetooth.disconnected"))}</span>
           <button type="button" class="btn btn-default btn-sm btn-bt-reconnect" data-id="${escapeHtml(d.instance_id)}">${escapeHtml(t("toolkit.bluetooth.reconnect"))}</button>
           <button type="button" class="btn btn-subtle btn-sm btn-bt-remove" data-id="${escapeHtml(d.instance_id)}" data-name="${escapeHtml(d.name)}">${escapeHtml(t("toolkit.bluetooth.remove"))}</button>
@@ -974,7 +1007,7 @@ export function renderDevicesReport(report) {
   const problems = (report.problems ?? [])
     .map((problem) => `<li class="device-row toolkit-device-row">
       <div class="toolkit-device-info">
-        <div class="device-name">${escapeHtml(problem.name)}</div>
+        <div class="device-name">${escapeHtml(isGenericHardwareName(problem.name) ? t("events.unknownDevice") : problem.name)}</div>
         <div class="result-muted">${escapeHtml(formatDeviceProblem(problem))}</div>
         <div class="result-muted mono advanced-only">${escapeHtml(problem.device_id)}</div>
       </div>
@@ -1041,9 +1074,7 @@ function renderPortRow(entry) {
   const categoryLabel = t(`ports.category.${entry.category}`);
   const messageText = t(`ports.message.${entry.message_id}`, { state: entry.message });
   let releaseBtn = "";
-  if (entry.can_release && entry.connection_key) {
-    releaseBtn = `<button class="btn btn-default btn-sm btn-port-release-conn" data-conn="${escapeHtml(entry.connection_key)}" type="button">${escapeHtml(t("ports.releaseConn"))}</button>`;
-  } else if (entry.can_release && entry.pid) {
+  if (entry.can_release && entry.pid) {
     releaseBtn = `<button class="btn btn-default btn-sm btn-port-release" data-pid="${entry.pid}" type="button">${escapeHtml(t("ports.releaseOne"))}</button>`;
   }
   return `
@@ -1108,7 +1139,7 @@ function summarizeFullScanItem(id, command, scanItem) {
     id,
     state: "ok",
     detail: t("overview.health.ok"),
-    technical: `${scanItem.duration_ms ?? 0} ms`,
+    technical: formatDuration(scanItem.duration_ms),
   };
 }
 
@@ -1182,6 +1213,11 @@ export function bindToolkitHandlers({ showToast }) {
         await invoke("set_audio_volume", { deviceId: slider.dataset.id, percent: Number(slider.value) });
       } catch (err) {
         notifyOperationError(showToast, err, "set_audio_volume");
+        try {
+          renderAudioReport(await invoke("diagnose_audio"));
+        } catch (scanError) {
+          console.error("[ZeroTick:diagnose_audio_after_volume_error]", scanError);
+        }
       }
       return;
     }
@@ -1438,16 +1474,6 @@ export function bindToolkitHandlers({ showToast }) {
       return;
     }
 
-    const portConn = e.target.closest(".btn-port-release-conn");
-    if (portConn) {
-      try {
-        await invoke("release_connection", { connectionKey: portConn.dataset.conn });
-        showToast(t("toast.connReleased"), false);
-        renderPortScan(await invoke("scan_ports"), { onToast: showToast });
-      } catch (err) {
-        notifyOperationError(showToast, err, "release_connection");
-      }
-    }
   });
 
   $("btn-network-scan")?.addEventListener("click", async () => {
@@ -1467,7 +1493,7 @@ export function bindToolkitHandlers({ showToast }) {
       renderNetworkSpeedResult(r);
       showToast(
         document.documentElement.classList.contains("show-advanced")
-          ? t("toast.speedResult", { speed: r.speed_mbps.toFixed(2), ms: r.duration_ms })
+          ? `${t("toast.speedResultSimple", { speed: r.speed_mbps.toFixed(2) })} · ${t("toolkit.network.speedDuration")}: ${formatDuration(r.duration_ms)}`
           : t("toast.speedResultSimple", { speed: r.speed_mbps.toFixed(2) }),
         false,
       );
@@ -1495,10 +1521,14 @@ export function bindToolkitHandlers({ showToast }) {
     runButtonTask(event.currentTarget, async () => {
       try {
         const r = await invoke("repair_network");
-        renderNetworkReport(await invoke("diagnose_network"));
+        const report = await invoke("diagnose_network");
+        renderNetworkReport(report);
+        const remainingIssue = (report.adapter_count ?? 0) === 0
+          || report.gateway_reachable === false
+          || (report.services?.issues?.length ?? 0) > 0;
         const el = $("network-result");
-        el.insertAdjacentHTML("beforeend", renderRepairBlock(r));
-        showToast(t("toast.repairDone"), (r.service_errors?.length ?? 0) > 0);
+        el.insertAdjacentHTML("beforeend", renderRepairBlock(r, remainingIssue));
+        showRepairOutcome(showToast, r, remainingIssue);
       } catch (err) {
         notifyOperationError(showToast, err, "repair_network");
       }
@@ -1518,9 +1548,12 @@ export function bindToolkitHandlers({ showToast }) {
     runButtonTask(event.currentTarget, async () => {
       try {
         const r = await invoke("repair_audio");
-        renderAudioReport(await invoke("diagnose_audio"));
-        $("audio-result").insertAdjacentHTML("beforeend", renderRepairBlock(r));
-        showToast(t("toast.repairDone"), (r.service_errors?.length ?? 0) > 0);
+        const report = await invoke("diagnose_audio");
+        renderAudioReport(report);
+        const remainingIssue = (report.services?.issues?.length ?? 0) > 0
+          || (report.playback?.length ?? 0) + (report.capture?.length ?? 0) === 0;
+        $("audio-result").insertAdjacentHTML("beforeend", renderRepairBlock(r, remainingIssue));
+        showRepairOutcome(showToast, r, remainingIssue);
       } catch (err) {
         notifyOperationError(showToast, err, "repair_audio");
       }
@@ -1540,9 +1573,12 @@ export function bindToolkitHandlers({ showToast }) {
     runButtonTask(event.currentTarget, async () => {
       try {
         const r = await invoke("repair_usb");
-        renderUsbReport(await invoke("diagnose_usb"));
-        $("usb-result").insertAdjacentHTML("beforeend", renderRepairBlock(r));
-        showToast(t("toast.repairDone"), (r.service_errors?.length ?? 0) > 0);
+        const report = await invoke("diagnose_usb");
+        renderUsbReport(report);
+        const remainingIssue = (report.services?.issues?.length ?? 0) > 0
+          || (report.devices ?? []).some((device) => Number(device.problem_code) !== 0);
+        $("usb-result").insertAdjacentHTML("beforeend", renderRepairBlock(r, remainingIssue));
+        showRepairOutcome(showToast, r, remainingIssue);
       } catch (err) {
         notifyOperationError(showToast, err, "repair_usb");
       }
@@ -1562,9 +1598,11 @@ export function bindToolkitHandlers({ showToast }) {
     runButtonTask(event.currentTarget, async () => {
       try {
         const r = await invoke("repair_bluetooth");
-        renderBluetoothReport(await invoke("check_bluetooth"));
-        $("bluetooth-result").insertAdjacentHTML("beforeend", renderRepairBlock(r));
-        showToast(t("toast.repairDone"), (r.service_errors?.length ?? 0) > 0);
+        const report = await invoke("check_bluetooth");
+        renderBluetoothReport(report);
+        const remainingIssue = !report.healthy;
+        $("bluetooth-result").insertAdjacentHTML("beforeend", renderRepairBlock(r, remainingIssue));
+        showRepairOutcome(showToast, r, remainingIssue);
       } catch (err) {
         notifyOperationError(showToast, err, "repair_bluetooth");
       }

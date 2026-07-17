@@ -1,6 +1,6 @@
 //! Windows 设备与驱动诊断：聚合常用硬件类别，并把设备管理器错误转成稳定的语义标识。
 
-use crate::utils::{elevated, process::CommandExt, wmi_runner};
+use crate::utils::{device_name, elevated, process::CommandExt, wmi_runner};
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 use wmi::WMIConnection;
@@ -75,10 +75,14 @@ fn diagnose_inner(wmi: &WMIConnection) -> Result<DevicesDiagReport, wmi::WMIErro
         let code = entity.error_code.unwrap_or(0);
         // 45 表示历史设备当前未连接；Present 过滤后通常不会出现，仍保留保护。
         if code != 0 && code != 45 {
+            let device_id = entity.device_id.unwrap_or_default();
+            let raw_name = entity.name.unwrap_or_else(|| "Unknown device".into());
+            let name = device_name::resolve_instance_id(&device_id)
+                .unwrap_or_else(|| clarify_usb_device_name(&raw_name));
             problems.push(DeviceProblem {
-                name: entity.name.unwrap_or_else(|| "Unknown device".into()),
+                name,
                 class_id: class_id.into(),
-                device_id: entity.device_id.unwrap_or_default(),
+                device_id,
                 error_code: code,
                 reason_id: error_reason(code).into(),
                 status: entity.status,
@@ -101,6 +105,16 @@ fn diagnose_inner(wmi: &WMIConnection) -> Result<DevicesDiagReport, wmi::WMIErro
         classes,
         problems,
     })
+}
+
+fn clarify_usb_device_name(name: &str) -> String {
+    // Hardware ids and the raw Windows class name remain available in advanced
+    // mode. Ordinary mode must not present a generic driver-node label as if it
+    // were the product name.
+    match name.trim().to_ascii_lowercase().as_str() {
+        "usb composite device" | "usb device" | "unknown usb device" => "USB device".into(),
+        _ => name.to_string(),
+    }
 }
 
 fn normalize_class(class_name: Option<&str>) -> &'static str {
@@ -159,5 +173,13 @@ mod tests {
         assert_eq!(error_reason(28), "driver_missing");
         assert_eq!(error_reason(43), "device_reported_problem");
         assert_eq!(error_reason(999), "other");
+    }
+
+    #[test]
+    fn does_not_expose_hardware_ids_in_the_display_name() {
+        assert_eq!(
+            clarify_usb_device_name("USB Composite Device"),
+            "USB device"
+        );
     }
 }

@@ -4,7 +4,7 @@ export const currentLocalePatches = {
     "nav": {
       "network": "網絡",
       "audio": "音頻",
-      "usb": "USB 存儲",
+      "usb": "可移動儲存裝置",
       "bluetooth": "Bluetooth",
       "devices": "設備和驅動程式",
       "bsod": "BSOD",
@@ -20,7 +20,7 @@ export const currentLocalePatches = {
         "desc": "管理揚聲器和麥克風，並檢查常見聲音問題"
       },
       "usb": {
-        "title": "USB 存儲",
+        "title": "可移動儲存裝置",
         "desc": "偵測、解鎖、檢查應用程式使用情況並安全地彈出可移動存儲"
       },
       "bluetooth": {
@@ -229,7 +229,7 @@ export const currentLocalePatches = {
         "formatInvalidLabel": "卷標太長或包含不支援的字元。",
         "ejecting": "安全彈出…",
         "noRelatedProcesses": "未找到可能使用此裝置的應用程式。您可以繼續彈出整個設備； Windows 將進行最終檢查。",
-        "relatedProcessesHint": "這些應用程式可能正在使用該裝置。排除ZeroTick自身的檢查過程；Windows仍在彈出時做出最終決定。",
+        "relatedProcessesHint": "這些應用程式可能正在使用該裝置；安全退出時由 Windows 作出最終決定。",
         "requestClose": "安全關閉應用程式",
         "manualOnly": "手動關閉",
         "usageCheckFailed": "使用情形檢查未完成。重試，或使用安全彈出來獲得 Windows 的最終決定。",
@@ -325,13 +325,14 @@ export const currentLocalePatches = {
         "idle": "點選掃描列出 Bluetooth 設備",
         "connected": "已連接",
         "disconnected": "未連接",
+        "battery": "電量 {percent}%",
         "devicesTitle": "配對設備",
         "noDevices": "未找到 Bluetooth 週邊",
         "radio": "Bluetooth 轉接器",
         "radioCount": "{n} 設備",
         "issues": "問題",
         "noIssues": "沒有問題",
-        "reconnect": "重新連接",
+        "reconnect": "重新啟動裝置",
         "remove": "刪除",
         "unknownDevice": "Bluetooth 裝置",
         "removeConfirmTitle": "移除「{name}」？",
@@ -452,6 +453,7 @@ export const currentLocalePatches = {
       "fullScanning": "檢查網路、音訊、USB、Bluetooth 和裝置驅動程式...",
       "healthTitle": "電腦健康概述",
       "checkFailed": "此檢查未完成；開啟對應的面板並重試",
+      "eventsMetaAscending": "依時間正序",
       "healthOverall": {
         "ok": "未發現明顯問題",
         "warn": "一些需要注意的事項",
@@ -604,7 +606,38 @@ export const currentLocalePatches = {
       "closeToTrayOff": "完全退出應用程式",
       "runAsAdmin": "以管理員身份執行",
       "advancedDisplay": "高級模式",
-      "advancedDisplayHint": "顯示掃描調整、裝置實例、PID、服務狀態、原始錯誤和偵錯器證據"
+      "advancedDisplayHint": "顯示掃描調整、裝置實例、PID、服務狀態、原始錯誤和偵錯器證據",
+      "languagePacks": "附加語言套件",
+      "languagePacksHint": "此處列出所有支援的語言；未安裝的語言可按需下載。",
+      "manageLanguagePacks": "下載",
+      "languagePackInstalling": "正在下載並驗證相符的語言套件…",
+      "languagePackInstalled": "已安裝 {count} 種附加完整語言",
+      "languagePackFailed": "無法安裝語言套件。請查看此版本的 GitHub Release。"
+    },
+    "updates": {
+      "title": "軟體更新",
+      "versionHint": "按一下以檢查更新",
+      "notChecked": "尚未檢查",
+      "checking": "正在檢查 GitHub Releases…",
+      "current": "ZeroTick {version} 已是最新版本",
+      "available": "ZeroTick {version} 可供下載",
+      "failed": "無法檢查更新。請確認網路連線後再試一次。",
+      "check": "檢查更新",
+      "download": "下載更新",
+      "releasePage": "版本說明"
+    },
+    "about": {
+      "title": "關於 ZeroTick",
+      "version": "版本",
+      "localFirst": "診斷資料保留在本機，除非你主動匯出",
+      "openSource": "開放原始碼",
+      "license": "採用 MIT License",
+      "sourceCode": "原始碼",
+      "reportIssue": "回報問題",
+      "projectInfo": "專案資訊",
+      "releases": "發行版本",
+      "security": "安全政策",
+      "licenseLink": "授權條款"
     },
     "events": {
       "category": {
@@ -637,7 +670,7 @@ export const currentLocalePatches = {
       "audioInputDefault": "預設麥克風已更新",
       "audioMode": "音訊獨佔模式更新",
       "usbEjected": "彈出{letter}：",
-      "btReconnect": "Bluetooth 嘗試重新連接",
+      "btReconnect": "藍牙裝置已重新啟動",
       "btRemoved": "Bluetooth 設備已刪除",
       "connReleased": "殘留連接已清除"
     },
@@ -657,7 +690,7 @@ export const currentLocalePatches = {
     "nav": {
       "network": "ネットワーク",
       "audio": "オーディオ",
-      "usb": "USB ストレージ",
+      "usb": "リムーバブル ストレージ",
       "bluetooth": "Bluetooth",
       "devices": "デバイスとドライバー",
       "bsod": "BSOD",
@@ -673,7 +706,7 @@ export const currentLocalePatches = {
         "desc": "スピーカーとマイクを管理し、一般的な音声の問題をチェックする"
       },
       "usb": {
-        "title": "USB ストレージ",
+        "title": "リムーバブル ストレージ",
         "desc": "アプリの使用状況を検出、ロック解除、確認し、リムーバブル ストレージを安全に取り出します"
       },
       "bluetooth": {
@@ -882,7 +915,7 @@ export const currentLocalePatches = {
         "formatInvalidLabel": "ボリューム ラベルが長すぎるか、サポートされていない文字が含まれています。",
         "ejecting": "安全に排出されます…",
         "noRelatedProcesses": "このデバイスを使用している可能性のあるアプリは見つかりませんでした。デバイス全体の取り出しに進むことができます。 Windows が最終チェックを行います。",
-        "relatedProcessesHint": "これらのアプリがデバイスを使用している可能性があります。 ZeroTick 独自のチェック プロセスは除外されます。 Windows はイジェクト中に最終決定を行います。",
+        "relatedProcessesHint": "これらのアプリがデバイスを使用している可能性があります。安全な取り外しの最終判断は Windows が行います。",
         "requestClose": "アプリを安全に閉じます",
         "manualOnly": "手動で閉じます",
         "usageCheckFailed": "使用状況チェックが完了しませんでした。再試行するか、安全なイジェクトを使用して、Windows の最終決定を取得します。",
@@ -978,13 +1011,14 @@ export const currentLocalePatches = {
         "idle": "「スキャン」をクリックして、Bluetooth デバイスをリストします。",
         "connected": "接続されました",
         "disconnected": "接続されていません",
+        "battery": "バッテリー {percent}%",
         "devicesTitle": "ペアリングされたデバイス",
         "noDevices": "Bluetooth 周辺機器が見つかりません",
         "radio": "Bluetooth アダプター",
         "radioCount": "{n} デバイス",
         "issues": "問題",
         "noIssues": "問題ありません",
-        "reconnect": "再接続",
+        "reconnect": "デバイスを再起動",
         "remove": "削除",
         "unknownDevice": "Bluetooth デバイス",
         "removeConfirmTitle": "「{name}」を削除しますか？",
@@ -1105,6 +1139,7 @@ export const currentLocalePatches = {
       "fullScanning": "ネットワーク、オーディオ、USB、Bluetooth、デバイス ドライバーをチェックしています…",
       "healthTitle": "PC の状態の概要",
       "checkFailed": "このチェックは完了しませんでした。対応するパネルを開いて再試行してください",
+      "eventsMetaAscending": "古い順",
       "healthOverall": {
         "ok": "明らかな問題は見つかりませんでした",
         "warn": "いくつかの項目には注意が必要です",
@@ -1257,7 +1292,38 @@ export const currentLocalePatches = {
       "closeToTrayOff": "アプリケーションを完全に終了します",
       "runAsAdmin": "管理者として実行",
       "advancedDisplay": "アドバンスモード",
-      "advancedDisplayHint": "スキャン チューニング、デバイス インスタンス、PID、サービス状態、生のエラー、デバッガーの証拠を表示"
+      "advancedDisplayHint": "スキャン チューニング、デバイス インスタンス、PID、サービス状態、生のエラー、デバッガーの証拠を表示",
+      "languagePacks": "追加言語パック",
+      "languagePacksHint": "対応するすべての言語を表示します。未インストールの言語は必要に応じてダウンロードできます。",
+      "manageLanguagePacks": "ダウンロード",
+      "languagePackInstalling": "対応する言語パックをダウンロードして検証しています…",
+      "languagePackInstalled": "{count} 個の追加言語をインストールしました",
+      "languagePackFailed": "言語パックをインストールできませんでした。このバージョンの GitHub Release を確認してください。"
+    },
+    "updates": {
+      "title": "ソフトウェア更新",
+      "versionHint": "クリックして更新を確認",
+      "notChecked": "未確認",
+      "checking": "GitHub Releases を確認中…",
+      "current": "ZeroTick {version} は最新です",
+      "available": "ZeroTick {version} を利用できます",
+      "failed": "更新を確認できませんでした。接続を確認して再試行してください。",
+      "check": "更新を確認",
+      "download": "更新をダウンロード",
+      "releasePage": "リリースノート"
+    },
+    "about": {
+      "title": "ZeroTick について",
+      "version": "バージョン",
+      "localFirst": "エクスポートしない限り、診断データはこの端末に保存されます",
+      "openSource": "オープンソース",
+      "license": "MIT License で提供",
+      "sourceCode": "ソースコード",
+      "reportIssue": "問題を報告",
+      "projectInfo": "プロジェクト情報",
+      "releases": "リリース",
+      "security": "セキュリティ",
+      "licenseLink": "ライセンス"
     },
     "events": {
       "category": {
@@ -1290,7 +1356,7 @@ export const currentLocalePatches = {
       "audioInputDefault": "デフォルトのマイクが更新されました",
       "audioMode": "オーディオ排他モードが更新されました",
       "usbEjected": "排除された {letter}:",
-      "btReconnect": "Bluetooth 再接続を試行しました",
+      "btReconnect": "Bluetooth デバイスを再起動しました",
       "btRemoved": "Bluetooth デバイスが削除されました",
       "connReleased": "残りの接続がクリアされました"
     },
@@ -1310,7 +1376,7 @@ export const currentLocalePatches = {
     "nav": {
       "network": "네트워크",
       "audio": "오디오",
-      "usb": "USB 스토리지",
+      "usb": "이동식 저장소",
       "bluetooth": "Bluetooth",
       "devices": "장치 및 드라이버",
       "bsod": "BSOD",
@@ -1326,7 +1392,7 @@ export const currentLocalePatches = {
         "desc": "스피커와 마이크를 관리하고 일반적인 사운드 문제를 확인하세요."
       },
       "usb": {
-        "title": "USB 스토리지",
+        "title": "이동식 저장소",
         "desc": "앱 사용을 감지, 잠금 해제, 확인하고 이동식 저장소를 안전하게 꺼내기"
       },
       "bluetooth": {
@@ -1535,7 +1601,7 @@ export const currentLocalePatches = {
         "formatInvalidLabel": "볼륨 레이블이 너무 길거나 지원되지 않는 문자가 포함되어 있습니다.",
         "ejecting": "안전하게 꺼내는 중…",
         "noRelatedProcesses": "이 기기를 사용하고 있을 수 있는 앱이 발견되지 않았습니다. 전체 장치 꺼내기를 계속할 수 있습니다. Windows가 최종 확인을 수행합니다.",
-        "relatedProcessesHint": "이 앱이 기기를 사용 중일 수 있습니다. ZeroTick 자체 점검 프로세스는 제외됩니다. Windows는 여전히 꺼내는 동안 최종 결정을 내립니다.",
+        "relatedProcessesHint": "이 앱이 기기를 사용 중일 수 있습니다. 안전하게 꺼낼 수 있는지는 Windows가 최종 확인합니다.",
         "requestClose": "앱을 안전하게 종료",
         "manualOnly": "수동으로 닫기",
         "usageCheckFailed": "사용량 확인이 완료되지 않았습니다. 다시 시도하거나 안전 꺼내기를 사용하여 Windows의 최종 결정을 받으세요.",
@@ -1631,13 +1697,14 @@ export const currentLocalePatches = {
         "idle": "Bluetooth 장치를 나열하려면 스캔을 클릭하세요.",
         "connected": "연결됨",
         "disconnected": "연결되지 않음",
+        "battery": "배터리 {percent}%",
         "devicesTitle": "페어링된 장치",
         "noDevices": "Bluetooth 주변기기를 찾을 수 없습니다.",
         "radio": "Bluetooth 어댑터",
         "radioCount": "{n} 장치",
         "issues": "문제",
         "noIssues": "문제 없음",
-        "reconnect": "다시 연결",
+        "reconnect": "장치 다시 시작",
         "remove": "제거",
         "unknownDevice": "Bluetooth 장치",
         "removeConfirmTitle": "‘{name}’을(를) 제거할까요?",
@@ -1758,6 +1825,7 @@ export const currentLocalePatches = {
       "fullScanning": "네트워크, 오디오, USB, Bluetooth 및 장치 드라이버 확인 중...",
       "healthTitle": "PC 상태 개요",
       "checkFailed": "이 검사가 완료되지 않았습니다. 해당 패널을 열고 다시 시도하십시오.",
+      "eventsMetaAscending": "오래된 순",
       "healthOverall": {
         "ok": "명백한 문제는 발견되지 않았습니다.",
         "warn": "일부 항목에 주의가 필요함",
@@ -1910,7 +1978,38 @@ export const currentLocalePatches = {
       "closeToTrayOff": "애플리케이션을 완전히 종료",
       "runAsAdmin": "관리자 권한으로 실행",
       "advancedDisplay": "고급 모드",
-      "advancedDisplayHint": "스캔 조정, 장치 인스턴스, PID, 서비스 상태, 원시 오류 및 디버거 증거 표시"
+      "advancedDisplayHint": "스캔 조정, 장치 인스턴스, PID, 서비스 상태, 원시 오류 및 디버거 증거 표시",
+      "languagePacks": "추가 언어 팩",
+      "languagePacksHint": "지원되는 모든 언어를 표시합니다. 설치되지 않은 언어는 필요할 때 다운로드할 수 있습니다.",
+      "manageLanguagePacks": "다운로드",
+      "languagePackInstalling": "해당 언어 팩을 다운로드하고 검증하는 중…",
+      "languagePackInstalled": "추가 완전 언어 {count}개 설치됨",
+      "languagePackFailed": "언어 팩을 설치할 수 없습니다. 이 버전의 GitHub Release를 확인하세요."
+    },
+    "updates": {
+      "title": "소프트웨어 업데이트",
+      "versionHint": "클릭하여 업데이트 확인",
+      "notChecked": "아직 확인하지 않음",
+      "checking": "GitHub Releases 확인 중…",
+      "current": "ZeroTick {version}이 최신 버전입니다",
+      "available": "ZeroTick {version}을 사용할 수 있습니다",
+      "failed": "업데이트를 확인할 수 없습니다. 연결을 확인하고 다시 시도하세요.",
+      "check": "업데이트 확인",
+      "download": "업데이트 다운로드",
+      "releasePage": "릴리스 정보"
+    },
+    "about": {
+      "title": "ZeroTick 정보",
+      "version": "버전",
+      "localFirst": "내보내지 않는 한 진단 데이터는 이 장치에 보관됩니다",
+      "openSource": "오픈 소스",
+      "license": "MIT License로 제공",
+      "sourceCode": "소스 코드",
+      "reportIssue": "문제 보고",
+      "projectInfo": "프로젝트 정보",
+      "releases": "릴리스",
+      "security": "보안",
+      "licenseLink": "라이선스"
     },
     "events": {
       "category": {
@@ -1943,7 +2042,7 @@ export const currentLocalePatches = {
       "audioInputDefault": "기본 마이크가 업데이트되었습니다.",
       "audioMode": "오디오 독점 모드 업데이트됨",
       "usbEjected": "{letter}가 배출됨:",
-      "btReconnect": "Bluetooth 재연결 시도",
+      "btReconnect": "Bluetooth 장치를 다시 시작했습니다",
       "btRemoved": "Bluetooth 장치가 제거됨",
       "connReleased": "잔여 연결이 삭제됨"
     },
@@ -1963,7 +2062,7 @@ export const currentLocalePatches = {
     "nav": {
       "network": "Netzwerk",
       "audio": "Audio",
-      "usb": "USB-Speicher",
+      "usb": "Wechselspeicher",
       "bluetooth": "Bluetooth",
       "devices": "Geräte & Treiber",
       "bsod": "BSOD",
@@ -1979,7 +2078,7 @@ export const currentLocalePatches = {
         "desc": "Verwalten Sie Lautsprecher und Mikrofone und überprüfen Sie häufige Tonprobleme"
       },
       "usb": {
-        "title": "USB-Speicher",
+        "title": "Wechselspeicher",
         "desc": "App-Nutzung erkennen, entsperren, überprüfen und Wechselspeicher sicher auswerfen"
       },
       "bluetooth": {
@@ -2188,7 +2287,7 @@ export const currentLocalePatches = {
         "formatInvalidLabel": "Die Datenträgerbezeichnung ist zu lang oder enthält nicht unterstützte Zeichen.",
         "ejecting": "Sicheres Auswerfen…",
         "noRelatedProcesses": "Es wurde keine App gefunden, die möglicherweise dieses Gerät verwendet. Sie können mit „Gesamtes Gerät auswerfen“ fortfahren; Windows führt die letzte Prüfung durch.",
-        "relatedProcessesHint": "Diese Apps verwenden möglicherweise das Gerät. Der eigene Prüfprozess von ZeroTick ist ausgeschlossen; Windows trifft immer noch die endgültige Entscheidung beim Auswerfen.",
+        "relatedProcessesHint": "Diese Apps verwenden möglicherweise das Gerät. Windows trifft beim sicheren Auswerfen die endgültige Entscheidung.",
         "requestClose": "App sicher schließen",
         "manualOnly": "Manuell schließen",
         "usageCheckFailed": "Die Nutzungsprüfung wurde nicht abgeschlossen. Versuchen Sie es erneut oder verwenden Sie „Sicheres Auswerfen“, um die endgültige Entscheidung von Windows zu erhalten.",
@@ -2284,13 +2383,14 @@ export const currentLocalePatches = {
         "idle": "Klicken Sie auf Scannen, um Bluetooth-Geräte aufzulisten",
         "connected": "Verbunden",
         "disconnected": "Nicht verbunden",
+        "battery": "Akku {percent}%",
         "devicesTitle": "Gekoppelte Geräte",
         "noDevices": "Keine Bluetooth-Peripheriegeräte gefunden",
         "radio": "Bluetooth-Adapter",
         "radioCount": "{n} Gerät(e)",
         "issues": "Probleme",
         "noIssues": "Keine Probleme",
-        "reconnect": "Wieder verbinden",
+        "reconnect": "Gerät neu starten",
         "remove": "Entfernen",
         "unknownDevice": "Bluetooth-Gerät",
         "removeConfirmTitle": "„{name}“ entfernen?",
@@ -2411,6 +2511,7 @@ export const currentLocalePatches = {
       "fullScanning": "Überprüfen von Netzwerk, Audio, USB, Bluetooth und Gerätetreibern…",
       "healthTitle": "PC-Gesundheitsübersicht",
       "checkFailed": "Diese Prüfung wurde nicht abgeschlossen; Öffnen Sie das entsprechende Fenster und versuchen Sie es erneut",
+      "eventsMetaAscending": "Älteste zuerst",
       "healthOverall": {
         "ok": "Kein offensichtliches Problem gefunden",
         "warn": "Einige Elemente erfordern Aufmerksamkeit",
@@ -2563,7 +2664,38 @@ export const currentLocalePatches = {
       "closeToTrayOff": "Anwendung vollständig beenden",
       "runAsAdmin": "Als Administrator ausführen",
       "advancedDisplay": "Erweiterter Modus",
-      "advancedDisplayHint": "Scan-Optimierung, Geräteinstanzen, PIDs, Dienststatus, Rohfehler und Debugger-Beweise anzeigen"
+      "advancedDisplayHint": "Scan-Optimierung, Geräteinstanzen, PIDs, Dienststatus, Rohfehler und Debugger-Beweise anzeigen",
+      "languagePacks": "Zusätzliche Sprachpakete",
+      "languagePacksHint": "Alle unterstützten Sprachen werden angezeigt. Nicht installierte Sprachen können bei Bedarf heruntergeladen werden.",
+      "manageLanguagePacks": "Herunterladen",
+      "languagePackInstalling": "Passendes Sprachpaket wird heruntergeladen und geprüft…",
+      "languagePackInstalled": "{count} zusätzliche vollständige Sprachen installiert",
+      "languagePackFailed": "Das Sprachpaket konnte nicht installiert werden. Prüfen Sie das GitHub Release dieser Version."
+    },
+    "updates": {
+      "title": "Softwareupdates",
+      "versionHint": "Klicken, um nach Updates zu suchen",
+      "notChecked": "Noch nicht geprüft",
+      "checking": "GitHub Releases werden geprüft…",
+      "current": "ZeroTick {version} ist aktuell",
+      "available": "ZeroTick {version} ist verfügbar",
+      "failed": "Updates konnten nicht geprüft werden. Verbindung prüfen und erneut versuchen.",
+      "check": "Nach Updates suchen",
+      "download": "Update herunterladen",
+      "releasePage": "Versionshinweise"
+    },
+    "about": {
+      "title": "Über ZeroTick",
+      "version": "Version",
+      "localFirst": "Diagnosedaten bleiben auf diesem Gerät, sofern sie nicht exportiert werden",
+      "openSource": "Open Source",
+      "license": "Lizenziert unter der MIT License",
+      "sourceCode": "Quellcode",
+      "reportIssue": "Problem melden",
+      "projectInfo": "Projektinformationen",
+      "releases": "Releases",
+      "security": "Sicherheit",
+      "licenseLink": "Lizenz"
     },
     "events": {
       "category": {
@@ -2596,7 +2728,7 @@ export const currentLocalePatches = {
       "audioInputDefault": "Standardmikrofon aktualisiert",
       "audioMode": "Audio-Exklusivmodus aktualisiert",
       "usbEjected": "Ausgeworfen {letter}:",
-      "btReconnect": "Bluetooth erneuter Verbindungsversuch",
+      "btReconnect": "Bluetooth-Gerät neu gestartet",
       "btRemoved": "Bluetooth-Gerät entfernt",
       "connReleased": "Restverbindung gelöscht"
     },

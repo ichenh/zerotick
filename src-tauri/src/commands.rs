@@ -8,12 +8,14 @@ use crate::devices::{self, DeviceRescanResult, DevicesDiagReport};
 use crate::events::{BluetoothStatusEvent, BsodAlertEvent, DeviceEvent};
 use crate::history;
 use crate::i18n;
+use crate::language_packs;
 use crate::network::{self, NetworkDiagReport, SpeedTestResult};
 use crate::notify;
 use crate::ports::{self, PortScanReport, ReleaseReport};
 use crate::repair;
 use crate::settings::{self, AppSettings};
 use crate::tray::{self, TrayLevel};
+use crate::updates::{self, UpdateInfo};
 use crate::usb_storage::{self, LockingProcess, UsbDiagReport, UsbDrive};
 use crate::utils;
 use chrono::Local;
@@ -567,6 +569,31 @@ pub fn get_app_version() -> String {
 }
 
 #[tauri::command]
+pub async fn check_for_updates(force: bool) -> Result<UpdateInfo, String> {
+    run_blocking(move || updates::check(force)).await
+}
+
+#[tauri::command]
+pub fn open_project_url(app: AppHandle, url: String) -> Result<(), String> {
+    updates::open_project_url(&app, &url)
+}
+
+#[tauri::command]
+pub async fn install_language_pack(locale: String) -> Result<Value, String> {
+    run_blocking(move || language_packs::install(&locale)).await
+}
+
+#[tauri::command]
+pub fn load_language_pack() -> Result<Option<Value>, String> {
+    language_packs::load()
+}
+
+#[tauri::command]
+pub fn persist_language_pack(pack: Value) -> Result<(), String> {
+    language_packs::persist(&pack)
+}
+
+#[tauri::command]
 pub async fn scan_ports() -> Result<PortScanReport, String> {
     run_diagnostic_blocking("ports", ports::scan).await
 }
@@ -574,11 +601,6 @@ pub async fn scan_ports() -> Result<PortScanReport, String> {
 #[tauri::command]
 pub async fn release_port(pid: u32) -> Result<(), String> {
     run_blocking(move || ports::release_pid(pid)).await
-}
-
-#[tauri::command]
-pub async fn release_connection(connection_key: String) -> Result<(), String> {
-    run_blocking(move || ports::release_connection(&connection_key)).await
 }
 
 #[tauri::command]

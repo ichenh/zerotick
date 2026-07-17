@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Make everyday Windows failures understandable — and, when it is safe, fixable in one click.</strong><br />
-  One place for network, audio, USB storage, Bluetooth, drivers, blue screens, and ports.
+  One place for network, audio, removable storage, Bluetooth, drivers, blue screens, and ports.
 </p>
 
 <p align="center">
@@ -48,7 +48,7 @@ Advanced mode keeps the same workflow while exposing device instance IDs, PIDs, 
 | **Full health check** | Runs the major diagnostics together, isolates slow system queries with timeouts, and summarizes the issues that need attention |
 | **Network** | Active adapters, gateway reachability, DNS, key services, VPN and proxy configuration, the application behind a local proxy, speed test, DNS refresh, and guided repair |
 | **Audio** | Output and input devices, default endpoint, volume, mute, shared/exclusive modes, Windows audio services, and common permission failures |
-| **USB storage** | Groups volumes by physical enclosure, distinguishes locked media, empty card-reader slots, and unreadable media, identifies likely locking programs, requests safe closure, ejects one volume or the whole device, and offers guarded quick/full formatting |
+| **Removable storage** | Groups volumes by physical enclosure, distinguishes locked media, empty card-reader slots, and unreadable media, identifies likely locking programs, requests safe closure, ejects one volume or the whole device, and offers guarded quick/full formatting |
 | **Bluetooth** | Missing adapters, driver and support-service health, paired peripherals, reconnect, repair, and confirmed device removal with re-pairing guidance |
 | **Devices & drivers** | Common Device Manager failures, disabled or missing hardware, readable explanations for error codes, and hardware-change rescanning |
 | **Blue screens** | Minidump and BugCheck history, WinDbg evidence when available, likely-cause grouping, and practical follow-up or repair actions |
@@ -85,7 +85,7 @@ ZeroTick supports Windows 10/11 x64 and uses Microsoft Edge WebView2. WebView2 i
 4. Read the status and recommended actions. Use **Repair** only when it matches the issue shown.
 5. Enable **Advanced mode** in Settings when raw evidence or scan parameters are needed.
 
-The interface is fully available in English, Simplified Chinese, Traditional Chinese, Japanese, Korean, and German. A build-time locale check prevents incomplete languages from being advertised in the selector.
+ZeroTick exposes all 37 supported interface languages in Settings. English is always available as the offline fallback; the other 36 translations are published as independent, version-matched GitHub Release assets for on-demand installation. On first launch, ZeroTick matches the ordered Windows language preferences and installs the closest available translation automatically. Build-time checks reject incomplete language packs.
 
 ## Safety and privacy
 
@@ -143,7 +143,7 @@ npm run tauri:dev:admin
 
 | Layer | Implementation |
 |-------|----------------|
-| UI | Vite, Vanilla JavaScript, CSS, six validated locale bundles |
+| UI | Vite, Vanilla JavaScript, CSS, one offline fallback plus independently validated language packs |
 | Desktop shell | Tauri 2, tray integration, notifications, autostart, native dialogs |
 | Diagnostics | Rust orchestration with Win32 APIs, WMI, PowerShell fallbacks, Event Log, and Minidump/WinDbg analysis |
 | Monitoring | Event-driven `WM_DEVICECHANGE` message pump plus bounded background checks |

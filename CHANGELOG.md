@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-07-17
+
+### Added
+
+- 界面语言目录扩展为完整可选列表；正式安装包保持精简，其他语言以与应用版本严格匹配的独立语言包随 GitHub Release 发布，并支持在设置页按需下载安装。
+- 首次启动会识别 Windows 界面语言并尝试安装对应语言包；开发模式仍内置英文和简体中文，方便界面调试。
+- 设置页和左上角版本号均可检查 GitHub Release 更新，并提供安全限定的更新下载、发布页、官网、Issue 与支持邮箱入口。
+- 蓝牙设备电量同时读取 Windows 设备属性缓存和标准 GATT Battery Service，在设备支持时显示剩余电量。
+- 概览历史支持最新优先或最早优先排序，排序选择会随设置保存。
+
+### Changed
+
+- 构建工具升级至 Vite 8 与 Oxc，Windows 管理查询升级至 WMI 0.18，并完成相应 API 迁移。
+- 普通模式优先显示 Windows 的友好名称和总线报告产品名，不再把 `USB Composite Device`、VID/PID、实例路径等技术标识当作设备名称；原始标识仅在高级模式显示。
+- “USB 存储”统一简化为“可移动存储”，不再在普通界面重复说明 USB、Type-C 或内部检测实现。
+- 所有下拉选择器统一为语言选择器风格的悬浮面板，并补齐键盘操作、视口边缘翻转和多语言宽度适配。
+- 统一页面右上角操作按钮尺寸、侧边栏顺序、设置页信息层级及高级模式换行布局。
+- 所有耗时展示在小于 1 秒时使用精确毫秒值，达到 1 秒后使用秒并保留毫秒级精度。
+
+### Fixed
+
+- 修复概览声称倒序但实际按正序渲染、英文 `Disconnected` 与右侧内容重叠，以及高级模式和长文本语言下多处内容覆盖的问题。
+- 修复音频默认设备、音量、静音和独占模式操作缺少后验验证的问题；现在仅在实际写入并复读一致后报告成功，并提供明确的权限与失败原因。
+- 修复蓝牙重连命令可能忽略 PowerShell 非终止错误，以及 Windows 设置中可见电量但应用未读取的问题。
+- 修复关机但仍连接的复合设备被模糊名称反复报告断开/重连的问题，并将短暂断连与普通重连按实际持续时间区分。
+- 修复端口页把系统自动回收的 `TIME_WAIT` 连接误标为可解除的问题；终止可解除进程后会等待并确认进程实际退出。
+- 修复官网按钮被外部链接白名单错误拦截的问题，同时继续拒绝非 ZeroTick 官方域名。
+- 修复可移动存储普通视图可能暴露 VID/PID、重复展示检测说明，以及部分读卡器、无盘符卷和锁定卷状态不符合用户认知的问题。
+
 ## [0.2.4] - 2026-07-16
 
 ### Changed
@@ -188,7 +217,8 @@ CLI 版核心诊断模块。
 
 项目初始化。
 
-[Unreleased]: https://github.com/ichenh/zerotick/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/ichenh/zerotick/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/ichenh/zerotick/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/ichenh/zerotick/compare/v0.2.2...v0.2.4
 [0.2.2]: https://github.com/ichenh/zerotick/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/ichenh/zerotick/compare/v0.2.0...v0.2.1

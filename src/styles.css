@@ -74,6 +74,10 @@
   padding: 0;
 }
 
+.hidden {
+  display: none !important;
+}
+
 html,
 body {
   height: 100%;
@@ -143,9 +147,27 @@ input {
 
 .nav-version {
   display: block;
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
   font-size: 11px;
   color: var(--text-tertiary);
   margin-top: 1px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.nav-version:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.nav-version:focus-visible {
+  outline: none;
+  border-radius: 3px;
+  box-shadow: var(--focus-ring);
 }
 
 .nav-items {
@@ -365,6 +387,13 @@ input {
   color: var(--text-tertiary);
 }
 
+.timeline-order-select {
+  width: auto;
+  min-width: 112px;
+  padding-block: 5px;
+  font-size: 12px;
+}
+
 .card-desc {
   font-size: 13px;
   color: var(--text-secondary);
@@ -387,6 +416,18 @@ input {
   cursor: pointer;
   transition: background 0.1s, border-color 0.1s;
   white-space: nowrap;
+}
+
+/* Keep page-level primary and secondary actions optically aligned. */
+.page > .toolbar .toolbar-actions > .btn {
+  height: 32px;
+  min-height: 32px;
+  padding-block: 0;
+  line-height: 18px;
+}
+
+.page > .toolbar:not(.port-toolbar) .toolbar-actions > .btn {
+  min-width: 96px;
 }
 
 .btn:hover {
@@ -480,7 +521,7 @@ input {
 
 .event-list li {
   display: grid;
-  grid-template-columns: 72px 64px 1fr;
+  grid-template-columns: 72px minmax(92px, max-content) minmax(0, 1fr);
   gap: 12px;
   align-items: start;
   padding: 10px 16px;
@@ -532,11 +573,15 @@ input {
 
 .tl-badge {
   display: inline-block;
+  min-width: 0;
+  max-width: 160px;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 600;
   text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .tl-badge-transient,
@@ -892,6 +937,16 @@ html.show-advanced .advanced-inline {
   display: inline !important;
 }
 
+html.show-advanced .advanced-only.mono,
+html.show-advanced .advanced-inline.mono,
+html.show-advanced .tl-meta,
+html.show-advanced .port-meta,
+html.show-advanced .audio-device-info .result-muted,
+html.show-advanced .toolkit-device-info .result-muted {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .diagnosis-guide {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(220px, 0.8fr);
@@ -1045,6 +1100,7 @@ html.show-advanced .advanced-inline {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 10px;
 }
@@ -1080,6 +1136,7 @@ html.show-advanced .advanced-inline {
 
 .result-row {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   padding: 4px 0;
@@ -1093,10 +1150,14 @@ html.show-advanced .advanced-inline {
 .result-label {
   color: var(--text-secondary);
   font-size: 12px;
-  flex-shrink: 0;
+  flex: 0 1 44%;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .result-value {
+  flex: 1 1 56%;
+  min-width: 0;
   text-align: right;
   font-size: 13px;
   word-break: break-all;
@@ -1550,6 +1611,7 @@ html.show-advanced .advanced-inline {
 .device-name {
   font-weight: 600;
   font-size: 13px;
+  overflow-wrap: anywhere;
 }
 
 .lock-list {
@@ -1841,6 +1903,217 @@ html.show-advanced .advanced-inline {
   align-items: center;
   gap: 8px;
   flex: 0 0 auto;
+}
+
+.update-actions,
+.settings-link-row {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.settings-value {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.language-picker-control {
+  position: relative;
+}
+
+.language-picker-trigger,
+.select-menu-trigger {
+  min-width: 220px;
+  justify-content: space-between;
+}
+
+.language-picker-trigger svg,
+.select-menu-trigger svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  transition: transform 160ms ease;
+}
+
+.language-picker-trigger[aria-expanded="true"] svg,
+.select-menu-trigger[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.language-popover,
+.select-menu-popover {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  right: 0;
+  width: min(380px, calc(100vw - 64px));
+  max-height: min(420px, calc(100vh - 160px));
+  overflow-y: auto;
+  border: 1px solid var(--stroke-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: 0 14px 36px rgb(0 0 0 / 18%);
+}
+
+.select-menu-control {
+  position: relative;
+  display: inline-flex;
+  width: 200px;
+  min-width: 0;
+}
+
+.select-menu-native {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+.select-menu-trigger {
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.select-menu-current {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select-menu-popover {
+  right: 0;
+  width: 100%;
+  min-width: max-content;
+  max-width: min(360px, calc(100vw - 32px));
+  max-height: min(320px, calc(100vh - 80px));
+  overflow-y: auto;
+}
+
+.select-menu-popover.open-up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+.select-menu-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px;
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  padding: 7px 8px 7px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--stroke);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.select-menu-option:last-child {
+  border-bottom: 0;
+}
+
+.select-menu-option:hover,
+.select-menu-option:focus-visible {
+  outline: none;
+  background: var(--surface-hover);
+}
+
+.select-menu-option[aria-selected="true"] {
+  background: var(--accent-subtle);
+}
+
+.select-menu-option:disabled {
+  color: var(--text-tertiary);
+  cursor: default;
+}
+
+.select-menu-check {
+  color: var(--accent);
+  font-weight: 700;
+  text-align: center;
+}
+
+#timeline-order + .select-menu-control {
+  width: 124px;
+  font-size: 12px;
+}
+
+#port-sort + .select-menu-control {
+  width: 156px;
+}
+
+#set-close-tray + .select-menu-control {
+  width: 220px;
+}
+
+.format-dialog .select-menu-control {
+  width: 100%;
+}
+
+.language-list {
+  width: 100%;
+}
+
+.language-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 40px;
+  padding: 4px 8px 4px 12px;
+  border-bottom: 1px solid var(--stroke);
+}
+
+.language-row:last-child {
+  border-bottom: 0;
+}
+
+.language-row.is-active {
+  background: var(--accent-subtle);
+}
+
+.language-choice {
+  min-width: 0;
+  border: 0;
+  padding: 7px 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.language-choice:disabled {
+  color: var(--text-secondary);
+  cursor: default;
+}
+
+.language-choice:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.language-installed {
+  min-width: 28px;
+  color: var(--accent);
+  font-weight: 700;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .update-actions,
+  .settings-link-row {
+    max-width: 280px;
+  }
 }
 
 .number-input-wrap {

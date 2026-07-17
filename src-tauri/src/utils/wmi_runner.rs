@@ -4,7 +4,7 @@ use std::sync::mpsc::{self, RecvTimeoutError, SyncSender, TrySendError};
 use std::sync::OnceLock;
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
-use wmi::{COMLibrary, WMIConnection, WMIError};
+use wmi::{WMIConnection, WMIError};
 
 type WmiJob = Box<dyn FnOnce(&WMIConnection) + Send>;
 
@@ -16,14 +16,7 @@ struct WmiWorker {
 static WORKER: OnceLock<WmiWorker> = OnceLock::new();
 
 fn worker_main(rx: mpsc::Receiver<WmiJob>) {
-    let com = match COMLibrary::without_security() {
-        Ok(c) => c,
-        Err(e) => {
-            crate::utils::logging::error(format!("WMI COM 初始化失败: {e}"));
-            return;
-        }
-    };
-    let wmi = match WMIConnection::new(com) {
+    let wmi = match WMIConnection::new() {
         Ok(w) => w,
         Err(e) => {
             crate::utils::logging::error(format!("WMI 连接失败: {e}"));

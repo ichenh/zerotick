@@ -5,11 +5,15 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import {
   t,
   setLocale,
-  applyDom,
   getPageMeta,
+  formatDuration,
   formatTime,
-  fillLocaleSelect,
+  getLocale,
+  isLocaleInstalled,
+  LANGUAGE_CATALOG,
+  matchSupportedLocale,
   normalizeLocale,
+  registerLanguagePack,
 } from "./i18n.js";
 import {
   escapeHtml,
@@ -19,6 +23,7 @@ import {
   bindToolkitHandlers,
   applyFullScanProgress,
 } from "./panels.js";
+import { enhanceSelectMenus, refreshSelectMenus } from "./select-menu.js";
 
 const $ = (id) => document.getElementById(id);
 let toastTimer = null;
@@ -31,11 +36,17 @@ let navItems = [];
 let pages = [];
 let activePageId = null;
 let elevatedStatePromise = null;
+let appVersion = "";
+let updateInfo = null;
+let updateCheckState = "idle";
+let installedLanguageCount = 0;
+let languagePackState = "idle";
 let appSettings = {
   transient_threshold_ms: 500,
   tray_recovery_secs: 45,
   max_history_entries: 500,
   timeline_display_max: 80,
+  timeline_order: "desc",
   native_notifications: true,
   launch_at_startup: false,
   close_to_tray: true,
@@ -46,7 +57,8 @@ let appSettings = {
   system_query_timeout_secs: 20,
   network_test_timeout_secs: 20,
   bsod_debugger_timeout_secs: 90,
-  locale: "zh-CN",
+  locale: "en",
+  locale_auto_configured: false,
 };
 window.__zerotickSettings = appSettings;
 
@@ -132,8 +144,32 @@ function categoryLabel(code) {
   return label !== key ? label : t("events.category.unknown");
 }
 
+function isGenericDeviceName(name) {
+  return [
+    "usb composite device",
+    "usb device",
+    "unknown usb device",
+    "bluetooth device",
+    "unknown device",
+  ].includes(String(name ?? "").trim().toLowerCase());
+}
+
+function userDeviceName(ev) {
+  const friendly = String(ev?.friendly_name ?? "").trim();
+  return friendly && !isGenericDeviceName(friendly)
+    ? friendly
+    : t("events.unknownDevice");
+}
+
+function advancedDeviceName(ev) {
+  const name = userDeviceName(ev);
+  return name === t("events.unknownDevice") && ev?.vid_pid
+    ? `${name} (${ev.vid_pid})`
+    : name;
+}
+
 function formatEventMessage(ev) {
-  const name = ev.friendly_name || ev.vid_pid || t("events.unknownDevice");
+  const name = userDeviceName(ev);
   const category = categoryLabel(ev.category);
   const ms = ev.disconnect_ms ?? 0;
   if (ev.event_type === "transient_reconnect") {
@@ -241,6 +277,10 @@ function refreshStaticPanels() {
   }
 
   refreshSpinLabels();
+  renderUpdateStatus();
+  renderLanguagePackStatus();
+  renderLanguageList();
+  refreshSelectMenus();
 
   const active = document.querySelector(".nav-item.active");
   if (active?.dataset.page) {
@@ -368,10 +408,10 @@ function appendTimeline(ev, { animate = true } = {}) {
   if (!animate) li.classList.add("no-animate");
   if (type === "transient" && animate) li.classList.add("pulse");
 
-  const name = ev.friendly_name || ev.vid_pid || t("events.unknownDevice");
+  const name = userDeviceName(ev);
   const technicalParts = [];
   if (ev.vid_pid) technicalParts.push(ev.vid_pid);
-  if (ev.disconnect_ms != null) technicalParts.push(`${ev.disconnect_ms}ms`);
+  if (ev.disconnect_ms != null) technicalParts.push(formatDuration(ev.disconnect_ms));
   if (ev.device_path) technicalParts.push(ev.device_path);
   if (ev.message) technicalParts.push(ev.message);
 
@@ -385,7 +425,15 @@ function appendTimeline(ev, { animate = true } = {}) {
     </div>
   `;
   const list = $("timeline");
-  list.prepend(li);
+  const eventTime = Date.parse(ev.timestamp);
+  li.dataset.timestamp = String(Number.isFinite(eventTime) ? eventTime : Date.now());
+  const descending = appSettings.timeline_order !== "asc";
+  const insertBefore = [...list.children].find((child) => {
+    const childTime = Number(child.dataset.timestamp);
+    return descending ? childTime < Number(li.dataset.timestamp) : childTime > Number(li.dataset.timestamp);
+  });
+  if (insertBefore) list.insertBefore(li, insertBefore);
+  else list.append(li);
   if (animate) {
     requestAnimationFrame(() => li.classList.add("visible"));
   } else {
@@ -393,15 +441,16 @@ function appendTimeline(ev, { animate = true } = {}) {
   }
 
   while (list.children.length > appSettings.timeline_display_max) {
-    list.removeChild(list.lastChild);
+    list.removeChild(descending ? list.lastChild : list.firstChild);
   }
   updateTimelineEmpty();
 }
 
 function trimTimeline() {
   const list = $("timeline");
+  const descending = appSettings.timeline_order !== "asc";
   while (list.children.length > appSettings.timeline_display_max) {
-    list.removeChild(list.lastChild);
+    list.removeChild(descending ? list.lastChild : list.firstChild);
   }
   updateTimelineEmpty();
 }
@@ -413,10 +462,12 @@ function eventBadge(type) {
 }
 
 async function onTransientEvent(ev) {
-  const name = ev.friendly_name || ev.vid_pid || t("events.device");
+  const name = document.documentElement.classList.contains("show-advanced")
+    ? advancedDeviceName(ev)
+    : userDeviceName(ev);
   showToast(
     document.documentElement.classList.contains("show-advanced")
-      ? t("toast.transient", { name, ms: ev.disconnect_ms ?? "?" })
+      ? `${t("toast.transientSimple", { name })} · ${formatDuration(ev.disconnect_ms)}`
       : t("toast.transientSimple", { name }),
     true,
   );
@@ -435,9 +486,7 @@ async function loadHistory() {
   try {
     const items = await invoke("get_device_history");
     if (!Array.isArray(items) || items.length === 0) return;
-    for (let i = items.length - 1; i >= 0; i -= 1) {
-      appendTimeline(items[i], { animate: false });
-    }
+    for (const item of items) appendTimeline(item, { animate: false });
   } catch {
     /* 历史加载失败时忽略 */
   }
@@ -452,6 +501,7 @@ async function loadSettings() {
     $("set-tray-recovery").value = s.tray_recovery_secs;
     $("set-history-max").value = s.max_history_entries;
     $("set-timeline-max").value = s.timeline_display_max;
+    $("timeline-order").value = s.timeline_order === "asc" ? "asc" : "desc";
     $("set-bluetooth-poll").value = s.bluetooth_poll_secs;
     $("set-full-scan-timeout").value = s.full_scan_timeout_secs;
     $("set-system-query-timeout").value = s.system_query_timeout_secs;
@@ -466,8 +516,9 @@ async function loadSettings() {
     const localeEl = $("set-locale");
     if (s.locale) localeEl.value = s.locale;
     setLocale(s.locale);
-    fillLocaleSelect(localeEl);
     if (s.locale) localeEl.value = normalizeLocale(s.locale);
+    renderLanguageList();
+    refreshSelectMenus();
   } catch {
     /* 使用默认值 */
   } finally {
@@ -524,6 +575,7 @@ function collectSettingsPayload() {
     tray_recovery_secs: Number($("set-tray-recovery").value),
     max_history_entries: Number($("set-history-max").value),
     timeline_display_max: Number($("set-timeline-max").value),
+    timeline_order: $("timeline-order").value === "asc" ? "asc" : "desc",
     bluetooth_poll_secs: Number($("set-bluetooth-poll").value),
     full_scan_timeout_secs: Number($("set-full-scan-timeout").value),
     system_query_timeout_secs: Number($("set-system-query-timeout").value),
@@ -535,6 +587,7 @@ function collectSettingsPayload() {
     advanced_display: $("set-advanced-display").checked,
     close_to_tray: $("set-close-tray").value === "1",
     locale: $("set-locale").value,
+    locale_auto_configured: Boolean(appSettings.locale_auto_configured),
   };
 }
 
@@ -550,13 +603,14 @@ function saveSettingsImmediately() {
         const saved = await invoke("save_settings", { settings: payload });
         const localeChanged = normalizeLocale(previous.locale) !== normalizeLocale(saved.locale);
         const timelineLimitChanged = previous.timeline_display_max !== saved.timeline_display_max;
+        const timelineOrderChanged = previous.timeline_order !== saved.timeline_order;
         const advancedDisplayChanged = previous.advanced_display !== saved.advanced_display;
         appSettings = { ...appSettings, ...saved };
         window.__zerotickSettings = appSettings;
         if (advancedDisplayChanged) {
           document.documentElement.classList.toggle("show-advanced", Boolean(saved.advanced_display));
         }
-        if (localeChanged) {
+        if (localeChanged || timelineOrderChanged) {
           setLocale(saved.locale);
           await Promise.all([syncWindowTitle(), reloadTimeline()]);
         } else if (timelineLimitChanged) {
@@ -596,6 +650,175 @@ function getElevatedState() {
   return elevatedStatePromise;
 }
 
+function renderLanguagePackStatus() {
+  const status = $("language-pack-status");
+  if (!status) return;
+  if (languagePackState === "installing") {
+    status.textContent = t("settings.languagePackInstalling");
+  } else if (languagePackState === "failed") {
+    status.textContent = t("settings.languagePackFailed");
+  } else if (installedLanguageCount > 0) {
+    status.textContent = t("settings.languagePackInstalled", { count: installedLanguageCount });
+  } else {
+    status.textContent = t("settings.languagePacksHint");
+  }
+}
+
+function renderLanguageList() {
+  const list = $("language-list");
+  if (!list) return;
+  const current = getLocale();
+  const currentOption = LANGUAGE_CATALOG.find((locale) => locale.code === current);
+  const currentLabel = $("current-language-label");
+  if (currentLabel) currentLabel.textContent = currentOption?.label ?? current;
+  list.innerHTML = LANGUAGE_CATALOG.map((locale) => {
+    const installed = isLocaleInstalled(locale.code);
+    const active = installed && locale.code === current;
+    return `<div class="language-row${active ? " is-active" : ""}">
+      <button class="language-choice" type="button" data-code="${escapeHtml(locale.code)}"${installed ? "" : " disabled"} aria-pressed="${active}">
+        <span>${escapeHtml(locale.label)}</span>
+      </button>
+      ${installed
+        ? `<span class="language-installed" aria-hidden="true">✓</span>`
+        : `<button class="btn btn-default btn-sm btn-language-download" type="button" data-code="${escapeHtml(locale.code)}"${languagePackState === "installing" ? " disabled aria-busy=\"true\"" : ""}>${escapeHtml(t("settings.manageLanguagePacks"))}</button>`}
+    </div>`;
+  }).join("");
+}
+
+function setLanguagePopover(open) {
+  const popover = $("language-popover");
+  const trigger = $("language-picker-trigger");
+  if (!popover || !trigger) return;
+  popover.classList.toggle("hidden", !open);
+  trigger.setAttribute("aria-expanded", String(open));
+}
+
+function chooseInstalledLanguage(code) {
+  if (!isLocaleInstalled(code)) return;
+  appSettings.locale_auto_configured = true;
+  $("set-locale").value = code;
+  setLocale(code);
+  refreshStaticPanels();
+  renderLanguageList();
+  setLanguagePopover(false);
+  saveSettingsImmediately();
+}
+
+async function installLanguagePack(targetLocale) {
+  languagePackState = "installing";
+  renderLanguagePackStatus();
+  renderLanguageList();
+  try {
+    const pack = await invoke("install_language_pack", { locale: targetLocale });
+    registerLanguagePack(pack, appVersion);
+    installedLanguageCount = LANGUAGE_CATALOG.filter(
+      (locale) => locale.code !== "en" && isLocaleInstalled(locale.code),
+    ).length;
+    await invoke("persist_language_pack", { pack });
+    languagePackState = "ready";
+    if (isLocaleInstalled(targetLocale)) {
+      appSettings.locale_auto_configured = true;
+      $("set-locale").value = targetLocale;
+      setLocale(targetLocale);
+      refreshStaticPanels();
+      setLanguagePopover(false);
+      saveSettingsImmediately();
+    }
+    renderLanguagePackStatus();
+    renderLanguageList();
+    showToast(t("settings.languagePackInstalled", { count: installedLanguageCount }), false);
+  } catch (error) {
+    languagePackState = "failed";
+    renderLanguagePackStatus();
+    renderLanguageList();
+    showOperationError(error, "install_language_pack", "settings.languagePackFailed");
+  }
+}
+
+function preferredSystemLocale() {
+  for (const locale of navigator.languages ?? [navigator.language]) {
+    const matched = matchSupportedLocale(locale);
+    if (matched !== "en" || String(locale).toLowerCase().startsWith("en")) return matched;
+  }
+  return "en";
+}
+
+async function configureInitialLanguage() {
+  if (appSettings.locale_auto_configured) return;
+  const saved = matchSupportedLocale(appSettings.locale);
+  const target = saved !== "en" ? saved : preferredSystemLocale();
+  appSettings.locale_auto_configured = true;
+  if (target !== "en" && !isLocaleInstalled(target)) {
+    await installLanguagePack(target);
+    if (!isLocaleInstalled(target)) saveSettingsImmediately();
+    return;
+  }
+  $("set-locale").value = target;
+  setLocale(target);
+  refreshStaticPanels();
+  saveSettingsImmediately();
+}
+
+function renderUpdateStatus() {
+  const status = $("update-status");
+  if (!status) return;
+  if (updateCheckState === "checking") {
+    status.textContent = t("updates.checking");
+    return;
+  }
+  if (updateCheckState === "failed") {
+    status.textContent = t("updates.failed");
+    return;
+  }
+  if (!updateInfo) {
+    status.textContent = t("updates.notChecked");
+    return;
+  }
+  status.textContent = updateInfo.update_available
+    ? t("updates.available", { version: updateInfo.latest_version })
+    : t("updates.current", { version: updateInfo.current_version });
+}
+
+async function openProjectUrl(url) {
+  try {
+    await invoke("open_project_url", { url });
+  } catch (error) {
+    showOperationError(error, "open_project_url");
+  }
+}
+
+async function checkForUpdates({ force = false, reveal = false } = {}) {
+  const button = $("btn-check-update");
+  updateCheckState = "checking";
+  button.disabled = true;
+  button.setAttribute("aria-busy", "true");
+  renderUpdateStatus();
+  try {
+    updateInfo = await invoke("check_for_updates", { force });
+    updateCheckState = "ready";
+    $("btn-release-page").classList.remove("hidden");
+    $("btn-download-update").classList.toggle(
+      "hidden",
+      !updateInfo.update_available || !updateInfo.download_url,
+    );
+    renderUpdateStatus();
+    const message = updateInfo.update_available
+      ? t("updates.available", { version: updateInfo.latest_version })
+      : t("updates.current", { version: updateInfo.current_version });
+    showToast(message, false);
+    if (reveal && updateInfo.update_available) switchPage("settings");
+    return updateInfo;
+  } catch (error) {
+    updateCheckState = "failed";
+    renderUpdateStatus();
+    showOperationError(error, "check_for_updates", "updates.failed");
+    return null;
+  } finally {
+    button.disabled = false;
+    button.removeAttribute("aria-busy");
+  }
+}
+
 async function refreshAdminHint() {
   const hint = $("repair-admin-hint");
   try {
@@ -621,7 +844,9 @@ async function bindEvents() {
     if (ev.event_type === "transient_reconnect") {
       onTransientEvent(ev);
     } else if (ev.event_type === "remove") {
-      const name = ev.friendly_name || ev.vid_pid || t("events.device");
+      const name = document.documentElement.classList.contains("show-advanced")
+        ? advancedDeviceName(ev)
+        : userDeviceName(ev);
       showToast(t("toast.disconnected", { name }), false);
     }
   });
@@ -803,26 +1028,43 @@ function initScrollPanels() {
 async function init() {
   bindNavigation();
   bindToolkitHandlers({ showToast });
-  fillLocaleSelect($("set-locale"));
-  setLocale(normalizeLocale(navigator.language));
+  $("set-locale").value = "en";
+  setLocale($("set-locale").value);
+  renderLanguageList();
+  enhanceSelectMenus();
+  refreshSelectMenus();
   initNumberInputs($("settings-form"));
   initScrollPanels();
   updateTimelineEmpty();
 
-  $("set-locale").addEventListener("change", () => {
-    setLocale($("set-locale").value);
-    applyDom();
-    refreshStaticPanels();
-  });
-
   try {
     await waitForTauri();
     await bindEvents();
-    const [version] = await Promise.all([
+    const [version, installedPack] = await Promise.all([
       invoke("get_app_version"),
-      loadSettings(),
+      invoke("load_language_pack").catch((error) => {
+        console.warn("[ZeroTick:load_language_pack]", error);
+        return null;
+      }),
     ]);
+    appVersion = version;
+    if (installedPack) {
+      try {
+        registerLanguagePack(installedPack, version);
+        installedLanguageCount = LANGUAGE_CATALOG.filter(
+          (locale) => locale.code !== "en" && isLocaleInstalled(locale.code),
+        ).length;
+        languagePackState = "ready";
+        renderLanguageList();
+      } catch (error) {
+        languagePackState = "failed";
+        console.warn("[ZeroTick:validate_language_pack]", error);
+      }
+    }
+    await loadSettings();
+    await configureInitialLanguage();
     $("app-version").textContent = `v${version}`;
+    $("settings-app-version").textContent = `v${version}`;
     await Promise.all([syncWindowTitle(), loadHistory()]);
     trimTimeline();
   } catch (e) {
@@ -846,6 +1088,40 @@ async function init() {
     if (event.target.matches('input[type="number"]')) scheduleSettingsSave(false);
   });
   $("settings-form").addEventListener("change", () => scheduleSettingsSave(true));
+  $("timeline-order").addEventListener("change", saveSettingsImmediately);
+
+  $("btn-check-update").addEventListener("click", () => checkForUpdates({ force: true }));
+  $("app-version").addEventListener("click", () => checkForUpdates({ force: false, reveal: true }));
+  $("btn-download-update").addEventListener("click", () => {
+    if (updateInfo?.download_url) openProjectUrl(updateInfo.download_url);
+  });
+  $("btn-release-page").addEventListener("click", () => {
+    if (updateInfo?.release_url) openProjectUrl(updateInfo.release_url);
+  });
+  document.querySelectorAll(".btn-project-link").forEach((button) => {
+    button.addEventListener("click", () => openProjectUrl(button.dataset.url));
+  });
+  $("language-picker-trigger").addEventListener("click", () => {
+    const open = $("language-picker-trigger").getAttribute("aria-expanded") !== "true";
+    setLanguagePopover(open);
+  });
+  $("language-list").addEventListener("click", (event) => {
+    const download = event.target.closest(".btn-language-download");
+    if (download) {
+      installLanguagePack(download.dataset.code);
+      return;
+    }
+    const choice = event.target.closest(".language-choice");
+    if (choice) chooseInstalledLanguage(choice.dataset.code);
+  });
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".language-picker-control")) setLanguagePopover(false);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || $("language-popover").classList.contains("hidden")) return;
+    setLanguagePopover(false);
+    $("language-picker-trigger").focus();
+  });
 
   $("btn-clear-history").addEventListener("click", async () => {
     try {
@@ -907,7 +1183,8 @@ async function init() {
     if (results) results.innerHTML = `<p class="result-muted">${escapeHtml(t("diag.bsod.repairingHint"))}</p>`;
     try {
       const messages = await invoke("apply_bsod_repairs", { fixIds });
-      if (results) results.innerHTML = `<p class="repair-verdict ok">${escapeHtml(t("diag.bsod.repairComplete"))}</p><div class="advanced-only">${renderList(messages, t("diag.bsod.noRepairResults"))}</div>`;
+      const failed = messages.some((message) => String(message).trim().startsWith("✗"));
+      if (results) results.innerHTML = `<p class="repair-verdict ${failed ? "warn" : "ok"}">${escapeHtml(t(failed ? "toolkit.repairResult.needsAttention" : "diag.bsod.repairComplete"))}</p><div class="advanced-only">${renderList(messages, t("diag.bsod.noRepairResults"))}</div>`;
       showToast(t("diag.bsod.repairComplete"), false);
     } catch (error) {
       const fallback = String(error) === "bsod_repair:admin_required"

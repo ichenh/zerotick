@@ -94,6 +94,10 @@ jobs:
         if: steps.gate.outputs.skip != 'true'
         run: node scripts/extract-changelog.mjs ${{ steps.version.outputs.version }} > release-notes.md
 
+      - name: Build language manifest and per-language packs
+        if: steps.gate.outputs.skip != 'true'
+        run: node scripts/build-language-pack.mjs release-assets
+
       - name: Collect bundle artifacts
         if: steps.gate.outputs.skip != 'true'
         shell: pwsh
@@ -105,7 +109,8 @@ jobs:
             Copy-Item $_.FullName -Destination release-assets/
             Write-Host "Asset: $($_.Name)"
           }
-          if (-not (Get-ChildItem release-assets)) { throw "No .exe or .msi artifacts found" }
+          $installers = Get-ChildItem release-assets -File | Where-Object { $_.Extension -in '.exe', '.msi' }
+          if (-not $installers) { throw "No .exe or .msi artifacts found" }
           $checksumLines = Get-ChildItem release-assets -File | Sort-Object Name | ForEach-Object {
             $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
             "$hash  $($_.Name)"

@@ -9,10 +9,17 @@ use crate::tray::{self, TrayLevel};
 use crate::utils::{logging, process::CommandExt, wmi_runner};
 use chrono::Local;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
 use tokio::time;
+use windows::Devices::Bluetooth::GenericAttributeProfile::{
+    GattCharacteristicUuids, GattCommunicationStatus, GattServiceUuids,
+};
+use windows::Devices::Bluetooth::{BluetoothCacheMode, BluetoothLEDevice};
+use windows::Storage::Streams::DataReader;
+use windows::Win32::System::WinRT::{RoInitialize, RoUninitialize, RO_INIT_MULTITHREADED};
 use wmi::WMIConnection;
 
 static LAST_HEALTHY: OnceLock<Mutex<Option<bool>>> = OnceLock::new();
@@ -76,7 +83,7 @@ pub fn diagnose() -> Result<BluetoothReport, String> {
         apply_bthserv_issues(&mut report);
         Ok(report)
     });
-    let report = match primary {
+    let mut report = match primary {
         Ok(report) => Ok(report),
         Err(e) => match diagnose_powershell() {
             Ok(report) => {
@@ -93,6 +100,9 @@ pub fn diagnose() -> Result<BluetoothReport, String> {
             }
         },
     }?;
+    if let Err(error) = attach_battery_levels(&mut report) {
+        logging::info(format!("Bluetooth battery levels are unavailable: {error}"));
+    }
     cache.finished_at = Some(Instant::now());
     cache.report = Some(report.clone());
     Ok(report)
@@ -139,6 +149,7 @@ fn diagnose_pnp_inner(wmi: &WMIConnection) -> Result<BluetoothReport, wmi::WMIEr
                         format!("Error {code}")
                     },
                     connected: code == 0,
+                    battery_percent: None,
                 });
             }
         }
@@ -242,9 +253,229 @@ fn parse_device_entries(val: serde_json::Value) -> Result<Vec<BluetoothDeviceEnt
                     .get("connected")
                     .and_then(|v| v.as_bool())
                     .unwrap_or(false),
+                battery_percent: None,
             })
         })
         .collect())
+}
+
+fn attach_battery_levels(report: &mut BluetoothReport) -> Result<(), String> {
+    let mut query_errors = Vec::new();
+    let levels = match cached_battery_levels() {
+        Ok(levels) => levels,
+        Err(error) => {
+            query_errors.push(format!("Windows property cache: {error}"));
+            HashMap::new()
+        }
+    };
+    let mut gatt_levels = HashMap::<String, Option<u8>>::new();
+    for device in &mut report.devices {
+        let Some(address) = bluetooth_address(&device.instance_id) else {
+            continue;
+        };
+        if let Some(percent) = levels.get(&address).copied() {
+            device.battery_percent = Some(percent);
+            continue;
+        }
+
+        let percent = if let Some(percent) = gatt_levels.get(&address) {
+            *percent
+        } else {
+            let result = read_gatt_battery_level(&address);
+            if let Err(error) = &result {
+                query_errors.push(format!("{} ({address}): {error}", device.name));
+            }
+            let percent = result.unwrap_or(None);
+            gatt_levels.insert(address.clone(), percent);
+            percent
+        };
+        device.battery_percent = percent;
+    }
+
+    if report
+        .devices
+        .iter()
+        .any(|device| device.battery_percent.is_some())
+        || query_errors.is_empty()
+    {
+        Ok(())
+    } else {
+        Err(query_errors.join("; "))
+    }
+}
+
+fn cached_battery_levels() -> Result<HashMap<String, u8>, String> {
+    let script = r#"
+$levels = @{}
+function Add-BatteryLevel($instanceId, $value) {
+  if (-not $instanceId -or $null -eq $value) { return }
+  $number = 0
+  if (-not [int]::TryParse(([string]$value), [ref]$number)) { return }
+  if ($number -lt 0 -or $number -gt 100) { return }
+  if ([string]$instanceId -match '(?i)DEV_([0-9A-F]{12})') {
+    $levels[$Matches[1].ToUpperInvariant()] = $number
+  }
+}
+
+# Windows exposes BAS/HFP battery data as a device property when the accessory
+# and its driver support reporting it. Battery-service child nodes are folded
+# into the parent device below by their shared Bluetooth address.
+Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | ForEach-Object {
+  $battery = Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName 'DEVPKEY_Device_BatteryLevel' -ErrorAction SilentlyContinue
+  if ($battery) { Add-BatteryLevel $_.InstanceId $battery.Data }
+}
+
+# Some classic Bluetooth drivers cache the HFP battery indicator here instead
+# of publishing DEVPKEY_Device_BatteryLevel.
+$cacheRoot = 'HKLM:\SYSTEM\CurrentControlSet\Services\BTHPORT\Parameters\Devices'
+if (Test-Path -LiteralPath $cacheRoot) {
+  Get-ChildItem -LiteralPath $cacheRoot -ErrorAction SilentlyContinue | ForEach-Object {
+    $properties = Get-ItemProperty -LiteralPath $_.PSPath -ErrorAction SilentlyContinue
+    $battery = if ($properties) { $properties.PSObject.Properties['BatteryLevel'] } else { $null }
+    if ($battery) { Add-BatteryLevel "DEV_$($_.PSChildName)" $battery.Value }
+  }
+}
+
+@($levels.GetEnumerator() | ForEach-Object {
+  [pscustomobject]@{ address = $_.Key; battery_percent = $_.Value }
+})
+"#;
+    let value = crate::utils::powershell::run_json(script)?;
+    let items = match value {
+        serde_json::Value::Array(items) => items,
+        serde_json::Value::Object(_) => vec![value],
+        serde_json::Value::Null => Vec::new(),
+        _ => return Err("Bluetooth battery result has an invalid format".into()),
+    };
+    Ok(items
+        .into_iter()
+        .filter_map(|item| {
+            let address = item.get("address")?.as_str()?.to_ascii_uppercase();
+            let percent = item.get("battery_percent")?.as_u64()?;
+            (percent <= 100).then_some((address, percent as u8))
+        })
+        .collect())
+}
+
+struct WinRtApartment(bool);
+
+impl WinRtApartment {
+    fn initialize() -> Self {
+        Self(unsafe { RoInitialize(RO_INIT_MULTITHREADED) }.is_ok())
+    }
+}
+
+impl Drop for WinRtApartment {
+    fn drop(&mut self) {
+        if self.0 {
+            unsafe { RoUninitialize() };
+        }
+    }
+}
+
+fn read_gatt_battery_level(address: &str) -> Result<Option<u8>, String> {
+    let address_value = u64::from_str_radix(address, 16)
+        .map_err(|error| format!("invalid Bluetooth address: {error}"))?;
+    let _apartment = WinRtApartment::initialize();
+    let device = BluetoothLEDevice::FromBluetoothAddressAsync(address_value)
+        .map_err(|error| format!("open device request failed: {error}"))?
+        .join()
+        .map_err(|error| format!("open device failed: {error}"))?;
+    let service_uuid = GattServiceUuids::Battery()
+        .map_err(|error| format!("battery service UUID unavailable: {error}"))?;
+    let services_result = device
+        .GetGattServicesForUuidWithCacheModeAsync(service_uuid, BluetoothCacheMode::Cached)
+        .map_err(|error| format!("battery service request failed: {error}"))?
+        .join()
+        .map_err(|error| format!("battery service query failed: {error}"))?;
+    if services_result
+        .Status()
+        .map_err(|error| format!("battery service status failed: {error}"))?
+        != GattCommunicationStatus::Success
+    {
+        return Ok(None);
+    }
+
+    let characteristic_uuid = GattCharacteristicUuids::BatteryLevel()
+        .map_err(|error| format!("battery characteristic UUID unavailable: {error}"))?;
+    let services = services_result
+        .Services()
+        .map_err(|error| format!("battery services unavailable: {error}"))?;
+    for index in 0..services
+        .Size()
+        .map_err(|error| format!("battery service count unavailable: {error}"))?
+    {
+        let service = services
+            .GetAt(index)
+            .map_err(|error| format!("battery service unavailable: {error}"))?;
+        let characteristics_result = service
+            .GetCharacteristicsForUuidWithCacheModeAsync(
+                characteristic_uuid,
+                BluetoothCacheMode::Cached,
+            )
+            .map_err(|error| format!("battery characteristic request failed: {error}"))?
+            .join()
+            .map_err(|error| format!("battery characteristic query failed: {error}"))?;
+        if characteristics_result
+            .Status()
+            .map_err(|error| format!("battery characteristic status failed: {error}"))?
+            != GattCommunicationStatus::Success
+        {
+            continue;
+        }
+        let characteristics = characteristics_result
+            .Characteristics()
+            .map_err(|error| format!("battery characteristics unavailable: {error}"))?;
+        for characteristic_index in 0..characteristics
+            .Size()
+            .map_err(|error| format!("battery characteristic count unavailable: {error}"))?
+        {
+            let characteristic = characteristics
+                .GetAt(characteristic_index)
+                .map_err(|error| format!("battery characteristic unavailable: {error}"))?;
+            let read_result = characteristic
+                .ReadValueWithCacheModeAsync(BluetoothCacheMode::Cached)
+                .map_err(|error| format!("battery read request failed: {error}"))?
+                .join()
+                .map_err(|error| format!("battery read failed: {error}"))?;
+            if read_result
+                .Status()
+                .map_err(|error| format!("battery read status failed: {error}"))?
+                != GattCommunicationStatus::Success
+            {
+                continue;
+            }
+            let buffer = read_result
+                .Value()
+                .map_err(|error| format!("battery value unavailable: {error}"))?;
+            if buffer
+                .Length()
+                .map_err(|error| format!("battery value length unavailable: {error}"))?
+                == 0
+            {
+                continue;
+            }
+            let reader = DataReader::FromBuffer(&buffer)
+                .map_err(|error| format!("battery value reader failed: {error}"))?;
+            let percent = reader
+                .ReadByte()
+                .map_err(|error| format!("battery value read failed: {error}"))?;
+            if percent <= 100 {
+                return Ok(Some(percent));
+            }
+        }
+    }
+    Ok(None)
+}
+
+fn bluetooth_address(instance_id: &str) -> Option<String> {
+    let upper = instance_id.to_ascii_uppercase();
+    let tail = upper.split("DEV_").nth(1)?;
+    let address = tail.get(..12)?;
+    address
+        .chars()
+        .all(|character| character.is_ascii_hexdigit())
+        .then(|| address.to_string())
 }
 
 fn apply_bthserv_issues(report: &mut BluetoothReport) {
@@ -305,14 +536,16 @@ pub fn remove_device(instance_id: &str) -> Result<(), String> {
         invalidate_diagnostic_cache();
         Ok(())
     } else {
-        Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        Err(if stderr.is_empty() { stdout } else { stderr })
     }
 }
 
 pub fn reconnect_device(instance_id: &str) -> Result<(), String> {
     let id = instance_id.replace('\'', "''");
     let script = format!(
-        "Disable-PnpDevice -InstanceId '{id}' -Confirm:$false; Start-Sleep -Milliseconds 500; Enable-PnpDevice -InstanceId '{id}' -Confirm:$false"
+        "$ErrorActionPreference='Stop'; Disable-PnpDevice -InstanceId '{id}' -Confirm:$false -ErrorAction Stop; Start-Sleep -Milliseconds 500; Enable-PnpDevice -InstanceId '{id}' -Confirm:$false -ErrorAction Stop"
     );
     crate::utils::powershell::run_void(&script)?;
     invalidate_diagnostic_cache();
@@ -422,5 +655,14 @@ mod tests {
             r"BTHLEDEVICE\{0000180F-0000-1000-8000-00805F9B34FB}_DEV_X"
         ));
         assert!(!is_bluetooth_peripheral_id(r"BTH\MS_BTHLE\C&1BA46DC9&2&3"));
+    }
+
+    #[test]
+    fn extracts_bluetooth_address_for_battery_matching() {
+        assert_eq!(
+            bluetooth_address(r"BTHLE\DEV_D92825265D4F\D&B66BFB4&0&D92825265D4F"),
+            Some("D92825265D4F".into())
+        );
+        assert_eq!(bluetooth_address(r"USB\VID_0489&PID_E13A"), None);
     }
 }

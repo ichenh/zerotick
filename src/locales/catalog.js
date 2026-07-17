@@ -1,0 +1,47 @@
+export const BUILTIN_LANGUAGE_OPTIONS = [
+  { code: "en", label: "English" },
+];
+
+export const OPTIONAL_LANGUAGE_OPTIONS = [
+  { code: "zh-CN", label: "简体中文", source: "zh-CN" },
+  { code: "zh-TW", label: "繁體中文", source: "zh-TW" },
+  { code: "ja", label: "日本語", source: "ja" },
+  { code: "ko", label: "한국어", source: "ko" },
+  { code: "de", label: "Deutsch", source: "de" },
+  { code: "fr", label: "Français", source: "fr" },
+  { code: "es", label: "Español", source: "es" },
+  { code: "pt-BR", label: "Português (Brasil)", source: "pt-BR" },
+  { code: "ru", label: "Русский", source: "ru" },
+  { code: "ar", label: "العربية", source: "ar" },
+  { code: "hi", label: "हिन्दी", source: "hi" },
+  { code: "it", label: "Italiano", source: "it" },
+  { code: "nl", label: "Nederlands", source: "nl" },
+  { code: "pl", label: "Polski", source: "pl" },
+  { code: "tr", label: "Türkçe", source: "tr" },
+  { code: "vi", label: "Tiếng Việt", source: "vi" },
+  { code: "th", label: "ไทย", source: "th" },
+  { code: "id", label: "Bahasa Indonesia", source: "id" },
+  { code: "cs", label: "Čeština", source: "cs" },
+  { code: "da", label: "Dansk", source: "da" },
+  { code: "fi", label: "Suomi", source: "fi" },
+  { code: "nb", label: "Norsk bokmål", source: "nb" },
+  { code: "sv", label: "Svenska", source: "sv" },
+  { code: "uk", label: "Українська", source: "uk" },
+  { code: "he", label: "עברית", source: "he" },
+  { code: "ms", label: "Bahasa Melayu", source: "ms" },
+  { code: "ro", label: "Română", source: "ro" },
+  { code: "hu", label: "Magyar", source: "hu" },
+  { code: "en-GB", label: "English (United Kingdom)", base: "en", spelling: "british" },
+  { code: "en-AU", label: "English (Australia)", base: "en", spelling: "british" },
+  { code: "en-CA", label: "English (Canada)", base: "en" },
+  { code: "zh-HK", label: "繁體中文（香港）", base: "zh-TW" },
+  { code: "zh-MO", label: "繁體中文（澳門）", base: "zh-TW" },
+  { code: "zh-SG", label: "简体中文（新加坡）", base: "zh-CN" },
+  { code: "de-AT", label: "Deutsch (Österreich)", base: "de" },
+  { code: "de-CH", label: "Deutsch (Schweiz)", base: "de" },
+];
+
+export const ALL_LANGUAGE_OPTIONS = [
+  ...BUILTIN_LANGUAGE_OPTIONS,
+  ...OPTIONAL_LANGUAGE_OPTIONS,
+];

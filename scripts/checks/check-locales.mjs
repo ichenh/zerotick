@@ -1,4 +1,6 @@
 import { bundles, LOCALE_OPTIONS } from "../../src/i18n.js";
+import { ALL_LANGUAGE_OPTIONS } from "../../src/locales/catalog.js";
+import fs from "node:fs";
 
 function flatten(value, prefix = "", output = {}) {
   for (const [key, child] of Object.entries(value)) {
@@ -19,6 +21,38 @@ function placeholders(value) {
 const english = flatten(bundles.en);
 const expectedKeys = Object.keys(english).sort();
 const failures = [];
+
+const backendSource = fs.readFileSync(new URL("../../src-tauri/src/i18n.rs", import.meta.url), "utf8");
+const supportedBlock = backendSource.match(/pub const SUPPORTED:[\s\S]*?=\s*&\[([\s\S]*?)\];/);
+const backendLocales = supportedBlock
+  ? [...supportedBlock[1].matchAll(/"([^"]+)"/g)].map((match) => match[1]).sort()
+  : [];
+const catalogLocales = ALL_LANGUAGE_OPTIONS.map(({ code }) => code).sort();
+if (JSON.stringify(backendLocales) !== JSON.stringify(catalogLocales)) {
+  failures.push("frontend language catalog and backend SUPPORTED list differ");
+}
+
+const trayBundles = JSON.parse(
+  fs.readFileSync(new URL("../../src-tauri/locales/tray.json", import.meta.url), "utf8"),
+);
+const trayEnglish = trayBundles.en ?? {};
+const trayKeys = Object.keys(trayEnglish).sort();
+for (const locale of ALL_LANGUAGE_OPTIONS) {
+  const source = locale.source ?? locale.base ?? locale.code;
+  const tray = trayBundles[source];
+  if (!tray) {
+    failures.push(`${locale.code}: missing backend tray source ${source}`);
+    continue;
+  }
+  const missing = trayKeys.filter((key) => !(key in tray));
+  if (missing.length) failures.push(`${source}: ${missing.length} missing backend tray keys`);
+  for (const key of trayKeys) {
+    if (!(key in tray)) continue;
+    if (JSON.stringify(placeholders(trayEnglish[key])) !== JSON.stringify(placeholders(tray[key]))) {
+      failures.push(`${source}:${key}: backend tray placeholder mismatch`);
+    }
+  }
+}
 
 for (const { code } of LOCALE_OPTIONS) {
   const bundle = bundles[code];

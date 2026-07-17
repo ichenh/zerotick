@@ -6,11 +6,13 @@ use std::sync::{Mutex, OnceLock};
 use windows::core::PCWSTR;
 use windows::Win32::Devices::DeviceAndDriverInstallation::{
     SetupDiDestroyDeviceInfoList, SetupDiGetClassDevsW, SetupDiGetDeviceInterfaceDetailW,
-    SetupDiGetDeviceRegistryPropertyW, SetupDiOpenDeviceInterfaceW, DIGCF_ALLCLASSES,
-    DIGCF_DEVICEINTERFACE, DIGCF_PRESENT, HDEVINFO, SETUP_DI_GET_CLASS_DEVS_FLAGS,
-    SETUP_DI_REGISTRY_PROPERTY, SPDRP_DEVICEDESC, SPDRP_FRIENDLYNAME, SP_DEVICE_INTERFACE_DATA,
-    SP_DEVICE_INTERFACE_DETAIL_DATA_W, SP_DEVINFO_DATA,
+    SetupDiGetDevicePropertyW, SetupDiGetDeviceRegistryPropertyW, SetupDiOpenDeviceInfoW,
+    SetupDiOpenDeviceInterfaceW, DIGCF_ALLCLASSES, DIGCF_DEVICEINTERFACE, DIGCF_PRESENT, HDEVINFO,
+    SETUP_DI_GET_CLASS_DEVS_FLAGS, SETUP_DI_REGISTRY_PROPERTY, SPDRP_DEVICEDESC,
+    SPDRP_FRIENDLYNAME, SP_DEVICE_INTERFACE_DATA, SP_DEVICE_INTERFACE_DETAIL_DATA_W,
+    SP_DEVINFO_DATA,
 };
+use windows::Win32::Devices::Properties::{DEVPKEY_Device_BusReportedDeviceDesc, DEVPROPTYPE};
 use windows::Win32::System::Registry::{
     RegCloseKey, RegOpenKeyExW, RegQueryValueExW, HKEY, HKEY_LOCAL_MACHINE, KEY_READ, REG_SZ,
 };
@@ -30,6 +32,11 @@ pub fn resolve(device_path: &str, vid_pid: Option<&str>) -> Option<String> {
     }
 
     let name = resolve_via_setupapi(device_path)
+        .or_else(|| {
+            parse_interface_path(device_path).and_then(|(bus, hardware_id, instance)| {
+                resolve_instance_via_setupapi(&format!(r"{bus}\{hardware_id}\{instance}"))
+            })
+        })
         .or_else(|| resolve_via_instance_registry(device_path))
         .or_else(|| vid_pid.and_then(resolve_usb_name_first))
         .or_else(|| resolve_bluetooth_name(device_path));
@@ -40,6 +47,25 @@ pub fn resolve(device_path: &str, vid_pid: Option<&str>) -> Option<String> {
         }
     }
 
+    name
+}
+
+/// Resolve a PnP instance id such as `USB\VID_xxxx&PID_xxxx\serial`.
+/// This is also used by the device-manager diagnostics, where no interface path exists.
+pub fn resolve_instance_id(instance_id: &str) -> Option<String> {
+    let cache_key = format!("instance:{instance_id}");
+    if let Ok(guard) = cache().lock() {
+        if let Some(hit) = guard.get(&cache_key) {
+            return Some(hit.clone());
+        }
+    }
+
+    let name = resolve_instance_via_setupapi(instance_id);
+    if let Some(ref value) = name {
+        if let Ok(mut guard) = cache().lock() {
+            guard.insert(cache_key, value.clone());
+        }
+    }
     name
 }
 
@@ -103,9 +129,62 @@ unsafe fn resolve_setupapi_inner(dev_info: HDEVINFO, path_wide: &[u16]) -> Optio
     )
     .ok()?;
 
-    read_setup_property(dev_info, &dev_data, SPDRP_FRIENDLYNAME)
-        .or_else(|| read_setup_property(dev_info, &dev_data, SPDRP_DEVICEDESC))
-        .map(|s| clean_registry_string(&s))
+    best_setupapi_name(dev_info, &dev_data)
+}
+
+fn resolve_instance_via_setupapi(instance_id: &str) -> Option<String> {
+    unsafe {
+        let instance_wide: Vec<u16> = instance_id
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
+        let dev_info = SetupDiGetClassDevsW(None, None, None, DIGCF_ALLCLASSES).ok()?;
+        let mut dev_data = SP_DEVINFO_DATA {
+            cbSize: size_of::<SP_DEVINFO_DATA>() as u32,
+            ..Default::default()
+        };
+        let result = SetupDiOpenDeviceInfoW(
+            dev_info,
+            PCWSTR(instance_wide.as_ptr()),
+            None,
+            0,
+            Some(&mut dev_data),
+        )
+        .ok()
+        .and_then(|_| best_setupapi_name(dev_info, &dev_data));
+        let _ = SetupDiDestroyDeviceInfoList(dev_info);
+        result
+    }
+}
+
+unsafe fn best_setupapi_name(dev_info: HDEVINFO, dev_data: &SP_DEVINFO_DATA) -> Option<String> {
+    // A user-assigned friendly name is best. The bus-reported description is the
+    // actual product string (for example "OsmoAction3") and must be considered
+    // before the generic class description (for example "USB Composite Device").
+    read_setup_property(dev_info, dev_data, SPDRP_FRIENDLYNAME)
+        .and_then(normalize_meaningful_name)
+        .or_else(|| read_bus_reported_name(dev_info, dev_data).and_then(normalize_meaningful_name))
+        .or_else(|| {
+            read_setup_property(dev_info, dev_data, SPDRP_DEVICEDESC)
+                .and_then(normalize_meaningful_name)
+        })
+}
+
+unsafe fn read_bus_reported_name(dev_info: HDEVINFO, dev_data: &SP_DEVINFO_DATA) -> Option<String> {
+    let mut buf = [0u8; 512];
+    let mut required = 0u32;
+    let mut property_type = DEVPROPTYPE::default();
+    SetupDiGetDevicePropertyW(
+        dev_info,
+        dev_data,
+        &DEVPKEY_Device_BusReportedDeviceDesc,
+        &mut property_type,
+        Some(&mut buf),
+        Some(&mut required),
+        0,
+    )
+    .ok()?;
+    decode_reg_sz(&buf, required)
 }
 
 unsafe fn read_setup_property(
@@ -170,7 +249,7 @@ fn read_reg_key_name(enum_key_path: &str) -> Option<String> {
         let name =
             read_reg_string(key, "FriendlyName").or_else(|| read_reg_string(key, "DeviceDesc"));
         let _ = RegCloseKey(key);
-        name.map(|s| clean_registry_string(&s))
+        name.and_then(normalize_meaningful_name)
     }
 }
 
@@ -242,7 +321,7 @@ fn read_first_child_name(enum_key_path: &str) -> Option<String> {
             .or_else(|| read_reg_string(inst_key, "DeviceDesc"));
         let _ = RegCloseKey(inst_key);
         let _ = RegCloseKey(enum_key);
-        name.map(|s| clean_registry_string(&s))
+        name.and_then(normalize_meaningful_name)
     }
 }
 
@@ -297,6 +376,26 @@ fn clean_registry_string(raw: &str) -> String {
     }
 }
 
+fn normalize_meaningful_name(raw: String) -> Option<String> {
+    let name = clean_registry_string(&raw);
+    if name.is_empty() || is_generic_device_name(&name) {
+        None
+    } else {
+        Some(name)
+    }
+}
+
+fn is_generic_device_name(name: &str) -> bool {
+    matches!(
+        name.trim().to_ascii_lowercase().as_str(),
+        "usb composite device"
+            | "usb device"
+            | "unknown usb device"
+            | "bluetooth device"
+            | "unknown device"
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -317,5 +416,17 @@ mod tests {
         assert_eq!(bus, "USB");
         assert_eq!(hw, "VID_046D&PID_C52B");
         assert_eq!(inst, "6&1a2b3c4d&0&1");
+    }
+
+    #[test]
+    fn rejects_generic_names_but_keeps_product_names() {
+        assert_eq!(
+            normalize_meaningful_name("USB Composite Device".into()),
+            None
+        );
+        assert_eq!(
+            normalize_meaningful_name("OsmoAction3".into()),
+            Some("OsmoAction3".into())
+        );
     }
 }

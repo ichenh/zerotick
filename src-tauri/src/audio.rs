@@ -303,11 +303,19 @@ impl Drop for AudioEndpointAccess {
 pub fn set_endpoint_volume(device_id: &str, percent: u8) -> Result<(), String> {
     let access = AudioEndpointAccess::new()?;
     let endpoint = access.volume(device_id)?;
+    let expected = percent.min(100);
     unsafe {
         endpoint
-            .SetMasterVolumeLevelScalar(f32::from(percent.min(100)) / 100.0, std::ptr::null())
-            .map_err(|error| format!("设置端点音量失败: {error}"))
+            .SetMasterVolumeLevelScalar(f32::from(expected) / 100.0, std::ptr::null())
+            .map_err(|error| format!("设置端点音量失败: {error}"))?;
     }
+    let (actual, _) = access.state(device_id)?;
+    if actual.abs_diff(expected) > 1 {
+        return Err(format!(
+            "audio_volume:verify_failed:expected={expected};actual={actual}"
+        ));
+    }
+    Ok(())
 }
 
 pub fn set_endpoint_mute(device_id: &str, muted: bool) -> Result<(), String> {
@@ -316,8 +324,15 @@ pub fn set_endpoint_mute(device_id: &str, muted: bool) -> Result<(), String> {
     unsafe {
         endpoint
             .SetMute(muted, std::ptr::null())
-            .map_err(|error| format!("设置端点静音失败: {error}"))
+            .map_err(|error| format!("设置端点静音失败: {error}"))?;
     }
+    let (_, actual) = access.state(device_id)?;
+    if actual != muted {
+        return Err(format!(
+            "audio_mute:verify_failed:expected={muted};actual={actual}"
+        ));
+    }
+    Ok(())
 }
 
 pub fn set_default_device(device_id: &str, kind: &str) -> Result<(), String> {
@@ -352,9 +367,9 @@ if (-not ('AudioSwitcher.PolicyConfigClient' -as [type])) {{
 using System;
 using System.Runtime.InteropServices;
 namespace AudioSwitcher {{
-  [ComImport, Guid(""870af99c-171d-4f9e-af0d-e63df40c2bc9"")]
+  [ComImport, Guid("870af99c-171d-4f9e-af0d-e63df40c2bc9")]
   public class PolicyConfigClient {{ }}
-  [ComImport, Guid(""F8679F50-850A-41CF-9C72-430F290290C8""), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+  [ComImport, Guid("F8679F50-850A-41CF-9C72-430F290290C8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
   public interface IPolicyConfig {{
     [PreserveSig] int Reserved1();
     [PreserveSig] int Reserved2();
@@ -388,7 +403,12 @@ try {{
 }}
 "#
     );
-    powershell::run_void(&script)
+    powershell::run_void(&script)?;
+    let access = AudioEndpointAccess::new()?;
+    if !access.is_default(kind, device_id) {
+        return Err("audio_default:verify_failed".into());
+    }
+    Ok(())
 }
 
 pub fn set_device_mode(device_id: &str, kind: &str, mode: &str) -> Result<(), String> {

@@ -47,6 +47,8 @@ pub struct BluetoothDeviceEntry {
     pub instance_id: String,
     pub status: String,
     pub connected: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub battery_percent: Option<u8>,
 }
 
 /// 蓝牙诊断结果 — 通过 `bluetooth-status` 通道推送

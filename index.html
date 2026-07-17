@@ -17,7 +17,7 @@
           </div>
           <div class="nav-brand-text">
             <span class="nav-app-name">ZeroTick</span>
-            <span id="app-version" class="nav-version"></span>
+            <button id="app-version" class="nav-version" type="button" data-i18n="updates.versionHint" data-i18n-attr="title"></button>
           </div>
         </div>
 
@@ -44,6 +44,12 @@
             </svg>
             <span data-i18n="nav.audio">Audio</span>
           </button>
+          <button class="nav-item" type="button" data-page="bluetooth">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+              <path d="M7 7l10 10M17 7 7 17M12 3v18" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span data-i18n="nav.bluetooth">Bluetooth</span>
+          </button>
           <button class="nav-item" type="button" data-page="usb">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
               <rect x="7" y="2" width="10" height="6" rx="1" />
@@ -51,18 +57,18 @@
             </svg>
             <span data-i18n="nav.usb">USB</span>
           </button>
-          <button class="nav-item" type="button" data-page="bluetooth">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-              <path d="M7 7l10 10M17 7 7 17M12 3v18" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <span data-i18n="nav.bluetooth">Bluetooth</span>
-          </button>
           <button class="nav-item" type="button" data-page="devices">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
               <rect x="5" y="5" width="14" height="14" rx="2" />
               <path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3M9 9h6v6H9z" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
             <span data-i18n="nav.devices">Devices</span>
+          </button>
+          <button class="nav-item" type="button" data-page="ports">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+              <path d="M4 7h16M4 12h10M4 17h16" stroke-linecap="round" />
+            </svg>
+            <span data-i18n="nav.ports">Ports</span>
           </button>
           <button class="nav-item" type="button" data-page="bsod">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
@@ -76,12 +82,6 @@
               <path d="M14.7 6.3a4 4 0 0 0-5.66 5.66l-5 5a2 2 0 0 0 2.83 2.83l5-5a4 4 0 0 0 5.66-5.66l-1.5 1.5M9.3 17.7a4 4 0 0 0 5.66-5.66l5-5a2 2 0 0 0-2.83-2.83l-5 5a4 4 0 0 0-5.66 5.66l1.5-1.5" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
             <span data-i18n="nav.repair">Repair</span>
-          </button>
-          <button class="nav-item" type="button" data-page="ports">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-              <path d="M4 7h16M4 12h10M4 17h16" stroke-linecap="round" />
-            </svg>
-            <span data-i18n="nav.ports">Ports</span>
           </button>
           <button class="nav-item" type="button" data-page="settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -121,7 +121,10 @@
             <div class="card card-fill">
               <div class="card-header">
                 <h2 data-i18n="overview.eventsTitle">Device events</h2>
-                <span class="card-meta" data-i18n="overview.eventsMeta">Newest first</span>
+                <select id="timeline-order" class="field-select timeline-order-select" data-i18n="overview.eventsTitle" data-i18n-attr="aria-label">
+                  <option value="desc" data-i18n="overview.eventsMeta">Newest first</option>
+                  <option value="asc" data-i18n="overview.eventsMetaAscending">Oldest first</option>
+                </select>
               </div>
               <ul id="timeline" class="event-list"></ul>
               <p id="timeline-empty" class="empty-state hidden" data-i18n="overview.empty">—</p>
@@ -257,12 +260,33 @@
               <section class="settings-group card">
                 <h2 class="settings-group-title" data-i18n="settings.groupGeneral">General</h2>
                 <div class="settings-group-body">
-                <label class="field">
-                  <span class="field-label" data-i18n="settings.locale">Display language</span>
-                  <div class="field-control">
-                    <select id="set-locale" class="field-select"></select>
+                <div class="field">
+                  <span class="field-label-wrap">
+                    <span class="field-label" data-i18n="settings.locale">Display language</span>
+                    <span id="language-pack-status" class="field-help" data-i18n="settings.languagePacksHint">Install complete optional translations from the matching GitHub Release</span>
+                  </span>
+                  <div class="field-control language-picker-control">
+                    <input id="set-locale" type="hidden" value="zh-CN" />
+                    <button id="language-picker-trigger" class="btn btn-default language-picker-trigger" type="button" aria-expanded="false" aria-controls="language-popover">
+                      <span id="current-language-label">简体中文</span>
+                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m3 4.5 3 3 3-3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    </button>
+                    <div id="language-popover" class="language-popover hidden">
+                      <div id="language-list" class="language-list" role="listbox"></div>
+                    </div>
                   </div>
-                </label>
+                </div>
+                <div class="field">
+                  <span class="field-label-wrap">
+                    <span class="field-label" data-i18n="updates.title">Software updates</span>
+                    <span id="update-status" class="field-help" data-i18n="updates.notChecked">Not checked yet</span>
+                  </span>
+                  <div class="field-control update-actions">
+                    <button id="btn-check-update" class="btn btn-default" type="button" data-i18n="updates.check">Check for updates</button>
+                    <button id="btn-download-update" class="btn btn-accent hidden" type="button" data-i18n="updates.download">Download update</button>
+                    <button id="btn-release-page" class="btn btn-subtle hidden" type="button" data-i18n="updates.releasePage">Release notes</button>
+                  </div>
+                </div>
                 <div class="field">
                   <span class="field-label" data-i18n="settings.nativeNotify">Notifications when minimized</span>
                   <div class="field-control">
@@ -401,6 +425,44 @@
                     <span class="field-unit" data-i18n="units.count">items</span>
                   </div>
                 </label>
+                </div>
+              </section>
+
+              <section class="settings-group card">
+                <h2 class="settings-group-title" data-i18n="about.title">About ZeroTick</h2>
+                <div class="settings-group-body">
+                  <div class="field">
+                    <span class="field-label-wrap">
+                      <span class="field-label" data-i18n="about.version">Version</span>
+                      <span class="field-help" data-i18n="about.localFirst">Diagnostics stay on this device unless you export them</span>
+                    </span>
+                    <span id="settings-app-version" class="settings-value mono">—</span>
+                  </div>
+                  <div class="field">
+                    <span class="field-label-wrap">
+                      <span class="field-label" data-i18n="about.openSource">Open source</span>
+                      <span class="field-help" data-i18n="about.license">Licensed under the MIT License</span>
+                    </span>
+                    <div class="field-control settings-link-row">
+                      <button class="btn btn-subtle btn-project-link" type="button" data-url="https://physchen.com" data-i18n="about.website">Website</button>
+                      <button class="btn btn-subtle btn-project-link" type="button" data-url="https://github.com/ichenh/zerotick" data-i18n="about.sourceCode">Source code</button>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <span class="field-label" data-i18n="about.reportIssue">Report issue</span>
+                    <div class="field-control settings-link-row">
+                      <button class="btn btn-subtle btn-project-link" type="button" data-url="https://github.com/ichenh/zerotick/issues">GitHub Issues</button>
+                      <button class="btn btn-subtle btn-project-link" type="button" data-url="mailto:support@physchen.com">support@physchen.com</button>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <span class="field-label" data-i18n="about.projectInfo">Project information</span>
+                    <div class="field-control settings-link-row">
+                      <button class="btn btn-subtle btn-project-link" type="button" data-url="https://github.com/ichenh/zerotick/releases" data-i18n="about.releases">Releases</button>
+                      <button class="btn btn-subtle btn-project-link" type="button" data-url="https://github.com/ichenh/zerotick/blob/main/SECURITY.md" data-i18n="about.security">Security</button>
+                      <button class="btn btn-subtle btn-project-link" type="button" data-url="https://github.com/ichenh/zerotick/blob/main/LICENSE" data-i18n="about.licenseLink">License</button>
+                    </div>
+                  </div>
                 </div>
               </section>
 

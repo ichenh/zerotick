@@ -18,6 +18,8 @@ pub struct AppSettings {
     pub max_history_entries: usize,
     /// 前端 Timeline 最大显示条数
     pub timeline_display_max: usize,
+    /// Timeline 排序：desc = 最新在前，asc = 最早在前
+    pub timeline_order: String,
     /// 主窗口隐藏时发送 Windows 原生 Toast
     pub native_notifications: bool,
     /// 登录 Windows 时自动启动
@@ -40,6 +42,8 @@ pub struct AppSettings {
     pub bsod_debugger_timeout_secs: u64,
     /// 界面语言（BCP 47，如 zh-CN、en）
     pub locale: String,
+    #[serde(default)]
+    pub locale_auto_configured: bool,
 }
 
 impl Default for AppSettings {
@@ -49,6 +53,7 @@ impl Default for AppSettings {
             tray_recovery_secs: 45,
             max_history_entries: 500,
             timeline_display_max: 80,
+            timeline_order: "desc".into(),
             native_notifications: true,
             launch_at_startup: false,
             close_to_tray: true,
@@ -59,7 +64,8 @@ impl Default for AppSettings {
             system_query_timeout_secs: 20,
             network_test_timeout_secs: 20,
             bsod_debugger_timeout_secs: 90,
-            locale: "zh-CN".into(),
+            locale: "en".into(),
+            locale_auto_configured: false,
         }
     }
 }
@@ -77,6 +83,9 @@ impl AppSettings {
         }
         if !(10..=500).contains(&self.timeline_display_max) {
             return Err("Timeline 显示条数须在 10–500 之间".into());
+        }
+        if !matches!(self.timeline_order.as_str(), "desc" | "asc") {
+            return Err("Timeline 排序方式无效".into());
         }
         if !(15..=300).contains(&self.bluetooth_poll_secs) {
             return Err("蓝牙轮询间隔须在 15–300 秒之间".into());
@@ -181,6 +190,7 @@ mod tests {
         assert_eq!(settings.system_query_timeout_secs, 20);
         assert_eq!(settings.network_test_timeout_secs, 20);
         assert_eq!(settings.bsod_debugger_timeout_secs, 90);
+        assert_eq!(settings.timeline_order, "desc");
         settings.validate().unwrap();
     }
 }

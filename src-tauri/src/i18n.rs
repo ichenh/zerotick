@@ -7,8 +7,9 @@ use std::collections::HashMap;
 use std::sync::OnceLock;
 
 pub const SUPPORTED: &[&str] = &[
-    "en", "zh-CN", "zh-TW", "ja", "ko", "de", "fr", "es", "pt-BR", "ru", "ar", "hi", "it", "nl",
-    "pl", "tr", "vi", "th", "id", "cs", "da", "fi", "nb", "sv", "uk", "he", "ms", "ro", "hu",
+    "en", "zh-CN", "zh-TW", "ja", "ko", "de", "en-GB", "en-AU", "en-CA", "zh-HK", "zh-MO", "zh-SG",
+    "de-AT", "de-CH", "fr", "es", "pt-BR", "ru", "ar", "hi", "it", "nl", "pl", "tr", "vi", "th",
+    "id", "cs", "da", "fi", "nb", "sv", "uk", "he", "ms", "ro", "hu",
 ];
 
 static TRAY_STRINGS: OnceLock<HashMap<String, HashMap<String, String>>> = OnceLock::new();
@@ -30,7 +31,23 @@ pub fn normalize_locale(raw: &str) -> String {
     let mapped = match trimmed {
         "zh" | "zh-Hans" | "zh-CN" => "zh-CN",
 
-        "zh-Hant" | "zh-TW" | "zh-HK" => "zh-TW",
+        "zh-Hant" | "zh-TW" => "zh-TW",
+
+        "zh-HK" => "zh-HK",
+
+        "zh-MO" => "zh-MO",
+
+        "zh-SG" => "zh-SG",
+
+        "en-GB" => "en-GB",
+
+        "en-AU" => "en-AU",
+
+        "en-CA" => "en-CA",
+
+        "de-AT" => "de-AT",
+
+        "de-CH" => "de-CH",
 
         "pt" => "pt-BR",
 
@@ -109,9 +126,17 @@ pub fn is_supported(locale: &str) -> bool {
 fn pick(locale: &str, key: &str, en_fallback: &str) -> String {
     let loc = normalize_locale(locale);
 
+    let tray_locale = match loc.as_str() {
+        "zh-HK" | "zh-MO" => "zh-TW",
+        "zh-SG" => "zh-CN",
+        "de-AT" | "de-CH" => "de",
+        "en-GB" | "en-AU" | "en-CA" => "en",
+        other => other,
+    };
+
     let map = tray_strings();
 
-    if let Some(loc_map) = map.get(loc.as_str()) {
+    if let Some(loc_map) = map.get(tray_locale) {
         if let Some(s) = loc_map.get(key) {
             return s.clone();
         }
