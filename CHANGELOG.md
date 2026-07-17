@@ -7,11 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-07-17
+
+### Added
+
+- NSIS 安装器新增完整翻译的多语言界面：默认匹配 Windows 系统语言，并允许用户在安装前手动选择。
+
+### Fixed
+
+- 可选语言包下载遇到瞬时网络错误时会自动重试，并将最终失败原因写入诊断日志，便于给出真实、可追踪的故障信息。
+- 修复启动阶段自动安装系统语言时，界面语言按钮尚未绑定而需要多次点击才能展开的问题；语言选择交互现在不再等待异步初始化完成。
+
 ## [0.2.5] - 2026-07-17
 
 ### Added
 
-- 界面语言目录扩展为完整可选列表；正式安装包保持精简，其他语言以与应用版本严格匹配的独立语言包随 GitHub Release 发布，并支持在设置页按需下载安装。
+- 界面语言目录扩展为完整可选列表；正式安装包保持精简，其他语言通过与应用版本严格匹配的统一语言包随 GitHub Release 发布，并支持在设置页按需下载安装。
 - 首次启动会识别 Windows 界面语言并尝试安装对应语言包；开发模式仍内置英文和简体中文，方便界面调试。
 - 设置页和左上角版本号均可检查 GitHub Release 更新，并提供安全限定的更新下载、发布页、官网、Issue 与支持邮箱入口。
 - 蓝牙设备电量同时读取 Windows 设备属性缓存和标准 GATT Battery Service，在设备支持时显示剩余电量。
@@ -29,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- 修复可选语言包因 GitHub 匿名 API 限流而无法安装的问题；语言包改用版本化附件直链下载，并仅在系统语言真实安装成功后记录自动配置完成，避免中文系统在失败后持续停留于英文。
+- 修复可选语言包因 GitHub 匿名 API 限流而无法安装的问题；语言包改用版本化附件直链下载，并仅在系统语言真实安装成功后记录自动配置完成，避免系统语言安装失败后持续停留于英文。
 - 修复概览声称倒序但实际按正序渲染、英文 `Disconnected` 与右侧内容重叠，以及高级模式和长文本语言下多处内容覆盖的问题。
 - 修复音频默认设备、音量、静音和独占模式操作缺少后验验证的问题；现在仅在实际写入并复读一致后报告成功，并提供明确的权限与失败原因。
 - 修复蓝牙重连命令可能忽略 PowerShell 非终止错误，以及 Windows 设置中可见电量但应用未读取的问题。
@@ -219,7 +230,8 @@ CLI 版核心诊断模块。
 
 项目初始化。
 
-[Unreleased]: https://github.com/ichenh/zerotick/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/ichenh/zerotick/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/ichenh/zerotick/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/ichenh/zerotick/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/ichenh/zerotick/compare/v0.2.2...v0.2.4
 [0.2.2]: https://github.com/ichenh/zerotick/compare/v0.2.1...v0.2.2

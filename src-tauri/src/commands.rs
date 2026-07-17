@@ -580,7 +580,12 @@ pub fn open_project_url(app: AppHandle, url: String) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn install_language_pack(locale: String) -> Result<Value, String> {
-    run_blocking(move || language_packs::install(&locale)).await
+    let requested_locale = locale.clone();
+    let result = run_blocking(move || language_packs::install(&locale)).await;
+    if let Err(error) = &result {
+        utils::logging::warn(format!("语言包安装失败 locale={requested_locale}: {error}"));
+    }
+    result
 }
 
 #[tauri::command]

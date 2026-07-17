@@ -693,6 +693,30 @@ function setLanguagePopover(open) {
   trigger.setAttribute("aria-expanded", String(open));
 }
 
+function bindLanguagePicker() {
+  $("language-picker-trigger").addEventListener("click", () => {
+    const open = $("language-picker-trigger").getAttribute("aria-expanded") !== "true";
+    setLanguagePopover(open);
+  });
+  $("language-list").addEventListener("click", (event) => {
+    const download = event.target.closest(".btn-language-download");
+    if (download) {
+      installLanguagePack(download.dataset.code);
+      return;
+    }
+    const choice = event.target.closest(".language-choice");
+    if (choice) chooseInstalledLanguage(choice.dataset.code);
+  });
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".language-picker-control")) setLanguagePopover(false);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || $("language-popover").classList.contains("hidden")) return;
+    setLanguagePopover(false);
+    $("language-picker-trigger").focus();
+  });
+}
+
 function chooseInstalledLanguage(code) {
   if (!isLocaleInstalled(code)) return;
   appSettings.locale_auto_configured = true;
@@ -1031,6 +1055,7 @@ function initScrollPanels() {
 async function init() {
   bindNavigation();
   bindToolkitHandlers({ showToast });
+  bindLanguagePicker();
   $("set-locale").value = "en";
   setLocale($("set-locale").value);
   renderLanguageList();
@@ -1104,28 +1129,6 @@ async function init() {
   document.querySelectorAll(".btn-project-link").forEach((button) => {
     button.addEventListener("click", () => openProjectUrl(button.dataset.url));
   });
-  $("language-picker-trigger").addEventListener("click", () => {
-    const open = $("language-picker-trigger").getAttribute("aria-expanded") !== "true";
-    setLanguagePopover(open);
-  });
-  $("language-list").addEventListener("click", (event) => {
-    const download = event.target.closest(".btn-language-download");
-    if (download) {
-      installLanguagePack(download.dataset.code);
-      return;
-    }
-    const choice = event.target.closest(".language-choice");
-    if (choice) chooseInstalledLanguage(choice.dataset.code);
-  });
-  document.addEventListener("click", (event) => {
-    if (!event.target.closest(".language-picker-control")) setLanguagePopover(false);
-  });
-  document.addEventListener("keydown", (event) => {
-    if (event.key !== "Escape" || $("language-popover").classList.contains("hidden")) return;
-    setLanguagePopover(false);
-    $("language-picker-trigger").focus();
-  });
-
   $("btn-clear-history").addEventListener("click", async () => {
     try {
       await invoke("clear_device_history");

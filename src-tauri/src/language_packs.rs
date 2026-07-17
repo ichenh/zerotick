@@ -26,6 +26,43 @@ pub fn load() -> Result<Option<Value>, String> {
     validate_pack(&raw).map(Some)
 }
 
+fn download_pack(client: &Client, asset_url: &str, version: &str) -> Result<Vec<u8>, String> {
+    let mut last_error = String::new();
+    for attempt in 1..=3 {
+        match client
+            .get(asset_url)
+            .header(USER_AGENT, format!("ZeroTick/{version}"))
+            .send()
+        {
+            Ok(response) if response.status().is_success() => {
+                if response
+                    .content_length()
+                    .is_some_and(|length| length > MAX_PACK_BYTES as u64)
+                {
+                    return Err("语言包超过 8 MiB 安全限制".into());
+                }
+                match response.bytes() {
+                    Ok(raw) if raw.len() <= MAX_PACK_BYTES => return Ok(raw.to_vec()),
+                    Ok(_) => return Err("语言包超过 8 MiB 安全限制".into()),
+                    Err(error) => last_error = format!("读取语言包失败: {error}"),
+                }
+            }
+            Ok(response) => {
+                let status = response.status();
+                last_error = format!("下载语言包失败（HTTP {}）", status.as_u16());
+                if status.is_client_error() && status.as_u16() != 429 {
+                    return Err(last_error);
+                }
+            }
+            Err(error) => last_error = format!("下载语言包失败: {error}"),
+        }
+        if attempt < 3 {
+            std::thread::sleep(Duration::from_millis(400 * attempt));
+        }
+    }
+    Err(format!("{last_error}（已重试 3 次）"))
+}
+
 pub fn install(locale: &str) -> Result<Value, String> {
     let version = env!("CARGO_PKG_VERSION");
     let locale = crate::i18n::normalize_locale(locale);
@@ -39,29 +76,7 @@ pub fn install(locale: &str) -> Result<Value, String> {
         .timeout(Duration::from_secs(30))
         .build()
         .map_err(|error| format!("创建语言包下载客户端失败: {error}"))?;
-    let response = client
-        .get(asset_url)
-        .header(USER_AGENT, format!("ZeroTick/{version}"))
-        .send()
-        .map_err(|error| format!("下载语言包失败: {error}"))?;
-    if !response.status().is_success() {
-        return Err(format!(
-            "下载语言包失败（HTTP {}）",
-            response.status().as_u16()
-        ));
-    }
-    if response
-        .content_length()
-        .is_some_and(|length| length > MAX_PACK_BYTES as u64)
-    {
-        return Err("语言包超过 8 MiB 安全限制".into());
-    }
-    let raw = response
-        .bytes()
-        .map_err(|error| format!("读取语言包失败: {error}"))?;
-    if raw.len() > MAX_PACK_BYTES {
-        return Err("语言包超过 8 MiB 安全限制".into());
-    }
+    let raw = download_pack(&client, &asset_url, version)?;
     let pack = validate_pack(&raw)?;
     let locale_metadata = pack
         .get("locales")
