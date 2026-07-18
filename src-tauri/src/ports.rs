@@ -39,6 +39,10 @@ pub struct PortEntry {
     pub category_label: String,
     pub message_id: String,
     pub can_release: bool,
+    /// The user may explicitly terminate this known, non-critical process.
+    /// This is intentionally broader than `can_release`, which is reserved for
+    /// the conservative batch cleanup allowlist.
+    pub can_terminate: bool,
     pub message: String,
     /// 排序权重：可解除残留 < 可解除连接 < 普通占用 < 系统保留
     pub sort_priority: u8,
@@ -109,26 +113,20 @@ pub fn scan() -> Result<PortScanReport, String> {
     })
 }
 
-pub fn release_pid(pid: u32) -> Result<(), String> {
-    let self_pid = std::process::id();
-    if pid == 0 {
-        return Err("无效 PID 0".into());
-    }
-    if pid == self_pid {
-        return Err("不能结束当前 ZeroTick 进程".into());
-    }
-
-    let process_cache = build_process_cache();
-    let name = process_name(pid, &process_cache).unwrap_or_else(|| "unknown".to_string());
-    if is_protected_process(&name) {
-        return Err(format!("{name} (PID {pid}) 为系统/关键进程，不可解除"));
-    }
-    if !is_releasable_process(&name, pid, self_pid) {
-        return Err(format!("{name} (PID {pid}) 正在使用中，不可强制解除"));
-    }
-
+pub fn release_pid(pid: u32, expected_process_name: &str, port: u16) -> Result<(), String> {
+    let name = validate_terminable_process(pid)?;
+    validate_port_owner(pid, &name, expected_process_name, port)?;
     terminate_pid(pid)?;
     Ok(())
+}
+
+fn release_releasable_pid(pid: u32, expected_process_name: &str, port: u16) -> Result<(), String> {
+    let name = validate_terminable_process(pid)?;
+    validate_port_owner(pid, &name, expected_process_name, port)?;
+    if !is_releasable_process(&name, pid, std::process::id()) {
+        return Err(format!("{name} (PID {pid}) 不属于可安全清理的进程"));
+    }
+    terminate_pid(pid)
 }
 
 pub fn release_all_releasable() -> Result<ReleaseReport, String> {
@@ -139,10 +137,13 @@ pub fn release_all_releasable() -> Result<ReleaseReport, String> {
 
     for entry in report.entries.iter().filter(|e| e.can_release) {
         let Some(pid) = entry.pid else { continue };
+        let Some(process_name) = entry.process_name.as_deref() else {
+            continue;
+        };
         if !seen.insert(format!("pid:{pid}")) {
             continue;
         }
-        match release_pid(pid) {
+        match release_releasable_pid(pid, process_name, entry.port) {
             Ok(()) => released.push(pid),
             Err(e) => errors.push(e),
         }
@@ -226,6 +227,14 @@ fn build_entry(
             )
         };
 
+    let can_terminate = pid_opt.is_some_and(|pid| {
+        pid != self_pid
+            && matches!(category, "releasable" | "in_use")
+            && process_name
+                .as_deref()
+                .is_some_and(|name| !is_protected_process(name))
+    });
+
     PortEntry {
         port,
         local_address: row.local.clone(),
@@ -238,6 +247,7 @@ fn build_entry(
         category_label: category_label.into(),
         message_id: message_id.into(),
         can_release,
+        can_terminate,
         message: message.to_string(),
         sort_priority,
         connection_key,
@@ -428,6 +438,47 @@ fn process_name(pid: u32, cache: &HashMap<u32, String>) -> Option<String> {
     cache.get(&pid).cloned()
 }
 
+fn validate_terminable_process(pid: u32) -> Result<String, String> {
+    let self_pid = std::process::id();
+    if pid == 0 {
+        return Err("无效 PID 0".into());
+    }
+    if pid == self_pid {
+        return Err("不能结束当前 ZeroTick 进程".into());
+    }
+
+    let process_cache = build_process_cache();
+    let Some(name) = process_name(pid, &process_cache) else {
+        return Err(format!("PID {pid} 已退出或无法识别，请重新扫描端口"));
+    };
+    if is_protected_process(&name) {
+        return Err(format!("{name} (PID {pid}) 为系统/关键进程，不可结束"));
+    }
+    Ok(name)
+}
+
+fn validate_port_owner(
+    pid: u32,
+    current_process_name: &str,
+    expected_process_name: &str,
+    port: u16,
+) -> Result<(), String> {
+    if !current_process_name.eq_ignore_ascii_case(expected_process_name) {
+        return Err(format!(
+            "PID {pid} 当前属于 {current_process_name}，与扫描结果 {expected_process_name} 不一致；请重新扫描端口"
+        ));
+    }
+    let still_owns_port = parse_netstat()?
+        .iter()
+        .any(|row| row.pid == pid && parse_port(&row.local) == Some(port));
+    if !still_owns_port {
+        return Err(format!(
+            "{current_process_name} (PID {pid}) 已不再占用端口 {port}；未结束进程，请重新扫描"
+        ));
+    }
+    Ok(())
+}
+
 fn terminate_pid(pid: u32) -> Result<(), String> {
     unsafe {
         let handle = OpenProcess(PROCESS_TERMINATE | PROCESS_SYNCHRONIZE, false, pid)
@@ -461,6 +512,37 @@ mod tests {
     }
 
     #[test]
+    fn ordinary_process_is_manual_only() {
+        let row = NetRow {
+            protocol: "TCP".into(),
+            local: "127.0.0.1:8080".into(),
+            remote: "0.0.0.0:0".into(),
+            state: "LISTENING".into(),
+            pid: 123,
+        };
+        let cache = HashMap::from([(123, "chrome.exe".to_string())]);
+        let entry = build_entry(&row, &[], 999, &cache);
+        assert_eq!(entry.category, "in_use");
+        assert!(!entry.can_release);
+        assert!(entry.can_terminate);
+    }
+
+    #[test]
+    fn protected_process_has_no_termination_action() {
+        let row = NetRow {
+            protocol: "TCP".into(),
+            local: "0.0.0.0:135".into(),
+            remote: "0.0.0.0:0".into(),
+            state: "LISTENING".into(),
+            pid: 456,
+        };
+        let cache = HashMap::from([(456, "svchost.exe".to_string())]);
+        let entry = build_entry(&row, &[], 999, &cache);
+        assert!(!entry.can_release);
+        assert!(!entry.can_terminate);
+    }
+
+    #[test]
     fn time_wait_is_informational_not_a_fake_release_action() {
         let row = NetRow {
             protocol: "TCP".into(),
@@ -472,6 +554,7 @@ mod tests {
         let entry = build_entry(&row, &[], 999, &HashMap::new());
         assert_eq!(entry.category, "time_wait");
         assert!(!entry.can_release);
+        assert!(!entry.can_terminate);
         assert!(entry.connection_key.is_none());
     }
 }

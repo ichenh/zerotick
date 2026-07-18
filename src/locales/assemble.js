@@ -65,6 +65,28 @@ export function assembleLocaleBundle(definition) {
   for (const key of ["batteryRefreshing", "batteryUnavailable"]) {
     base.toolkit.bluetooth[key] ??= en.toolkit.bluetooth[key];
   }
+  // Driver repair is evidence-driven and must never expose internal action IDs.
+  // Until each translation pack is refreshed, use complete user-facing English
+  // wording instead of presenting missing keys as if they were real operations.
+  for (const key of [
+    "driverEvidenceUnavailable",
+    "repairing",
+    "infFilter",
+    "confirmTitle",
+    "confirmMessage",
+    "confirmRun",
+    "cancel",
+    "action",
+    "risk",
+    "result",
+  ]) {
+    base.toolkit.devices[key] ??= structuredClone(en.toolkit.devices[key]);
+  }
+  // Manual port termination must always show a readable confirmation and risk
+  // warning, even before every translation pack has been refreshed.
+  for (const key of ["confirmTitle", "confirmMessage", "confirmWarning", "confirmRun", "cancel"]) {
+    base.ports[key] ??= en.ports[key];
+  }
   const localized = definition.spelling === "british"
     ? mapStrings(base, (text) => britishSpelling.reduce(
         (value, [pattern, replacement]) => value.replace(pattern, replacement),

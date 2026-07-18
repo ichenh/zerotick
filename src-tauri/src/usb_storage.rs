@@ -994,14 +994,33 @@ Get-CimInstance Win32_Process |
 
 /// Ask an interactive application to close normally. This never force-terminates a process,
 /// so the application can still ask the user to save work or refuse to close.
-pub fn request_close_process(pid: u32) -> Result<UsbCloseProcessResult, String> {
+pub fn request_close_process(
+    pid: u32,
+    drive_letter: &str,
+    expected_process_name: &str,
+) -> Result<UsbCloseProcessResult, String> {
     if pid <= 4 || pid == std::process::id() {
         return Ok(UsbCloseProcessResult {
             status: "protected".into(),
         });
     }
+    let letter = normalize_drive_letter(drive_letter)?;
+    let expected_name = expected_process_name.trim();
+    if expected_name.is_empty()
+        || expected_name.len() > 260
+        || expected_name
+            .chars()
+            .any(|character| matches!(character, '\r' | '\n' | '\0'))
+    {
+        return Err("usb_close:invalid_process_name".into());
+    }
+    let expected_name = powershell_literal(expected_name);
     let script = format!(
-        r#"$process = Get-Process -Id {pid} -ErrorAction SilentlyContinue
+        r#"$candidate = Get-CimInstance Win32_Process -Filter "ProcessId={pid}" -ErrorAction SilentlyContinue
+if (-not $candidate) {{ [pscustomobject]@{{ status = 'not_found' }}; return }}
+if ([string]$candidate.Name -ine '{expected_name}') {{ throw 'usb_close:target_changed' }}
+if ($candidate.ExecutablePath -notlike '{letter}:\*' -and $candidate.CommandLine -notlike '*{letter}:*') {{ throw 'usb_close:not_related_to_volume' }}
+$process = Get-Process -Id {pid} -ErrorAction SilentlyContinue
 if (-not $process) {{ [pscustomobject]@{{ status = 'not_found' }}; return }}
 $protected = @('system','registry','smss','csrss','wininit','services','lsass','svchost','winlogon')
 if ($protected -contains $process.ProcessName.ToLowerInvariant()) {{

@@ -1,5 +1,6 @@
 //! 用户设置持久化 — settings.json（app_data_dir）
 
+use crate::utils::logging;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
@@ -120,11 +121,25 @@ pub fn init(path: PathBuf) -> Result<(), String> {
     }
 
     let current = if path.exists() {
-        load_from_file(&path)?
+        match load_from_file(&path).and_then(|settings| {
+            settings.validate()?;
+            Ok(settings)
+        }) {
+            Ok(settings) => settings,
+            Err(error) => {
+                // Settings are local preferences, not diagnostic evidence. A partial
+                // write or an obsolete invalid value must not prevent the repair tool
+                // from starting. Keep the original file for inspection and use safe
+                // defaults until the user saves settings again.
+                logging::error(format!(
+                    "设置文件无效，当前会话使用默认设置，原文件保持不变: {error}"
+                ));
+                AppSettings::default()
+            }
+        }
     } else {
         AppSettings::default()
     };
-    current.validate()?;
 
     let _ = STORE.set(Mutex::new(SettingsStore { path, current }));
     Ok(())

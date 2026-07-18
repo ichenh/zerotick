@@ -50,7 +50,7 @@ Advanced mode keeps the same workflow while exposing device instance IDs, PIDs, 
 | **Audio** | Output and input devices, default endpoint, volume, mute, shared/exclusive modes, Windows audio services, and common permission failures |
 | **Removable storage** | Groups volumes by physical enclosure, distinguishes locked media, empty card-reader slots, and unreadable media, identifies likely locking programs, requests safe closure, ejects one volume or the whole device, and offers guarded quick/full formatting |
 | **Bluetooth** | Missing adapters, driver and support-service health, paired peripherals, reconnect, repair, and confirmed device removal with re-pairing guidance |
-| **Devices & drivers** | Common Device Manager failures, disabled or missing hardware, readable explanations for error codes, and hardware-change rescanning |
+| **Devices & drivers** | Common Device Manager failures, installed-driver evidence, hardware rescanning, device enable/restart, verified Driver Store reinstallation, and guarded installation of an official INF package |
 | **Blue screens** | Minidump and BugCheck history, WinDbg evidence when available, likely-cause grouping, and practical follow-up or repair actions |
 | **Ports** | Local listeners and connections, owning programs, Windows-reserved ranges, and cautious release of recognized development leftovers |
 | **Monitoring & history** | Event-driven USB/Bluetooth disconnect tracking, transient-disconnect detection, tray status, native notifications, local history, and JSON/CSV export |
@@ -60,6 +60,7 @@ Advanced mode keeps the same workflow while exposing device instance IDs, PIDs, 
 - **Normal mode** prioritizes status, impact, safe actions, and readable next steps.
 - **Advanced mode** adds raw system evidence without replacing the user-facing explanation.
 - Potentially destructive operations are explicit: full format and Bluetooth device removal require confirmation, while USB eject follows Windows' final safety decision.
+- Driver operations are reported as repaired only after ZeroTick re-reads the device and Windows reports Device Manager code 0; a successful command alone is never treated as proof.
 - Administrator access is requested only for operations that modify protected Windows services, devices, or settings; read-only diagnostics remain useful without it.
 
 ## Install

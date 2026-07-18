@@ -872,9 +872,49 @@ async function scanPorts(force = false) {
   return portsScanPromise;
 }
 
-async function releasePort(pid) {
+function confirmPortTermination({ pid, processName, port }) {
+  return new Promise((resolve) => {
+    const dialog = document.createElement("dialog");
+    dialog.className = "format-dialog";
+    dialog.innerHTML = `
+      <form class="format-dialog-form">
+        <div class="format-dialog-header">
+          <h2>${escapeHtml(t("ports.confirmTitle"))}</h2>
+          <p>${escapeHtml(t("ports.confirmMessage", { name: processName, pid, port }))}</p>
+        </div>
+        <div class="format-warning">${escapeHtml(t("ports.confirmWarning"))}</div>
+        <div class="format-dialog-actions">
+          <button type="button" class="btn port-terminate-cancel">${escapeHtml(t("ports.cancel"))}</button>
+          <button type="submit" class="btn btn-accent">${escapeHtml(t("ports.confirmRun"))}</button>
+        </div>
+      </form>`;
+    document.body.appendChild(dialog);
+    let settled = false;
+    const finish = (confirmed) => {
+      if (settled) return;
+      settled = true;
+      resolve(confirmed);
+      dialog.close();
+    };
+    dialog.querySelector("form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      finish(true);
+    });
+    dialog.querySelector(".port-terminate-cancel").addEventListener("click", () => finish(false));
+    dialog.addEventListener("close", () => {
+      if (!settled) resolve(false);
+      dialog.remove();
+    });
+    dialog.showModal();
+  });
+}
+
+async function releasePort({ pid, processName, port, button }) {
+  if (!(await confirmPortTermination({ pid, processName, port }))) return;
+  button.disabled = true;
+  button.setAttribute("aria-busy", "true");
   try {
-    await invoke("release_port", { pid });
+    await invoke("release_port", { pid, expectedProcessName: processName, port });
     showToast(
       document.documentElement.classList.contains("show-advanced")
         ? t("toast.pidKilled", { pid })
@@ -884,6 +924,11 @@ async function releasePort(pid) {
     await scanPorts(true);
   } catch (e) {
     showOperationError(e, "release_port");
+  } finally {
+    if (button.isConnected) {
+      button.disabled = false;
+      button.removeAttribute("aria-busy");
+    }
   }
 }
 
@@ -1098,7 +1143,9 @@ async function init() {
     const btn = e.target.closest(".btn-port-release");
     if (!btn) return;
     const pid = Number(btn.dataset.pid);
-    if (pid) releasePort(pid);
+    const port = Number(btn.dataset.port);
+    const processName = btn.dataset.process || t("ports.message.unknown");
+    if (pid) releasePort({ pid, processName, port, button: btn });
   });
 
   $("btn-bsod")?.addEventListener("click", async () => {

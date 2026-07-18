@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
 import { t, formatDuration, formatTime } from "./i18n.js";
 import { enhanceSelectMenus } from "./select-menu.js";
 
@@ -342,42 +343,16 @@ export function renderNetworkReport(report) {
 const PLAYBACK_CATEGORY_ORDER = ["speakers", "headphones", "digital", "line", "other"];
 const CAPTURE_CATEGORY_ORDER = ["microphone", "headset", "line", "other"];
 
-function audioDeviceKey(name) {
-  let s = String(name ?? "")
-    .trim()
-    .toLowerCase();
-  const m = s.match(/^(.*)\s+\(\d+\)$/);
-  return m ? m[1].trim() : s;
-}
-
 function uniqueAudioDevices(devices) {
   const byId = new Map();
   for (const d of devices ?? []) {
     if (d?.id && !byId.has(d.id)) byId.set(d.id, d);
   }
-  const byName = new Map();
-  for (const d of byId.values()) {
-    const key = `${d.kind || "playback"}:${d.category || "other"}:${audioDeviceKey(d.name)}`;
-    if (!key.endsWith(":")) {
-      const prev = byName.get(key);
-      if (!prev) {
-        byName.set(key, d);
-        continue;
-      }
-      if (d.is_default && !prev.is_default) {
-        byName.set(key, d);
-        continue;
-      }
-      if (!d.is_default && !prev.is_default) {
-        const dPlain = !/\(\d+\)\s*$/.test(String(d.name).trim());
-        const pPlain = !/\(\d+\)\s*$/.test(String(prev.name).trim());
-        if (dPlain && !pPlain) byName.set(key, d);
-      }
-    }
-  }
-  return [...byName.values()].sort(
+  return [...byId.values()].sort(
     (a, b) =>
-      Number(b.is_default) - Number(a.is_default) || String(a.name).localeCompare(String(b.name)),
+      Number(b.is_default) - Number(a.is_default)
+      || String(a.name).localeCompare(String(b.name))
+      || String(a.id).localeCompare(String(b.id)),
   );
 }
 
@@ -872,7 +847,7 @@ function renderUsbProcessHints(processes, driveLetter = "") {
     `<li class="result-msg warn">${escapeHtml(t("toolkit.usb.relatedProcessesHint"))}</li>`,
     ...processes.map(
       (process) =>
-        `<li class="lock-row"><span><strong>${escapeHtml(process.name)}</strong><span class="advanced-only advanced-inline"> · PID ${process.pid}</span>${process.path ? `<small class="advanced-only mono">${escapeHtml(process.path)}</small>` : ""}</span>${process.can_close ? `<button type="button" class="btn btn-default btn-sm btn-usb-close-process" data-pid="${process.pid}" data-letter="${escapeHtml(driveLetter)}">${escapeHtml(t("toolkit.usb.requestClose"))}</button>` : `<span class="result-muted">${escapeHtml(t("toolkit.usb.manualOnly"))}</span>`}</li>`,
+        `<li class="lock-row"><span><strong>${escapeHtml(process.name)}</strong><span class="advanced-only advanced-inline"> · PID ${process.pid}</span>${process.path ? `<small class="advanced-only mono">${escapeHtml(process.path)}</small>` : ""}</span>${process.can_close ? `<button type="button" class="btn btn-default btn-sm btn-usb-close-process" data-pid="${process.pid}" data-process="${escapeHtml(process.name)}" data-letter="${escapeHtml(driveLetter)}">${escapeHtml(t("toolkit.usb.requestClose"))}</button>` : `<span class="result-muted">${escapeHtml(t("toolkit.usb.manualOnly"))}</span>`}</li>`,
     ),
   ].join("");
 }
@@ -940,7 +915,7 @@ export function renderBluetoothReport(ev) {
       const battery = batteryPercent !== null && (!d.battery_state || d.battery_state === "live")
         ? `<span class="result-badge result-badge-${batteryPercent <= 20 ? "warn" : "ok"}">${escapeHtml(t("toolkit.bluetooth.battery", { percent: batteryPercent }))}</span>`
         : "";
-      const batteryState = d.connected !== false && ["refreshing", "cached"].includes(d.battery_state)
+      const batteryState = d.connected !== false && d.battery_state === "refreshing"
         ? t("toolkit.bluetooth.batteryRefreshing")
         : d.connected !== false && d.battery_state === "unavailable"
           ? t("toolkit.bluetooth.batteryUnavailable")
@@ -1009,7 +984,7 @@ export function applyBluetoothBatteryRefresh(devices) {
       && (device.battery_state || typeof device.connected === "boolean"))
     .map((device) => [device.instance_id, device]));
   if (!batteryById.size) return;
-  const stateRank = { refreshing: 0, cached: 0, unavailable: 1, live: 2 };
+  const stateRank = { refreshing: 0, unavailable: 1, live: 2 };
   renderBluetoothReport({
     ...latestBluetoothReport,
     devices: (latestBluetoothReport.devices ?? []).map((device) => {
@@ -1039,6 +1014,74 @@ function formatDeviceProblem(problem) {
   return reason === reasonKey ? t("toolkit.devices.reason.other") : reason;
 }
 
+function driverActionLabel(actionId) {
+  const key = `toolkit.devices.action.${actionId}`;
+  const label = t(key);
+  return label === key ? actionId : label;
+}
+
+function renderDriverEvidence(driver) {
+  if (!driver) return `<div class="result-muted advanced-only">${escapeHtml(t("toolkit.devices.driverEvidenceUnavailable"))}</div>`;
+  const values = [driver.provider, driver.version, driver.inf_name].filter(Boolean);
+  return values.length
+    ? `<div class="result-muted mono advanced-only">${escapeHtml(values.join(" | "))}</div>`
+    : `<div class="result-muted advanced-only">${escapeHtml(t("toolkit.devices.driverEvidenceUnavailable"))}</div>`;
+}
+
+function confirmDriverAction(problem, actionId) {
+  return new Promise((resolve) => {
+    const dialog = document.createElement("dialog");
+    dialog.className = "format-dialog";
+    dialog.innerHTML = `
+      <form class="format-dialog-form">
+        <div class="format-dialog-header">
+          <h2>${escapeHtml(t("toolkit.devices.confirmTitle"))}</h2>
+          <p>${escapeHtml(t("toolkit.devices.confirmMessage", { action: driverActionLabel(actionId), name: problem.name }))}</p>
+        </div>
+        <div class="format-warning">${escapeHtml(t(`toolkit.devices.risk.${actionId}`))}</div>
+        <div class="format-dialog-actions">
+          <button type="button" class="btn driver-action-cancel">${escapeHtml(t("toolkit.devices.cancel"))}</button>
+          <button type="submit" class="btn btn-accent">${escapeHtml(t("toolkit.devices.confirmRun"))}</button>
+        </div>
+      </form>`;
+    document.body.appendChild(dialog);
+    let settled = false;
+    const finish = (confirmed) => {
+      if (settled) return;
+      settled = true;
+      resolve(confirmed);
+      dialog.close();
+    };
+    dialog.querySelector("form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      finish(true);
+    });
+    dialog.querySelector(".driver-action-cancel").addEventListener("click", () => finish(false));
+    dialog.addEventListener("close", () => {
+      if (!settled) resolve(false);
+      dialog.remove();
+    });
+    dialog.showModal();
+  });
+}
+
+function renderDriverRepairResult(result) {
+  const key = result.needs_admin
+    ? "needsAdmin"
+    : result.verified
+      ? "verified"
+      : !result.command_succeeded
+        ? "commandFailed"
+        : !result.device_present
+          ? "deviceMissing"
+          : "stillFaulty";
+  const state = result.verified ? "ok" : "warn";
+  const code = result.after_code ?? "-";
+  return `<p class="repair-verdict ${state}">${escapeHtml(t(`toolkit.devices.result.${key}`, { code }))}</p>
+    ${result.reboot_required ? `<p class="result-muted">${escapeHtml(t("toolkit.devices.result.reboot"))}</p>` : ""}
+    ${result.details ? `<details class="technical-details advanced-only"><summary>${escapeHtml(t("toolkit.technicalDetails"))}</summary><pre class="technical-error mono">${escapeHtml(result.details)}</pre></details>` : ""}`;
+}
+
 export function renderDevicesReport(report) {
   const el = $("devices-result");
   const missingEssential = report.network_missing || report.display_missing;
@@ -1056,14 +1099,17 @@ export function renderDevicesReport(report) {
     </div>`)
     .join("");
   const problems = (report.problems ?? [])
-    .map((problem) => `<li class="device-row toolkit-device-row">
+    .map((problem) => `<li class="device-row toolkit-device-row" data-device-id="${escapeHtml(problem.device_id)}">
       <div class="toolkit-device-info">
         <div class="device-name">${escapeHtml(isGenericHardwareName(problem.name) ? t("events.unknownDevice") : problem.name)}</div>
         <div class="result-muted">${escapeHtml(formatDeviceProblem(problem))}</div>
+        ${renderDriverEvidence(problem.driver)}
         <div class="result-muted mono advanced-only">${escapeHtml(problem.device_id)}</div>
+        <div class="driver-repair-result" aria-live="polite"></div>
       </div>
       <div class="toolkit-device-actions">
         <span class="result-badge result-badge-warn">${escapeHtml(t(`toolkit.devices.class.${problem.class_id}`))}<span class="advanced-only advanced-inline"> · Code ${problem.error_code}</span></span>
+        ${(problem.available_actions ?? []).map((actionId) => `<button type="button" class="btn btn-sm btn-device-driver-action" data-action="${escapeHtml(actionId)}">${escapeHtml(driverActionLabel(actionId))}</button>`).join("")}
       </div>
     </li>`)
     .join("");
@@ -1125,8 +1171,8 @@ function renderPortRow(entry) {
   const categoryLabel = t(`ports.category.${entry.category}`);
   const messageText = t(`ports.message.${entry.message_id}`, { state: entry.message });
   let releaseBtn = "";
-  if (entry.can_release && entry.pid) {
-    releaseBtn = `<button class="btn btn-default btn-sm btn-port-release" data-pid="${entry.pid}" type="button">${escapeHtml(t("ports.releaseOne"))}</button>`;
+  if (entry.can_terminate && entry.pid && entry.process_name) {
+    releaseBtn = `<button class="btn btn-default btn-sm btn-port-release" data-pid="${entry.pid}" data-process="${escapeHtml(entry.process_name)}" data-port="${entry.port}" type="button">${escapeHtml(t("ports.releaseOne"))}</button>`;
   }
   return `
     <li class="port-row" data-sort="${entry.sort_priority}">
@@ -1237,7 +1283,7 @@ export function bindToolkitHandlers({ showToast }) {
       renderFullScanOverview(el, activeFullScan.items);
       let fullScan;
       try {
-        fullScan = await invoke("full_scan", { force: false, requestId });
+        fullScan = await invoke("full_scan", { requestId });
       } catch (error) {
         activeFullScan = null;
         el.innerHTML = `<div class="health-scan-progress">${renderOperationError(error, "full_scan")}</div>`;
@@ -1372,6 +1418,8 @@ export function bindToolkitHandlers({ showToast }) {
       try {
         const result = await invoke("usb_close_process", {
           pid: Number(usbCloseProcess.dataset.pid),
+          driveLetter: `${letter}:`,
+          expectedProcessName: usbCloseProcess.dataset.process,
         });
         showToast(t(`toolkit.usb.closeResult.${result.status}`), result.status !== "requested");
         await new Promise((resolve) => window.setTimeout(resolve, 500));
@@ -1683,6 +1731,44 @@ export function bindToolkitHandlers({ showToast }) {
         showToast(message, !result.success);
       } catch (err) {
         notifyOperationError(showToast, err, "rescan_devices");
+      }
+    });
+  });
+
+  $("devices-result")?.addEventListener("click", async (event) => {
+    const button = event.target.closest(".btn-device-driver-action");
+    if (!button) return;
+    const row = button.closest(".toolkit-device-row");
+    const problem = {
+      name: row?.querySelector(".device-name")?.textContent || t("events.unknownDevice"),
+      device_id: row?.dataset.deviceId,
+    };
+    const actionId = button.dataset.action;
+    if (!(await confirmDriverAction(problem, actionId))) return;
+    let infPath = null;
+    if (actionId === "install_inf") {
+      infPath = await open({
+        multiple: false,
+        directory: false,
+        filters: [{ name: t("toolkit.devices.infFilter"), extensions: ["inf"] }],
+      });
+      if (!infPath) return;
+    }
+    await runButtonTask(button, async () => {
+      const resultEl = row?.querySelector(".driver-repair-result");
+      if (resultEl) resultEl.innerHTML = `<p class="result-muted">${escapeHtml(t("toolkit.devices.repairing"))}</p>`;
+      try {
+        const result = await invoke("repair_device_driver", {
+          deviceId: problem.device_id,
+          actionId,
+          infPath,
+        });
+        if (resultEl) resultEl.innerHTML = renderDriverRepairResult(result);
+        showToast(t(result.verified ? "toolkit.devices.result.verified" : "toolkit.devices.result.notVerified", { code: result.after_code ?? "-" }), !result.verified);
+        if (result.verified) renderDevicesReport(await invoke("diagnose_devices"));
+      } catch (err) {
+        if (resultEl) resultEl.innerHTML = renderOperationError(err, "repair_device_driver");
+        notifyOperationError(showToast, err, "repair_device_driver");
       }
     });
   });

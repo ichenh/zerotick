@@ -343,6 +343,7 @@ export const currentLocalePatches = {
         "removeConfirm": "移除裝置",
         "issue": {
           "driver_error": "{name}的驅動程式無法正常運作",
+          "driver_status_unknown": "Windows 無法驗證 {name} 的驅動程式狀態",
           "no_radio": "未找到 {adapter}",
           "bthserv_not_running": "{service} 未運行",
           "bthserv_status_unknown": "無法讀取{service}的狀態",
@@ -476,6 +477,7 @@ export const currentLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "{name}的驅動程式無法正常運作",
+          "driver_status_unknown": "Windows 無法驗證 {name} 的驅動程式狀態",
           "no_radio": "未找到 {adapter}",
           "bthserv_not_running": "{service} 未運行",
           "bthserv_status_unknown": "無法讀取{service}的狀態",
@@ -1029,6 +1031,7 @@ export const currentLocalePatches = {
         "removeConfirm": "デバイスを削除",
         "issue": {
           "driver_error": "{name} のドライバーが正常に動作していません",
+          "driver_status_unknown": "Windows は {name} のドライバーの状態を確認できませんでした",
           "no_radio": "{adapter} が見つかりません",
           "bthserv_not_running": "{service} は実行されていません",
           "bthserv_status_unknown": "{service} の状態を読み取ることができません",
@@ -1162,6 +1165,7 @@ export const currentLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "{name} のドライバーが正常に動作していません",
+          "driver_status_unknown": "Windows は {name} のドライバーの状態を確認できませんでした",
           "no_radio": "{adapter} が見つかりません",
           "bthserv_not_running": "{service} は実行されていません",
           "bthserv_status_unknown": "{service} の状態を読み取ることができません",
@@ -1715,6 +1719,7 @@ export const currentLocalePatches = {
         "removeConfirm": "장치 제거",
         "issue": {
           "driver_error": "{name}용 드라이버가 정상적으로 작동하지 않습니다.",
+          "driver_status_unknown": "Windows에서 {name}에 대한 드라이버 상태를 확인할 수 없습니다.",
           "no_radio": "{adapter}를 찾을 수 없음",
           "bthserv_not_running": "{service}가 실행되고 있지 않습니다.",
           "bthserv_status_unknown": "{service}의 상태를 읽을 수 없습니다.",
@@ -1848,6 +1853,7 @@ export const currentLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "{name}용 드라이버가 정상적으로 작동하지 않습니다.",
+          "driver_status_unknown": "Windows에서 {name}에 대한 드라이버 상태를 확인할 수 없습니다.",
           "no_radio": "{adapter}를 찾을 수 없음",
           "bthserv_not_running": "{service}가 실행되고 있지 않습니다.",
           "bthserv_status_unknown": "{service}의 상태를 읽을 수 없습니다.",
@@ -2401,6 +2407,7 @@ export const currentLocalePatches = {
         "removeConfirm": "Gerät entfernen",
         "issue": {
           "driver_error": "Der Treiber für {name} funktioniert nicht normal",
+          "driver_status_unknown": "Windows konnte den Treiberstatus für {name} nicht überprüfen",
           "no_radio": "Kein {adapter} gefunden",
           "bthserv_not_running": "{service} läuft nicht",
           "bthserv_status_unknown": "Der Status von {service} kann nicht gelesen werden",
@@ -2534,6 +2541,7 @@ export const currentLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "Der Treiber für {name} funktioniert nicht normal",
+          "driver_status_unknown": "Windows konnte den Treiberstatus für {name} nicht überprüfen",
           "no_radio": "Kein {adapter} gefunden",
           "bthserv_not_running": "{service} läuft nicht",
           "bthserv_status_unknown": "Der Status von {service} kann nicht gelesen werden",

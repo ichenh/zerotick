@@ -948,9 +948,6 @@ html.show-advanced .toolkit-device-info .result-muted {
 }
 
 .diagnosis-guide {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.8fr);
-  gap: 20px;
   margin-bottom: 18px;
   padding: 16px 18px;
   border: 1px solid var(--stroke);
@@ -984,8 +981,9 @@ html.show-advanced .toolkit-device-info .result-muted {
 }
 
 .diagnosis-actions {
-  border-left: 1px solid var(--stroke);
-  padding-left: 18px;
+  margin-top: 12px;
+  border-top: 1px solid var(--stroke);
+  padding-top: 12px;
   color: var(--text-secondary);
   font-size: 12px;
 }
@@ -1217,6 +1215,11 @@ html.show-advanced .toolkit-device-info .result-muted {
   margin-bottom: 10px;
 }
 
+.btn-bsod-repair {
+  display: block;
+  margin-top: 8px;
+}
+
 .bsod-repair-results {
   margin-top: 10px;
 }
@@ -1433,6 +1436,10 @@ html.show-advanced .toolkit-device-info .result-muted {
   white-space: nowrap;
 }
 
+.driver-repair-result:not(:empty) {
+  margin-top: 10px;
+}
+
 .toolkit-device-row .lock-list {
   grid-column: 1 / -1;
 }
@@ -1529,16 +1536,6 @@ html.show-advanced .toolkit-device-info .result-muted {
   .health-item {
     border-right: 0;
     border-bottom: 1px solid var(--stroke);
-  }
-
-  .diagnosis-guide {
-    grid-template-columns: 1fr;
-  }
-
-  .diagnosis-actions {
-    border-left: 0;
-    border-top: 1px solid var(--stroke);
-    padding: 12px 0 0;
   }
 
   .device-class-grid {

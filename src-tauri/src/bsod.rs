@@ -18,6 +18,7 @@ use wmi::WMIConnection;
 
 const MINIDUMP_DIR: &str = r"C:\Windows\Minidump";
 const ALERT_WINDOW: Duration = Duration::hours(24);
+const SYSTEM_REPAIR_TIMEOUT: StdDuration = StdDuration::from_secs(2 * 60 * 60);
 static SEEN_STORE: OnceLock<PathBuf> = OnceLock::new();
 
 #[derive(Debug, Clone)]
@@ -261,7 +262,10 @@ $text = & sfc.exe /scannow 2>&1 | Out-String
 }
 
 fn run_repair_script(script: &str, label: &str, success_codes: &[i64]) -> Result<String, String> {
-    let value = powershell::run_json(script)?;
+    // DISM, SFC and online CHKDSK are explicit user-triggered maintenance tasks and can
+    // legitimately take far longer than an ordinary diagnostic query. Keep a finite
+    // upper bound without reusing the short system-query timeout.
+    let value = powershell::run_json_with_timeout(script, SYSTEM_REPAIR_TIMEOUT)?;
     let exit_code = value
         .get("exit_code")
         .and_then(|item| item.as_i64())

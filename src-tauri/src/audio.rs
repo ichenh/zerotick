@@ -1,6 +1,7 @@
 //! 音频诊断 — 服务、输入/输出设备、默认设备、独占模式
 
 use crate::services::{self, ServicesReport, AUDIO};
+use crate::utils::logging;
 use crate::utils::powershell;
 use serde::{Deserialize, Serialize};
 use windows::core::{GUID, PCWSTR};
@@ -9,15 +10,27 @@ use windows::Win32::Foundation::{
 };
 use windows::Win32::Media::Audio::Endpoints::IAudioEndpointVolume;
 use windows::Win32::Media::Audio::{
-    eCapture, eConsole, eRender, IMMDevice, IMMDeviceEnumerator, MMDeviceEnumerator,
+    eCapture, eConsole, eRender, EDataFlow, IMMDevice, IMMDeviceEnumerator, MMDeviceEnumerator,
+    PKEY_AudioEndpoint_FormFactor, DEVICE_STATE_ACTIVE,
 };
 use windows::Win32::System::Com::StructuredStorage::PROPVARIANT;
 use windows::Win32::System::Com::{
     CoCreateInstance, CoInitializeEx, CoTaskMemFree, CoUninitialize, CLSCTX_ALL,
-    COINIT_MULTITHREADED, STGM_READWRITE,
+    COINIT_MULTITHREADED, STGM_READ, STGM_READWRITE,
+};
+use windows::Win32::UI::Shell::PropertiesSystem::IPropertyStore;
+
+const DEVICE_PROPERTY_SET: GUID = GUID::from_u128(0xa45c254e_df1c_4efd_8020_67d146a850e0);
+const PKEY_DEVICE_DESCRIPTION: PROPERTYKEY = PROPERTYKEY {
+    fmtid: DEVICE_PROPERTY_SET,
+    pid: 2,
 };
 
 const AUDIO_ENDPOINT_PROPERTY_SET: GUID = GUID::from_u128(0xb3f8fa53_0004_438e_9003_51a46e139bfc);
+const PKEY_AUDIO_ENDPOINT_NAME: PROPERTYKEY = PROPERTYKEY {
+    fmtid: AUDIO_ENDPOINT_PROPERTY_SET,
+    pid: 6,
+};
 const PKEY_AUDIO_ENDPOINT_ALLOW_EXCLUSIVE: PROPERTYKEY = PROPERTYKEY {
     fmtid: AUDIO_ENDPOINT_PROPERTY_SET,
     pid: 3,
@@ -82,6 +95,27 @@ pub fn diagnose() -> Result<AudioDiagReport, String> {
 }
 
 pub fn list_devices() -> Result<Vec<AudioDevice>, String> {
+    match list_devices_native() {
+        Ok(devices) => Ok(devices),
+        Err(native_error) => {
+            logging::warn(format!(
+                "Windows audio endpoint enumeration failed; using registry fallback: {native_error}"
+            ));
+            list_devices_registry().map_err(|fallback_error| {
+                format!("audio_enumeration:native={native_error};fallback={fallback_error}")
+            })
+        }
+    }
+}
+
+fn list_devices_native() -> Result<Vec<AudioDevice>, String> {
+    let access = AudioEndpointAccess::new()?;
+    let mut devices = access.enumerate(eRender, "playback")?;
+    devices.extend(access.enumerate(eCapture, "capture")?);
+    Ok(sort_devices(devices))
+}
+
+fn list_devices_registry() -> Result<Vec<AudioDevice>, String> {
     let script = r#"
 function Get-DeviceMode($item) {
   $exclusive = $item.'{b3f8fa53-0004-438e-9003-51a46e139bfc},3'
@@ -92,12 +126,6 @@ function Get-DeviceMode($item) {
   if ($exclusiveOn -and $priorityOn) { 'exclusive_priority' }
   elseif ($exclusiveOn) { 'exclusive' }
   else { 'shared' }
-}
-
-function Normalize-NameKey($name) {
-  $s = ($name -as [string]).Trim().ToLowerInvariant()
-  if ($s -match '^(.*)\s+\(\d+\)$') { return $Matches[1].Trim() }
-  $s
 }
 
 function Get-Category($kind, $formFactor, $name) {
@@ -119,13 +147,10 @@ function Get-Category($kind, $formFactor, $name) {
   'other'
 }
 
-function Add-Endpoint($byKey, $entry, $kind, $name) {
-  $key = "$kind::$(Normalize-NameKey $name)"
+function Add-Endpoint($byKey, $entry) {
+  # Endpoint IDs are the identity boundary. Different physical devices may share a name.
+  $key = "$($entry.kind)::$($entry.id)"
   if (-not $byKey.ContainsKey($key)) {
-    $byKey[$key] = $entry
-  } elseif ($entry.is_default -and -not $byKey[$key].is_default) {
-    $byKey[$key] = $entry
-  } elseif (-not $entry.name.Contains('(') -and $byKey[$key].name.Contains('(')) {
     $byKey[$key] = $entry
   }
 }
@@ -171,7 +196,7 @@ function Enumerate-AudioEndpoints($subKey, $kind, $defaultId) {
       is_default = ($id -eq $defaultId -or $endpointId -eq $defaultId)
       mode = if ($kind -eq 'playback') { Get-DeviceMode $item } else { 'shared' }
     }
-    Add-Endpoint $byKey $entry $kind $name
+    Add-Endpoint $byKey $entry
   }
   @($byKey.Values)
 }
@@ -188,7 +213,7 @@ $all += Enumerate-AudioEndpoints 'Capture' 'capture' $recordDefault
 $all
 "#;
     let val = powershell::run_json(script)?;
-    let mut devices = dedupe_devices(parse_devices(val)?);
+    let mut devices = sort_devices(parse_devices(val)?);
     if let Ok(access) = AudioEndpointAccess::new() {
         for device in &mut devices {
             if let Ok((volume, muted)) = access.state(&device.id) {
@@ -202,7 +227,7 @@ $all
 }
 
 struct AudioEndpointAccess {
-    enumerator: IMMDeviceEnumerator,
+    enumerator: Option<IMMDeviceEnumerator>,
     playback_default: Option<String>,
     capture_default: Option<String>,
     uninitialize_com: bool,
@@ -238,7 +263,7 @@ impl AudioEndpointAccess {
                 .ok()
                 .and_then(endpoint_id);
             Ok(Self {
-                enumerator,
+                enumerator: Some(enumerator),
                 playback_default,
                 capture_default,
                 uninitialize_com,
@@ -255,16 +280,101 @@ impl AudioEndpointAccess {
         default.is_some_and(|id| id.eq_ignore_ascii_case(device_id))
     }
 
+    fn enumerate(&self, flow: EDataFlow, kind: &str) -> Result<Vec<AudioDevice>, String> {
+        let collection = unsafe {
+            self.enumerator
+                .as_ref()
+                .ok_or_else(|| "audio_enumeration:interface_released".to_string())?
+                .EnumAudioEndpoints(flow, DEVICE_STATE_ACTIVE)
+                .map_err(|error| format!("audio_enumeration:enum_failed:{error}"))?
+        };
+        let count = unsafe {
+            collection
+                .GetCount()
+                .map_err(|error| format!("audio_enumeration:count_failed:{error}"))?
+        };
+        let mut devices = Vec::with_capacity(count as usize);
+        for index in 0..count {
+            let device = unsafe {
+                collection
+                    .Item(index)
+                    .map_err(|error| format!("audio_enumeration:item_failed:{index}:{error}"))?
+            };
+            let id = endpoint_id(device.clone())
+                .ok_or_else(|| format!("audio_enumeration:id_failed:{index}"))?;
+            let store = unsafe {
+                device
+                    .OpenPropertyStore(STGM_READ)
+                    .map_err(|error| format!("audio_enumeration:properties_failed:{error}"))?
+            };
+            let description = property_text(&store, &PKEY_DEVICE_DESCRIPTION);
+            let endpoint_name = property_text(&store, &PKEY_AUDIO_ENDPOINT_NAME);
+            let name = match (description, endpoint_name) {
+                (Some(description), Some(endpoint_name))
+                    if !description.eq_ignore_ascii_case(&endpoint_name) =>
+                {
+                    format!("{description} ({endpoint_name})")
+                }
+                (Some(description), _) => description,
+                (_, Some(endpoint_name)) => endpoint_name,
+                _ => return Err(format!("audio_enumeration:name_missing:{index}")),
+            };
+            let form_factor = unsafe { store.GetValue(&PKEY_AudioEndpoint_FormFactor) }
+                .ok()
+                .and_then(|value| u32::try_from(&value).ok());
+            let mode = if kind == "playback" {
+                let exclusive = property_bool(&store, &PKEY_AUDIO_ENDPOINT_ALLOW_EXCLUSIVE, true);
+                let priority = property_bool(&store, &PKEY_AUDIO_ENDPOINT_EXCLUSIVE_PRIORITY, true);
+                if exclusive && priority {
+                    "exclusive_priority"
+                } else if exclusive {
+                    "exclusive"
+                } else {
+                    "shared"
+                }
+            } else {
+                "shared"
+            };
+            let state = self.state(&id).ok();
+            devices.push(AudioDevice {
+                category: audio_category(kind, form_factor, &name).to_string(),
+                is_default: self.is_default(kind, &id),
+                volume_percent: state.map(|value| value.0),
+                is_muted: state.map(|value| value.1),
+                id,
+                name,
+                kind: kind.to_string(),
+                mode: mode.to_string(),
+            });
+        }
+        Ok(devices)
+    }
+
     fn volume(&self, device_id: &str) -> Result<IAudioEndpointVolume, String> {
+        let device = self.active_device(device_id)?;
+        unsafe {
+            device
+                .Activate::<IAudioEndpointVolume>(CLSCTX_ALL, None)
+                .map_err(|error| format!("无法读取音频端点控制: {error}"))
+        }
+    }
+
+    fn active_device(&self, device_id: &str) -> Result<IMMDevice, String> {
         let wide: Vec<u16> = device_id.encode_utf16().chain(std::iter::once(0)).collect();
         unsafe {
             let device = self
                 .enumerator
+                .as_ref()
+                .ok_or_else(|| "audio_endpoint:interface_released".to_string())?
                 .GetDevice(PCWSTR(wide.as_ptr()))
                 .map_err(|error| format!("未找到音频端点: {error}"))?;
-            device
-                .Activate::<IAudioEndpointVolume>(CLSCTX_ALL, None)
-                .map_err(|error| format!("无法读取音频端点控制: {error}"))
+            let state = device
+                .GetState()
+                .map_err(|error| format!("无法核实音频端点状态: {error}"))?;
+            if state != DEVICE_STATE_ACTIVE {
+                return Err("audio_endpoint:not_active".into());
+            }
+            Ok(device)
         }
     }
 
@@ -292,8 +402,63 @@ fn endpoint_id(device: IMMDevice) -> Option<String> {
     }
 }
 
+fn property_text(store: &IPropertyStore, key: &PROPERTYKEY) -> Option<String> {
+    unsafe { store.GetValue(key) }
+        .ok()
+        .map(|value| value.to_string().trim().to_string())
+        .filter(|value| !value.is_empty())
+}
+
+fn property_bool(store: &IPropertyStore, key: &PROPERTYKEY, default: bool) -> bool {
+    unsafe { store.GetValue(key) }
+        .ok()
+        .and_then(|value| u32::try_from(&value).ok())
+        .map(|value| matches!(value, 1 | 2))
+        .unwrap_or(default)
+}
+
+fn audio_category(kind: &str, form_factor: Option<u32>, name: &str) -> &'static str {
+    let name = name.to_lowercase();
+    if kind == "capture" {
+        if matches!(form_factor, Some(5 | 6)) || name.contains("headset") || name.contains("耳麦")
+        {
+            return "headset";
+        }
+        if name.contains("line") || name.contains("线路") {
+            return "line";
+        }
+        return "microphone";
+    }
+    if form_factor == Some(1)
+        || name.contains("speaker")
+        || name.contains("扬声器")
+        || name.contains("喇叭")
+    {
+        return "speakers";
+    }
+    if matches!(form_factor, Some(3 | 5 | 6)) || name.contains("headphone") || name.contains("耳机")
+    {
+        return "headphones";
+    }
+    if matches!(form_factor, Some(8 | 9 | 10 | 13 | 14))
+        || [
+            "hdmi", "spdif", "s/pdif", "digital", "数字", "display", "optical", "光纤", "dp",
+        ]
+        .iter()
+        .any(|needle| name.contains(needle))
+    {
+        return "digital";
+    }
+    if form_factor == Some(2) || name.contains("line") || name.contains("线路") {
+        return "line";
+    }
+    "other"
+}
+
 impl Drop for AudioEndpointAccess {
     fn drop(&mut self) {
+        // Release COM interfaces before uninitializing the apartment that owns them.
+        self.enumerator.take();
         if self.uninitialize_com {
             unsafe { CoUninitialize() };
         }
@@ -336,10 +501,13 @@ pub fn set_endpoint_mute(device_id: &str, muted: bool) -> Result<(), String> {
 }
 
 pub fn set_default_device(device_id: &str, kind: &str) -> Result<(), String> {
+    let access = AudioEndpointAccess::new()?;
+    access.active_device(device_id)?;
     let id = device_id.replace('\'', "''");
     let (prop, roles) = match kind {
         "capture" => ("Record", "0,1"),
-        _ => ("Playback", "0,1"),
+        "playback" => ("Playback", "0,1"),
+        _ => return Err("audio_default:invalid_kind".into()),
     };
     let script = format!(
         r#"
@@ -404,7 +572,6 @@ try {{
 "#
     );
     powershell::run_void(&script)?;
-    let access = AudioEndpointAccess::new()?;
     if !access.is_default(kind, device_id) {
         return Err("audio_default:verify_failed".into());
     }
@@ -421,8 +588,8 @@ pub fn set_device_mode(device_id: &str, kind: &str, mode: &str) -> Result<(), St
     let (exclusive, priority) = mode_property_values(mode)?;
     let access = AudioEndpointAccess::new()
         .map_err(|error| format!("audio_mode:interface_unavailable:{error}"))?;
-    let wide: Vec<u16> = device_id.encode_utf16().chain(std::iter::once(0)).collect();
-    let device = unsafe { access.enumerator.GetDevice(PCWSTR(wide.as_ptr())) }
+    let device = access
+        .active_device(device_id)
         .map_err(|error| format!("audio_mode:endpoint_not_found:{error}"))?;
 
     unsafe {
@@ -486,63 +653,19 @@ pub fn repair() -> (Vec<String>, Vec<String>) {
     services::repair_group(AUDIO)
 }
 
-fn dedupe_devices(devices: Vec<AudioDevice>) -> Vec<AudioDevice> {
-    use std::collections::HashMap;
-
-    fn norm_name(name: &str) -> String {
-        let s = name.trim().to_lowercase();
-        if let Some(idx) = s.rfind(" (") {
-            if s.ends_with(')') {
-                let inner = &s[idx + 2..s.len() - 1];
-                if !inner.is_empty() && inner.chars().all(|c| c.is_ascii_digit()) {
-                    return s[..idx].to_string();
-                }
-            }
-        }
-        s
-    }
-
-    fn has_numeric_suffix(name: &str) -> bool {
-        let s = name.trim();
-        s.rfind(" (").is_some_and(|idx| {
-            s.ends_with(')') && s[idx + 2..s.len() - 1].chars().all(|c| c.is_ascii_digit())
-        })
-    }
-
-    fn prefer(a: &AudioDevice, b: &AudioDevice) -> bool {
-        if a.is_default != b.is_default {
-            return a.is_default;
-        }
-        let a_plain = !has_numeric_suffix(&a.name);
-        let b_plain = !has_numeric_suffix(&b.name);
-        if a_plain != b_plain {
-            return a_plain;
-        }
-        a.id < b.id
-    }
-
-    let mut by_key: HashMap<String, AudioDevice> = HashMap::new();
-    for dev in devices {
-        let key = format!("{}:{}:{}", dev.kind, dev.category, norm_name(&dev.name));
-        match by_key.get(&key) {
-            None => {
-                by_key.insert(key, dev);
-            }
-            Some(existing) if prefer(&dev, existing) => {
-                by_key.insert(key, dev);
-            }
-            Some(_) => {}
-        }
-    }
-    let mut out: Vec<_> = by_key.into_values().collect();
-    out.sort_by(|a, b| {
+fn sort_devices(mut devices: Vec<AudioDevice>) -> Vec<AudioDevice> {
+    // Endpoint IDs, not display names, identify audio devices. Two physical headsets or
+    // monitors may legitimately share the same friendly name; collapsing them would hide
+    // real selectable endpoints from a diagnostics tool.
+    devices.sort_by(|a, b| {
         a.kind
             .cmp(&b.kind)
             .then_with(|| category_order(&a.category).cmp(&category_order(&b.category)))
             .then_with(|| b.is_default.cmp(&a.is_default))
             .then_with(|| a.name.cmp(&b.name))
+            .then_with(|| a.id.cmp(&b.id))
     });
-    out
+    devices
 }
 
 fn category_order(category: &str) -> u8 {
@@ -618,7 +741,8 @@ fn parse_devices(val: serde_json::Value) -> Result<Vec<AudioDevice>, String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        mode_property_values, AUDIO_ENDPOINT_PROPERTY_SET, PKEY_AUDIO_ENDPOINT_ALLOW_EXCLUSIVE,
+        audio_category, mode_property_values, sort_devices, AudioDevice,
+        AUDIO_ENDPOINT_PROPERTY_SET, PKEY_AUDIO_ENDPOINT_ALLOW_EXCLUSIVE,
         PKEY_AUDIO_ENDPOINT_EXCLUSIVE_PRIORITY,
     };
 
@@ -642,5 +766,33 @@ mod tests {
             AUDIO_ENDPOINT_PROPERTY_SET
         );
         assert_eq!(PKEY_AUDIO_ENDPOINT_EXCLUSIVE_PRIORITY.pid, 4);
+    }
+
+    #[test]
+    fn same_name_endpoints_remain_distinct() {
+        let endpoint = |id: &str| AudioDevice {
+            id: id.into(),
+            name: "USB Headset".into(),
+            kind: "playback".into(),
+            category: "headphones".into(),
+            is_default: false,
+            mode: "shared".into(),
+            volume_percent: None,
+            is_muted: None,
+        };
+        let devices = sort_devices(vec![endpoint("endpoint-b"), endpoint("endpoint-a")]);
+        assert_eq!(devices.len(), 2);
+        assert_eq!(devices[0].id, "endpoint-a");
+        assert_eq!(devices[1].id, "endpoint-b");
+    }
+
+    #[test]
+    fn native_endpoint_categories_preserve_device_meaning() {
+        assert_eq!(audio_category("playback", Some(1), "Generic"), "speakers");
+        assert_eq!(audio_category("playback", Some(5), "Generic"), "headphones");
+        assert_eq!(audio_category("playback", Some(8), "Generic"), "digital");
+        assert_eq!(audio_category("capture", Some(6), "Generic"), "headset");
+        assert_eq!(audio_category("capture", None, "Line In"), "line");
+        assert_eq!(audio_category("capture", None, "USB Array"), "microphone");
     }
 }

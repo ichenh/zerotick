@@ -32,7 +32,6 @@ use wmi::WMIConnection;
 
 static LAST_HEALTHY: OnceLock<Mutex<Option<bool>>> = OnceLock::new();
 static DIAGNOSE_CACHE: OnceLock<Mutex<BluetoothDiagnoseCache>> = OnceLock::new();
-static OBSERVED_BATTERY_LEVELS: OnceLock<Mutex<HashMap<String, u8>>> = OnceLock::new();
 static BATTERY_REFRESH_RUNNING: AtomicBool = AtomicBool::new(false);
 const DIAGNOSE_CACHE_TTL: Duration = Duration::from_secs(2);
 
@@ -85,9 +84,7 @@ pub fn diagnose() -> Result<BluetoothReport, String> {
     }
 
     let mut report = diagnose_health()?;
-    if let Err(error) = attach_battery_levels(&mut report) {
-        logging::info(format!("Bluetooth battery levels are unavailable: {error}"));
-    }
+    mark_live_state_pending(&mut report);
     cache.finished_at = Some(Instant::now());
     cache.report = Some(report.clone());
     Ok(report)
@@ -97,12 +94,24 @@ pub fn diagnose() -> Result<BluetoothReport, String> {
 /// reads can take tens of seconds for disconnected devices, so keep them exclusive
 /// to the full Bluetooth panel diagnostic.
 pub fn diagnose_health() -> Result<BluetoothReport, String> {
+    let started = Instant::now();
+    let pnp_started = Instant::now();
     let pnp_report = diagnose_pnp_native().or_else(|native_error| {
         wmi_runner::run(diagnose_pnp_inner)
             .map_err(|wmi_error| format!("native SetupAPI={native_error}; WMI={wmi_error}"))
     });
+    let pnp_ms = pnp_started.elapsed().as_millis();
+    let mut service_ms = 0_u128;
     let primary = pnp_report.and_then(|mut report| {
-        let service_report = services::diagnose_group(BLUETOOTH)?;
+        let service_started = Instant::now();
+        let service_report =
+            services::diagnose_group_native(BLUETOOTH).or_else(|native_error| {
+                logging::info(format!(
+                    "Bluetooth native service query unavailable; using WMI fallback: {native_error}"
+                ));
+                services::diagnose_group(BLUETOOTH)
+            })?;
+        service_ms = service_started.elapsed().as_millis();
         if let Some(service) = service_report.services.first() {
             report.bthserv_state = service.state.clone();
             report.bthserv_start_mode = service.start_mode.clone();
@@ -110,7 +119,7 @@ pub fn diagnose_health() -> Result<BluetoothReport, String> {
         apply_bthserv_issues(&mut report);
         Ok(report)
     });
-    match primary {
+    let result = match primary {
         Ok(report) => Ok(report),
         Err(e) => match diagnose_powershell() {
             Ok(report) => {
@@ -126,7 +135,14 @@ pub fn diagnose_health() -> Result<BluetoothReport, String> {
                 Err(fallback_error)
             }
         },
+    };
+    let total_ms = started.elapsed().as_millis();
+    if total_ms >= 500 {
+        logging::info(format!(
+            "performance bluetooth_health pnp_ms={pnp_ms} service_ms={service_ms} total_ms={total_ms}"
+        ));
     }
+    result
 }
 
 struct DeviceInfoSet(HDEVINFO);
@@ -178,34 +194,39 @@ fn diagnose_pnp_native() -> Result<BluetoothReport, String> {
         let mut status = CM_DEVNODE_STATUS_FLAGS(0);
         let mut problem = CM_PROB(0);
         let problem_code =
-            if unsafe { CM_Get_DevNode_Status(&mut status, &mut problem, device.DevInst, 0) }
-                == windows::Win32::Devices::DeviceAndDriverInstallation::CR_SUCCESS
-            {
-                problem.0
-            } else {
-                0
-            };
+            (unsafe { CM_Get_DevNode_Status(&mut status, &mut problem, device.DevInst, 0) }
+                == windows::Win32::Devices::DeviceAndDriverInstallation::CR_SUCCESS)
+                .then_some(problem.0);
 
         if is_bluetooth_adapter_id(&instance_id) {
             report.adapter_devices.push(name.clone());
         }
-        if problem_code != 0 {
-            report.error_devices.push(name.clone());
-            report.issues.push(BluetoothIssue {
-                id: "driver_error".into(),
+        match problem_code {
+            Some(code) if code != 0 => {
+                report.error_devices.push(name.clone());
+                report.issues.push(BluetoothIssue {
+                    id: "driver_error".into(),
+                    name: Some(name.clone()),
+                    state: None,
+                    code: Some(code),
+                });
+            }
+            None => report.issues.push(BluetoothIssue {
+                id: "driver_status_unknown".into(),
                 name: Some(name.clone()),
                 state: None,
-                code: Some(problem_code),
-            });
+                code: None,
+            }),
+            _ => {}
         }
         if is_bluetooth_peripheral_id(&instance_id) {
             report.devices.push(BluetoothDeviceEntry {
                 name,
                 instance_id,
-                status: if problem_code == 0 {
-                    "OK".into()
-                } else {
-                    format!("Error {problem_code}")
+                status: match problem_code {
+                    Some(0) => "OK".into(),
+                    Some(code) => format!("Error {code}"),
+                    None => "Unknown".into(),
                 },
                 connected: None,
                 battery_percent: None,
@@ -227,7 +248,7 @@ fn diagnose_pnp_native() -> Result<BluetoothReport, String> {
 fn diagnose_pnp_inner(wmi: &WMIConnection) -> Result<BluetoothReport, wmi::WMIError> {
     let mut report = BluetoothReport::default();
 
-    let pnp_query = "SELECT Name, PNPClass, ConfigManagerErrorCode, DeviceID FROM Win32_PnPEntity WHERE PNPClass='Bluetooth'";
+    let pnp_query = "SELECT Name, PNPClass, ConfigManagerErrorCode, DeviceID FROM Win32_PnPEntity WHERE PNPClass='Bluetooth' AND Present=TRUE";
     // 查询失败必须向上传递，让 diagnose() 进入 PowerShell 备用路径；
     // 不能把权限错误吞成空列表，否则会误报“没有蓝牙适配器”。
     let devices: Vec<PnPDevice> = wmi.raw_query(pnp_query).map_err(|error| {
@@ -241,8 +262,8 @@ fn diagnose_pnp_inner(wmi: &WMIConnection) -> Result<BluetoothReport, wmi::WMIEr
                 report.adapter_devices.push(name.clone());
             }
         }
-        if let Some(code) = dev.error_code {
-            if code != 0 {
+        match dev.error_code {
+            Some(code) if code != 0 => {
                 let name = dev.name.clone().unwrap_or_else(|| "Unknown".into());
                 report.error_devices.push(name.clone());
                 report.issues.push(BluetoothIssue {
@@ -252,17 +273,23 @@ fn diagnose_pnp_inner(wmi: &WMIConnection) -> Result<BluetoothReport, wmi::WMIEr
                     code: Some(code),
                 });
             }
+            None => report.issues.push(BluetoothIssue {
+                id: "driver_status_unknown".into(),
+                name: dev.name.clone(),
+                state: None,
+                code: None,
+            }),
+            _ => {}
         }
         if let (Some(name), Some(device_id)) = (&dev.name, &dev.device_id) {
             if is_bluetooth_peripheral_id(device_id) {
-                let code = dev.error_code.unwrap_or(0);
                 report.devices.push(BluetoothDeviceEntry {
                     name: name.clone(),
                     instance_id: device_id.clone(),
-                    status: if code == 0 {
-                        "OK".to_string()
-                    } else {
-                        format!("Error {code}")
+                    status: match dev.error_code {
+                        Some(0) => "OK".into(),
+                        Some(code) => format!("Error {code}"),
+                        None => "Unknown".into(),
                     },
                     connected: None,
                     battery_percent: None,
@@ -310,7 +337,13 @@ $svc = Get-Service -Name bthserv -ErrorAction Stop
       name = $name
       instance_id = $_.InstanceId
       status = [string]$_.Status
-      connected = ($_.Status -eq 'OK')
+      problem = if ($null -eq $_.Problem) { $null } else { [uint32]$_.Problem }
+    }
+  })
+  driver_issues = @($allDevices | Where-Object { $null -eq $_.Problem -or [uint32]$_.Problem -ne 0 } | ForEach-Object {
+    [pscustomobject]@{
+      name = $_.FriendlyName
+      problem = if ($null -eq $_.Problem) { $null } else { [uint32]$_.Problem }
     }
   })
 }
@@ -345,6 +378,33 @@ $svc = Get-Service -Name bthserv -ErrorAction Stop
         .map(|v| parse_device_entries(v.clone()))
         .transpose()?
         .unwrap_or_default();
+    if let Some(items) = val.get("driver_issues").and_then(|value| value.as_array()) {
+        for item in items {
+            let code = item.get("problem").and_then(|value| value.as_u64());
+            let name = item
+                .get("name")
+                .and_then(|value| value.as_str())
+                .map(str::to_string);
+            if let Some(code) = code.filter(|code| *code != 0) {
+                if let Some(name) = name.as_ref() {
+                    report.error_devices.push(name.clone());
+                }
+                report.issues.push(BluetoothIssue {
+                    id: "driver_error".into(),
+                    name,
+                    state: None,
+                    code: Some(code.min(u32::MAX as u64) as u32),
+                });
+            } else if code.is_none() {
+                report.issues.push(BluetoothIssue {
+                    id: "driver_status_unknown".into(),
+                    name,
+                    state: None,
+                    code: None,
+                });
+            }
+        }
+    }
     Ok(report)
 }
 
@@ -374,54 +434,21 @@ fn parse_device_entries(val: serde_json::Value) -> Result<Vec<BluetoothDeviceEnt
         .collect())
 }
 
-fn attach_battery_levels(report: &mut BluetoothReport) -> Result<(), String> {
-    let mut levels = HashMap::new();
-    if let Some(observed) = OBSERVED_BATTERY_LEVELS.get() {
-        if let Ok(observed) = observed.lock() {
-            levels.extend(
-                observed
-                    .iter()
-                    .map(|(address, percent)| (address.clone(), *percent)),
-            );
-        }
-    }
+fn mark_live_state_pending(report: &mut BluetoothReport) {
     for device in &mut report.devices {
-        let Some(address) = bluetooth_address(&device.instance_id) else {
-            continue;
-        };
-        if let Some(percent) = levels.get(&address).copied() {
-            device.battery_percent = Some(percent);
-            device.battery_state = Some("cached".into());
-        } else {
+        if bluetooth_address(&device.instance_id).is_some() {
+            device.connected = None;
+            device.battery_percent = None;
             device.battery_state = Some("refreshing".into());
         }
     }
-    Ok(())
 }
 
-/// Keep the complete Windows device-property and registry fallback, but run it
-/// outside the panel's critical path. Some third-party PnP providers can stall
-/// Get-PnpDeviceProperty for many seconds.
-pub fn refresh_cached_battery_levels() -> Result<BluetoothReport, String> {
-    let mut report = diagnose()?;
-    let levels = cached_battery_levels()?;
-    for device in &mut report.devices {
-        let Some(address) = bluetooth_address(&device.instance_id) else {
-            continue;
-        };
-        if let Some(percent) = levels.get(&address).copied() {
-            device.battery_percent = Some(percent);
-            device.battery_state = Some("cached".into());
-        }
-    }
-    Ok(report)
-}
-
-struct BatteryRefreshGuard;
+struct BatteryRefreshGuard(&'static AtomicBool);
 
 impl Drop for BatteryRefreshGuard {
     fn drop(&mut self) {
-        BATTERY_REFRESH_RUNNING.store(false, Ordering::Release);
+        self.0.store(false, Ordering::Release);
     }
 }
 
@@ -432,7 +459,7 @@ pub fn refresh_gatt_battery_levels() -> Result<Option<BluetoothReport>, String> 
     {
         return Ok(None);
     }
-    let _guard = BatteryRefreshGuard;
+    let _guard = BatteryRefreshGuard(&BATTERY_REFRESH_RUNNING);
     let mut report = diagnose()?;
     let targets = report
         .devices
@@ -458,7 +485,6 @@ pub fn refresh_gatt_battery_levels() -> Result<Option<BluetoothReport>, String> 
             .map(|(address, name, result)| (address, (name, result)))
             .collect::<HashMap<_, _>>()
     });
-    let mut observed = HashMap::new();
     for device in &mut report.devices {
         let Some(address) = bluetooth_address(&device.instance_id) else {
             continue;
@@ -474,7 +500,6 @@ pub fn refresh_gatt_battery_levels() -> Result<Option<BluetoothReport>, String> 
                     Ok(Some(percent)) => {
                         device.battery_percent = Some(*percent);
                         device.battery_state = Some("live".into());
-                        observed.insert(address, *percent);
                     }
                     Ok(None) => device.battery_state = None,
                     Err(error) => {
@@ -495,74 +520,7 @@ pub fn refresh_gatt_battery_levels() -> Result<Option<BluetoothReport>, String> 
             }
         }
     }
-    if !observed.is_empty() {
-        let cache = OBSERVED_BATTERY_LEVELS.get_or_init(|| Mutex::new(HashMap::new()));
-        if let Ok(mut cache) = cache.lock() {
-            cache.extend(observed);
-        }
-    }
-    if let Some(cache) = DIAGNOSE_CACHE.get() {
-        if let Ok(mut cache) = cache.lock() {
-            cache.finished_at = Some(Instant::now());
-            cache.report = Some(report.clone());
-        }
-    }
     Ok(Some(report))
-}
-
-fn cached_battery_levels() -> Result<HashMap<String, u8>, String> {
-    let script = r#"
-$levels = @{}
-function Add-BatteryLevel($instanceId, $value) {
-  if (-not $instanceId -or $null -eq $value) { return }
-  $number = 0
-  if (-not [int]::TryParse(([string]$value), [ref]$number)) { return }
-  if ($number -lt 0 -or $number -gt 100) { return }
-  if ([string]$instanceId -match '(?i)DEV_([0-9A-F]{12})') {
-    $levels[$Matches[1].ToUpperInvariant()] = $number
-  }
-}
-
-# Windows exposes BAS/HFP battery data as a device property when the accessory
-# and its driver support reporting it. Battery-service child nodes are folded
-# into the parent device below by their shared Bluetooth address.
-Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | Where-Object {
-  [string]$_.InstanceId -match '^(BTHENUM|BTHLE|BTH)\\'
-} | ForEach-Object {
-  $battery = Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName 'DEVPKEY_Device_BatteryLevel' -ErrorAction SilentlyContinue
-  if ($battery) { Add-BatteryLevel $_.InstanceId $battery.Data }
-}
-
-# Some classic Bluetooth drivers cache the HFP battery indicator here instead
-# of publishing DEVPKEY_Device_BatteryLevel.
-$cacheRoot = 'HKLM:\SYSTEM\CurrentControlSet\Services\BTHPORT\Parameters\Devices'
-if (Test-Path -LiteralPath $cacheRoot) {
-  Get-ChildItem -LiteralPath $cacheRoot -ErrorAction SilentlyContinue | ForEach-Object {
-    $properties = Get-ItemProperty -LiteralPath $_.PSPath -ErrorAction SilentlyContinue
-    $battery = if ($properties) { $properties.PSObject.Properties['BatteryLevel'] } else { $null }
-    if ($battery) { Add-BatteryLevel "DEV_$($_.PSChildName)" $battery.Value }
-  }
-}
-
-@($levels.GetEnumerator() | ForEach-Object {
-  [pscustomobject]@{ address = $_.Key; battery_percent = $_.Value }
-})
-"#;
-    let value = crate::utils::powershell::run_json(script)?;
-    let items = match value {
-        serde_json::Value::Array(items) => items,
-        serde_json::Value::Object(_) => vec![value],
-        serde_json::Value::Null => Vec::new(),
-        _ => return Err("Bluetooth battery result has an invalid format".into()),
-    };
-    Ok(items
-        .into_iter()
-        .filter_map(|item| {
-            let address = item.get("address")?.as_str()?.to_ascii_uppercase();
-            let percent = item.get("battery_percent")?.as_u64()?;
-            (percent <= 100).then_some((address, percent as u8))
-        })
-        .collect())
 }
 
 struct WinRtApartment(bool);
@@ -771,7 +729,45 @@ fn is_bluetooth_peripheral_id(device_id: &str) -> bool {
     upper.starts_with("BTHLE\\DEV_") || upper.starts_with("BTHENUM\\DEV_")
 }
 
+fn validate_bluetooth_peripheral_id(instance_id: &str) -> Result<(), String> {
+    if instance_id.trim() != instance_id
+        || instance_id.is_empty()
+        || instance_id.len() > 512
+        || instance_id
+            .chars()
+            .any(|character| matches!(character, '\r' | '\n' | '\0'))
+        || !is_bluetooth_peripheral_id(instance_id)
+    {
+        return Err("Invalid Bluetooth peripheral instance identifier.".into());
+    }
+    Ok(())
+}
+
+/// Destructive device operations must not trust an instance id supplied by the
+/// WebView. Re-read the present Bluetooth class immediately before acting and
+/// refuse the operation if the target disappeared or belongs to another class.
+fn validate_present_bluetooth_peripheral(instance_id: &str) -> Result<(), String> {
+    validate_bluetooth_peripheral_id(instance_id)?;
+    let report = diagnose_pnp_native().or_else(|native_error| {
+        wmi_runner::run(diagnose_pnp_inner)
+            .map_err(|wmi_error| format!("native SetupAPI={native_error}; WMI={wmi_error}"))
+    })?;
+    if report
+        .devices
+        .iter()
+        .any(|device| device.instance_id.eq_ignore_ascii_case(instance_id))
+    {
+        Ok(())
+    } else {
+        Err(
+            "The selected Bluetooth device is no longer present. Scan again before changing it."
+                .into(),
+        )
+    }
+}
+
 pub fn remove_device(instance_id: &str) -> Result<(), String> {
+    validate_present_bluetooth_peripheral(instance_id)?;
     let output = std::process::Command::new("pnputil")
         .hide_window()
         .args(["/remove-device", instance_id, "/force"])
@@ -788,6 +784,7 @@ pub fn remove_device(instance_id: &str) -> Result<(), String> {
 }
 
 pub fn reconnect_device(instance_id: &str) -> Result<(), String> {
+    validate_present_bluetooth_peripheral(instance_id)?;
     let id = instance_id.replace('\'', "''");
     let script = format!(
         "$ErrorActionPreference='Stop'; Disable-PnpDevice -InstanceId '{id}' -Confirm:$false -ErrorAction Stop; Start-Sleep -Milliseconds 500; Enable-PnpDevice -InstanceId '{id}' -Confirm:$false -ErrorAction Stop"
@@ -909,5 +906,36 @@ mod tests {
             Some("D92825265D4F".into())
         );
         assert_eq!(bluetooth_address(r"USB\VID_0489&PID_E13A"), None);
+    }
+
+    #[test]
+    fn destructive_actions_accept_only_bluetooth_peripheral_ids() {
+        assert!(validate_bluetooth_peripheral_id(
+            r"BTHLE\DEV_D92825265D4F\D&B66BFB4&0&D92825265D4F"
+        )
+        .is_ok());
+        assert!(validate_bluetooth_peripheral_id(r"USB\VID_0489&PID_E13A\1").is_err());
+        assert!(validate_bluetooth_peripheral_id("BTHLE\\DEV_1234\nUSB\\OTHER").is_err());
+        assert!(validate_bluetooth_peripheral_id(" BTHENUM\\DEV_1234").is_err());
+    }
+
+    #[test]
+    fn pending_live_check_never_reuses_a_previous_connection_or_battery_value() {
+        let mut report = BluetoothReport {
+            devices: vec![BluetoothDeviceEntry {
+                name: "Test device".into(),
+                instance_id: r"BTHLE\DEV_D92825265D4F\D&B66BFB4&0&D92825265D4F".into(),
+                status: "OK".into(),
+                connected: Some(true),
+                battery_percent: Some(80),
+                battery_state: Some("live".into()),
+            }],
+            ..Default::default()
+        };
+        mark_live_state_pending(&mut report);
+        let device = &report.devices[0];
+        assert_eq!(device.connected, None);
+        assert_eq!(device.battery_percent, None);
+        assert_eq!(device.battery_state.as_deref(), Some("refreshing"));
     }
 }

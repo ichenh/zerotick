@@ -1,6 +1,7 @@
 //! 执行 PowerShell 并解析 JSON 输出
 
 use crate::utils::process::CommandExt;
+use std::io::Read;
 use std::process::{Command, Output, Stdio};
 use std::time::{Duration, Instant};
 
@@ -12,13 +13,45 @@ fn execute_with_timeout(wrapped: &str, timeout: Duration) -> Result<Output, Stri
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| format!("PowerShell 启动失败: {e}"))?;
+    // Drain both pipes while the process runs. Waiting for exit before reading can
+    // deadlock once a verbose WMI/PowerShell result fills an OS pipe buffer.
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| "PowerShell 标准输出管道不可用".to_string())?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| "PowerShell 标准错误管道不可用".to_string())?;
+    let stdout_reader = std::thread::spawn(move || {
+        let mut output = Vec::new();
+        let mut stdout = stdout;
+        let result = stdout.read_to_end(&mut output);
+        (result, output)
+    });
+    let stderr_reader = std::thread::spawn(move || {
+        let mut output = Vec::new();
+        let mut stderr = stderr;
+        let result = stderr.read_to_end(&mut output);
+        (result, output)
+    });
     let started = Instant::now();
     loop {
         match child.try_wait() {
-            Ok(Some(_)) => {
-                return child
-                    .wait_with_output()
-                    .map_err(|e| format!("PowerShell 输出读取失败: {e}"))
+            Ok(Some(status)) => {
+                let (stdout_result, stdout) = stdout_reader
+                    .join()
+                    .map_err(|_| "PowerShell 标准输出读取线程异常终止".to_string())?;
+                stdout_result.map_err(|error| format!("PowerShell 标准输出读取失败: {error}"))?;
+                let (stderr_result, stderr) = stderr_reader
+                    .join()
+                    .map_err(|_| "PowerShell 标准错误读取线程异常终止".to_string())?;
+                stderr_result.map_err(|error| format!("PowerShell 标准错误读取失败: {error}"))?;
+                return Ok(Output {
+                    status,
+                    stdout,
+                    stderr,
+                });
             }
             Ok(None) if started.elapsed() < timeout => {
                 std::thread::sleep(Duration::from_millis(25));
@@ -26,6 +59,8 @@ fn execute_with_timeout(wrapped: &str, timeout: Duration) -> Result<Output, Stri
             Ok(None) => {
                 let _ = child.kill();
                 let _ = child.wait();
+                let _ = stdout_reader.join();
+                let _ = stderr_reader.join();
                 return Err(format!(
                     "PowerShell 系统查询超过 {} 秒，已安全停止；可在高级设置中调整系统查询超时",
                     timeout.as_secs()
@@ -34,13 +69,6 @@ fn execute_with_timeout(wrapped: &str, timeout: Duration) -> Result<Output, Stri
             Err(e) => return Err(format!("PowerShell 状态读取失败: {e}")),
         }
     }
-}
-
-fn execute(wrapped: &str) -> Result<Output, String> {
-    execute_with_timeout(
-        wrapped,
-        Duration::from_secs(crate::settings::get().system_query_timeout_secs),
-    )
 }
 
 #[cfg(windows)]
@@ -82,8 +110,15 @@ fn wrap_json_script(script: &str) -> String {
 }
 
 pub fn run_json(script: &str) -> Result<serde_json::Value, String> {
+    run_json_with_timeout(
+        script,
+        Duration::from_secs(crate::settings::get().system_query_timeout_secs),
+    )
+}
+
+pub fn run_json_with_timeout(script: &str, timeout: Duration) -> Result<serde_json::Value, String> {
     let wrapped = wrap_json_script(script);
-    let output = execute(&wrapped)?;
+    let output = execute_with_timeout(&wrapped, timeout)?;
     if !output.status.success() {
         let stderr = decode_os_text(&output.stderr);
         let stdout = decode_os_text(&output.stdout);

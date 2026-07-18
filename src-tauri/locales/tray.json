@@ -22,6 +22,7 @@
     "notify_body_transient": "{name} — reconnected after {ms}ms",
     "notify_body_remove": "{name} — disconnected",
     "issue_driver_error": "{name} driver error (code {code})",
+    "issue_driver_status_unknown": "Windows could not verify the driver state for {name}",
     "issue_no_radio": "No Bluetooth radio found",
     "issue_bthserv_not_running": "bthserv not running (State={state})",
     "issue_bthserv_status_unknown": "Cannot read bthserv state",
@@ -59,6 +60,7 @@
     "notify_body_transient": "{name} — 断连 {ms}ms 后重连",
     "notify_body_remove": "{name} — 已断开",
     "issue_driver_error": "{name} 驱动异常 (代码 {code})",
+    "issue_driver_status_unknown": "Windows 无法核实 {name} 的驱动状态",
     "issue_no_radio": "未找到蓝牙无线电设备",
     "issue_bthserv_not_running": "bthserv 未运行 (State={state})",
     "issue_bthserv_status_unknown": "无法读取 bthserv 状态",
@@ -108,7 +110,8 @@
     "repair_service_errors": "{n} 服務操作失敗",
     "export_title": "匯出設備歷史記錄",
     "export_empty": "沒有可匯出的歷史記錄",
-    "export_cancelled": "出口取消"
+    "export_cancelled": "出口取消",
+    "issue_driver_status_unknown": "Windows 無法驗證 {name} 的驅動程式狀態"
   },
   "ja": {
     "show": "ダッシュボードを開く",
@@ -145,7 +148,8 @@
     "repair_service_errors": "{n} サービス操作が失敗しました",
     "export_title": "デバイス履歴のエクスポート",
     "export_empty": "エクスポートする履歴がありません",
-    "export_cancelled": "エクスポートがキャンセルされました"
+    "export_cancelled": "エクスポートがキャンセルされました",
+    "issue_driver_status_unknown": "Windows は {name} のドライバーの状態を確認できませんでした"
   },
   "ko": {
     "show": "대시보드 열기",
@@ -182,7 +186,8 @@
     "repair_service_errors": "{n} 서비스 작업이 실패했습니다.",
     "export_title": "기기 기록 내보내기",
     "export_empty": "내보낼 기록이 없습니다.",
-    "export_cancelled": "내보내기가 취소되었습니다."
+    "export_cancelled": "내보내기가 취소되었습니다.",
+    "issue_driver_status_unknown": "Windows에서 {name}에 대한 드라이버 상태를 확인할 수 없습니다."
   },
   "de": {
     "show": "Dashboard öffnen",
@@ -219,7 +224,8 @@
     "repair_service_errors": "{n} Dienstvorgang(e) fehlgeschlagen",
     "export_title": "Geräteverlauf exportieren",
     "export_empty": "Kein Verlauf zum Exportieren",
-    "export_cancelled": "Export abgebrochen"
+    "export_cancelled": "Export abgebrochen",
+    "issue_driver_status_unknown": "Windows konnte den Treiberstatus für {name} nicht überprüfen"
   },
   "fr": {
     "show": "Ouvrir le tableau de bord",
@@ -256,7 +262,8 @@
     "repair_service_errors": "Échec de {n} opérations de service",
     "export_title": "Exporter l'historique de l'appareil",
     "export_empty": "Aucun historique à exporter",
-    "export_cancelled": "Exportation annulée"
+    "export_cancelled": "Exportation annulée",
+    "issue_driver_status_unknown": "Windows n'a pas pu vérifier l'état du pilote pour {name}"
   },
   "es": {
     "show": "Abrir panel",
@@ -293,7 +300,8 @@
     "repair_service_errors": "{n} operación(es) de servicio fallidas",
     "export_title": "Exportar historial del dispositivo",
     "export_empty": "No hay historial para exportar",
-    "export_cancelled": "Exportación cancelada"
+    "export_cancelled": "Exportación cancelada",
+    "issue_driver_status_unknown": "Windows no pudo verificar el estado del controlador para {name}"
   },
   "pt-BR": {
     "show": "Abrir painel",
@@ -330,7 +338,8 @@
     "repair_service_errors": "{n} operação(ões) de serviço falharam",
     "export_title": "Exportar histórico do dispositivo",
     "export_empty": "Sem histórico para exportar",
-    "export_cancelled": "Exportação cancelada"
+    "export_cancelled": "Exportação cancelada",
+    "issue_driver_status_unknown": "O Windows não conseguiu verificar o estado do driver para {name}"
   },
   "ru": {
     "show": "Открыть панель",
@@ -367,7 +376,8 @@
     "repair_service_errors": "{n} операций службы не удалось",
     "export_title": "Экспорт истории устройства",
     "export_empty": "Нет истории для экспорта",
-    "export_cancelled": "Экспорт отменен"
+    "export_cancelled": "Экспорт отменен",
+    "issue_driver_status_unknown": "Windows не удалось проверить состояние драйвера для {name}."
   },
   "ar": {
     "show": "فتح لوحة التحكم",
@@ -404,7 +414,8 @@
     "repair_service_errors": "{n} فشلت عملية (عمليات) الخدمة",
     "export_title": "تصدير تاريخ الجهاز",
     "export_empty": "لا يوجد تاريخ للتصدير",
-    "export_cancelled": "تم إلغاء التصدير"
+    "export_cancelled": "تم إلغاء التصدير",
+    "issue_driver_status_unknown": "تعذر على Windows التحقق من حالة برنامج التشغيل لـ {name}"
   },
   "hi": {
     "show": "डैशबोर्ड खोलें",
@@ -441,7 +452,8 @@
     "repair_service_errors": "{n} सेवा संचालन विफल रहा",
     "export_title": "डिवाइस इतिहास निर्यात करें",
     "export_empty": "निर्यात करने का कोई इतिहास नहीं",
-    "export_cancelled": "निर्यात रद्द कर दिया गया"
+    "export_cancelled": "निर्यात रद्द कर दिया गया",
+    "issue_driver_status_unknown": "विंडोज़ {name} के लिए ड्राइवर स्थिति को सत्यापित नहीं कर सका"
   },
   "it": {
     "show": "Apri dashboard",
@@ -478,7 +490,8 @@
     "repair_service_errors": "{n} operazioni del servizio non riuscite",
     "export_title": "Esporta la cronologia del dispositivo",
     "export_empty": "Nessuna cronologia da esportare",
-    "export_cancelled": "Esportazione annullata"
+    "export_cancelled": "Esportazione annullata",
+    "issue_driver_status_unknown": "Windows non è riuscito a verificare lo stato del driver per {name}"
   },
   "nl": {
     "show": "Dashboard openen",
@@ -515,7 +528,8 @@
     "repair_service_errors": "{n} servicebewerking(en) mislukt",
     "export_title": "Apparaatgeschiedenis exporteren",
     "export_empty": "Geen geschiedenis om te exporteren",
-    "export_cancelled": "Exporteren geannuleerd"
+    "export_cancelled": "Exporteren geannuleerd",
+    "issue_driver_status_unknown": "Windows kon de stuurprogrammastatus voor {name} niet verifiëren"
   },
   "pl": {
     "show": "Otwórz panel",
@@ -552,7 +566,8 @@
     "repair_service_errors": "{n} operacje serwisowe nie powiodły się",
     "export_title": "Eksportuj historię urządzenia",
     "export_empty": "Brak historii do wyeksportowania",
-    "export_cancelled": "Eksport anulowany"
+    "export_cancelled": "Eksport anulowany",
+    "issue_driver_status_unknown": "System Windows nie mógł zweryfikować stanu sterownika dla {name}"
   },
   "tr": {
     "show": "Panoyu aç",
@@ -589,7 +604,8 @@
     "repair_service_errors": "{n} hizmet işlemleri başarısız oldu",
     "export_title": "Cihaz geçmişini dışa aktar",
     "export_empty": "Dışa aktarılacak geçmiş yok",
-    "export_cancelled": "Dışa aktarma iptal edildi"
+    "export_cancelled": "Dışa aktarma iptal edildi",
+    "issue_driver_status_unknown": "Windows {name} için sürücü durumunu doğrulayamadı"
   },
   "vi": {
     "show": "Mở bảng điều khiển",
@@ -626,7 +642,8 @@
     "repair_service_errors": "{n} thao tác dịch vụ không thành công",
     "export_title": "Xuất lịch sử thiết bị",
     "export_empty": "Không có lịch sử để xuất",
-    "export_cancelled": "Đã hủy xuất"
+    "export_cancelled": "Đã hủy xuất",
+    "issue_driver_status_unknown": "Windows không thể xác minh trạng thái trình điều khiển cho {name}"
   },
   "th": {
     "show": "เปิดแดชบอร์ด",
@@ -663,7 +680,8 @@
     "repair_service_errors": "การดำเนินการบริการ {n} ล้มเหลว",
     "export_title": "ส่งออกประวัติอุปกรณ์",
     "export_empty": "ไม่มีประวัติที่จะส่งออก",
-    "export_cancelled": "ยกเลิกการส่งออกแล้ว"
+    "export_cancelled": "ยกเลิกการส่งออกแล้ว",
+    "issue_driver_status_unknown": "Windows ไม่สามารถตรวจสอบสถานะไดรเวอร์สำหรับ {name}"
   },
   "id": {
     "show": "Buka dasbor",
@@ -700,7 +718,8 @@
     "repair_service_errors": "{n} operasi layanan gagal",
     "export_title": "Ekspor riwayat perangkat",
     "export_empty": "Tidak ada riwayat untuk diekspor",
-    "export_cancelled": "Ekspor dibatalkan"
+    "export_cancelled": "Ekspor dibatalkan",
+    "issue_driver_status_unknown": "Windows tidak dapat memverifikasi status driver untuk {name}"
   },
   "cs": {
     "show": "Otevřít panel",
@@ -737,7 +756,8 @@
     "repair_service_errors": "Operace služby {n} se nezdařily",
     "export_title": "Exportovat historii zařízení",
     "export_empty": "Žádná historie k exportu",
-    "export_cancelled": "Export zrušen"
+    "export_cancelled": "Export zrušen",
+    "issue_driver_status_unknown": "Windows nemohl ověřit stav ovladače pro {name}"
   },
   "da": {
     "show": "Åbn dashboard",
@@ -774,7 +794,8 @@
     "repair_service_errors": "{n} tjenestehandling(er) mislykkedes",
     "export_title": "Eksporter enhedshistorik",
     "export_empty": "Ingen historik at eksportere",
-    "export_cancelled": "Eksporten blev annulleret"
+    "export_cancelled": "Eksporten blev annulleret",
+    "issue_driver_status_unknown": "Windows kunne ikke bekræfte drivertilstanden for {name}"
   },
   "fi": {
     "show": "Avaa kojelauta",
@@ -811,7 +832,8 @@
     "repair_service_errors": "{n} palvelutoiminto(t) epäonnistui",
     "export_title": "Vie laitehistoria",
     "export_empty": "Ei historiaa viedä",
-    "export_cancelled": "Vienti peruttu"
+    "export_cancelled": "Vienti peruttu",
+    "issue_driver_status_unknown": "Windows ei voinut vahvistaa ohjaimen tilaa {name}"
   },
   "nb": {
     "show": "Åpne dashbord",
@@ -848,7 +870,8 @@
     "repair_service_errors": "{n} tjenesteoperasjon(er) mislyktes",
     "export_title": "Eksporter enhetshistorikk",
     "export_empty": "Ingen historikk å eksportere",
-    "export_cancelled": "Eksporten ble avbrutt"
+    "export_cancelled": "Eksporten ble avbrutt",
+    "issue_driver_status_unknown": "Windows kunne ikke bekrefte driverstatusen for {name}"
   },
   "sv": {
     "show": "Öppna instrumentpanel",
@@ -885,7 +908,8 @@
     "repair_service_errors": "{n} tjänst(er) misslyckades",
     "export_title": "Exportera enhetshistorik",
     "export_empty": "Ingen historik att exportera",
-    "export_cancelled": "Exporten avbröts"
+    "export_cancelled": "Exporten avbröts",
+    "issue_driver_status_unknown": "Windows kunde inte verifiera drivrutinsstatusen för {name}"
   },
   "uk": {
     "show": "Відкрити панель",
@@ -922,7 +946,8 @@
     "repair_service_errors": "{n} операцій служби не вдалося",
     "export_title": "Експорт історії пристрою",
     "export_empty": "Немає історії для експорту",
-    "export_cancelled": "Експорт скасовано"
+    "export_cancelled": "Експорт скасовано",
+    "issue_driver_status_unknown": "Windows не вдалося перевірити стан драйвера для {name}"
   },
   "he": {
     "show": "פתח לוח בקרה",
@@ -959,7 +984,8 @@
     "repair_service_errors": "{n} פעולות שירות נכשלו",
     "export_title": "ייצוא היסטוריית המכשיר",
     "export_empty": "אין היסטוריה לייצא",
-    "export_cancelled": "הייצוא בוטל"
+    "export_cancelled": "הייצוא בוטל",
+    "issue_driver_status_unknown": "Windows לא הצליח לאמת את מצב מנהל ההתקן עבור {name}"
   },
   "ms": {
     "show": "Buka papan pemuka",
@@ -996,7 +1022,8 @@
     "repair_service_errors": "{n} operasi perkhidmatan gagal",
     "export_title": "Eksport sejarah peranti",
     "export_empty": "Tiada sejarah untuk dieksport",
-    "export_cancelled": "Eksport dibatalkan"
+    "export_cancelled": "Eksport dibatalkan",
+    "issue_driver_status_unknown": "Windows tidak dapat mengesahkan keadaan pemacu untuk {name}"
   },
   "ro": {
     "show": "Deschide panoul",
@@ -1033,7 +1060,8 @@
     "repair_service_errors": "{n} operațiunile de service au eșuat",
     "export_title": "Exportați istoricul dispozitivului",
     "export_empty": "Nu există istoric de exportat",
-    "export_cancelled": "Export anulat"
+    "export_cancelled": "Export anulat",
+    "issue_driver_status_unknown": "Windows nu a putut verifica starea driverului pentru {name}"
   },
   "hu": {
     "show": "Irányítópult megnyitása",
@@ -1070,6 +1098,7 @@
     "repair_service_errors": "{n} szolgáltatási művelet(ek) meghiúsultak",
     "export_title": "Eszközelőzmények exportálása",
     "export_empty": "Nincs exportálható előzmény",
-    "export_cancelled": "Exportálás megszakítva"
+    "export_cancelled": "Exportálás megszakítva",
+    "issue_driver_status_unknown": "A Windows nem tudta ellenőrizni a {name} illesztőprogram-állapotát"
   }
 }

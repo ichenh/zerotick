@@ -327,6 +327,8 @@ export const generatedLocalePatches = {
         "connected": "Connecté",
         "disconnected": "Non connecté",
         "battery": "Batterie {percent}%",
+        "batteryRefreshing": "Lecture du niveau actuel de la batterie…",
+        "batteryUnavailable": "Niveau actuel de la batterie indisponible",
         "devicesTitle": "Appareils couplés",
         "noDevices": "Aucun périphérique Bluetooth trouvé",
         "radio": "Adaptateur Bluetooth",
@@ -344,6 +346,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Supprimer l'appareil",
         "issue": {
           "driver_error": "Le pilote pour {name} ne fonctionne pas normalement",
+          "driver_status_unknown": "Windows n'a pas pu vérifier l'état du pilote pour {name}",
           "no_radio": "Aucun {adapter} trouvé",
           "bthserv_not_running": "{service} n'est pas en cours d'exécution",
           "bthserv_status_unknown": "Impossible de lire l'état de {service}",
@@ -373,6 +376,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "L'analyse du matériel n'a pas été terminée. Activez les détails avancés pour le résultat brut.",
         "problemsTitle": "Appareils nécessitant une attention particulière",
         "noProblems": "Aucune erreur du Gestionnaire de périphériques n'a été trouvée.",
+        "driverEvidenceUnavailable": "Windows n'a pas renvoyé les métadonnées du pilote installé pour ce périphérique.",
+        "repairing": "Application de l'opération du périphérique Windows sélectionné, puis vérification à nouveau du périphérique...",
+        "infFilter": "Informations de configuration du pilote",
+        "confirmTitle": "Confirmer le fonctionnement du pilote de périphérique",
+        "confirmMessage": "{action} : {name}",
+        "confirmRun": "Exécuter et vérifier",
+        "cancel": "Annuler",
+        "action": {
+          "enable": "Activer l'appareil",
+          "restart": "Redémarrer l'appareil",
+          "reinstall_store": "Réinstaller le pilote stocké",
+          "install_inf": "Installer le package INF officiel"
+        },
+        "risk": {
+          "enable": "Windows activera cet appareil. Son matériel peut commencer à fonctionner immédiatement.",
+          "restart": "L'appareil s'arrêtera brièvement. L’accès au réseau, au son, à l’affichage, au Bluetooth ou à l’USB peut être interrompu.",
+          "reinstall_store": "Windows supprimera ce nœud de périphérique, analysera à nouveau et sélectionnera le pilote le mieux correspondant déjà dans le magasin de pilotes. Le package de pilotes lui-même n'est pas supprimé.",
+          "install_inf": "Sélectionnez un INF uniquement auprès de Windows Update, du fabricant du PC ou du fabricant du matériel. Windows ne l'installera que lorsqu'il correspondra et se classera de manière appropriée."
+        },
+        "result": {
+          "verified": "Vérifié : Windows signale désormais le code 0 du Gestionnaire de périphériques pour cet appareil.",
+          "notVerified": "L'appareil n'a pas été vérifié comme réparé.",
+          "needsAdmin": "Aucun changement n'a été apporté. Exécutez ZeroTick en tant qu'administrateur et réessayez.",
+          "commandFailed": "Windows a rejeté ou échoué l'opération. L'appareil n'est pas marqué comme réparé.",
+          "deviceMissing": "L'opération s'est déroulée, mais l'appareil n'est pas revenu lors de la vérification. Scannez à nouveau ou reconnectez le matériel.",
+          "stillFaulty": "L'opération s'est exécutée, mais l'appareil signale toujours le code du Gestionnaire de périphériques {code}.",
+          "reboot": "Windows a indiqué qu'un redémarrage pourrait être nécessaire. L'appareil n'est considéré comme réparé qu'après une nouvelle vérification après le redémarrage."
+        },
         "class": {
           "network": "Adaptateurs réseau",
           "display": "Dispositifs d'affichage",
@@ -477,6 +508,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "Le pilote pour {name} ne fonctionne pas normalement",
+          "driver_status_unknown": "Windows n'a pas pu vérifier l'état du pilote pour {name}",
           "no_radio": "Aucun {adapter} trouvé",
           "bthserv_not_running": "{service} n'est pas en cours d'exécution",
           "bthserv_status_unknown": "Impossible de lire l'état de {service}",
@@ -582,6 +614,11 @@ export const generatedLocalePatches = {
       "sortPort": "Par port",
       "sortCategory": "Par catégorie",
       "sortReleasable": "Libérable en premier",
+      "confirmTitle": "Mettre fin à ce processus ?",
+      "confirmMessage": "{name} (PID {pid}) utilise le port local {port}.",
+      "confirmWarning": "Y mettre fin immédiatement peut interrompre le programme et abandonner le travail non enregistré. Continuez seulement si vous le reconnaissez.",
+      "confirmRun": "Fin du processus",
+      "cancel": "Annuler",
       "releaseConn": "Connexion claire",
       "message": {
         "time_wait_releasable": "Connexion résiduelle – peut essayer la version manuelle (administrateur)",
@@ -629,6 +666,7 @@ export const generatedLocalePatches = {
       "localFirst": "Les diagnostics restent sur cet appareil, sauf si vous les exportez",
       "openSource": "Source ouverte",
       "license": "Sous licence MIT",
+      "website": "Site Web",
       "sourceCode": "Code source",
       "reportIssue": "Signaler un problème",
       "projectInfo": "Informations sur le projet",
@@ -1009,6 +1047,8 @@ export const generatedLocalePatches = {
         "connected": "Conectado",
         "disconnected": "No conectado",
         "battery": "Batería {percent}%",
+        "batteryRefreshing": "Leyendo el nivel actual de la batería...",
+        "batteryUnavailable": "Nivel de batería actual no disponible",
         "devicesTitle": "Dispositivos emparejados",
         "noDevices": "No se encontraron periféricos Bluetooth",
         "radio": "adaptador bluetooth",
@@ -1026,6 +1066,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Quitar dispositivo",
         "issue": {
           "driver_error": "El controlador de {name} no funciona normalmente",
+          "driver_status_unknown": "Windows no pudo verificar el estado del controlador para {name}",
           "no_radio": "No se encontró {adapter}",
           "bthserv_not_running": "{service} no se está ejecutando",
           "bthserv_status_unknown": "No se puede leer el estado de {service}",
@@ -1055,6 +1096,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "El escaneo de hardware no se completó. Habilite detalles avanzados para el resultado sin procesar.",
         "problemsTitle": "Dispositivos que necesitan atención",
         "noProblems": "No se encontraron errores del Administrador de dispositivos.",
+        "driverEvidenceUnavailable": "Windows no devolvió metadatos del controlador instalado para este dispositivo.",
+        "repairing": "Aplicar la operación del dispositivo Windows seleccionado y luego verificar el dispositivo nuevamente...",
+        "infFilter": "Información de configuración del controlador",
+        "confirmTitle": "Confirmar la operación del controlador del dispositivo",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Ejecutar y verificar",
+        "cancel": "Cancelar",
+        "action": {
+          "enable": "Habilitar dispositivo",
+          "restart": "Reiniciar dispositivo",
+          "reinstall_store": "Reinstale el controlador almacenado",
+          "install_inf": "Instalar el paquete INF oficial"
+        },
+        "risk": {
+          "enable": "Windows habilitará este dispositivo. Su hardware puede comenzar a funcionar inmediatamente.",
+          "restart": "El dispositivo se detendrá brevemente. Es posible que se interrumpa el acceso a la red, el sonido, la pantalla, Bluetooth o USB.",
+          "reinstall_store": "Windows eliminará este nodo de dispositivo, escaneará nuevamente y seleccionará el controlador que mejor coincida que ya se encuentra en la Tienda de controladores. El paquete de controladores en sí no se elimina.",
+          "install_inf": "Seleccione un INF únicamente de Windows Update, el fabricante de la PC o el fabricante del hardware. Windows lo instalará sólo cuando coincida y se clasifique adecuadamente."
+        },
+        "result": {
+          "verified": "Verificado: Windows ahora informa el código 0 del Administrador de dispositivos para este dispositivo.",
+          "notVerified": "No se ha verificado que el dispositivo esté reparado.",
+          "needsAdmin": "No se realizó ningún cambio. Ejecute ZeroTick como administrador y vuelva a intentarlo.",
+          "commandFailed": "Windows rechazó o falló la operación. El dispositivo no está marcado como reparado.",
+          "deviceMissing": "La operación se ejecutó, pero el dispositivo no regresó durante la verificación. Escanee nuevamente o vuelva a conectar el hardware.",
+          "stillFaulty": "La operación se ejecutó, pero el dispositivo aún informa el código del Administrador de dispositivos {code}.",
+          "reboot": "Windows indicó que es posible que sea necesario reiniciar. El dispositivo no se considera reparado hasta que se vuelva a comprobar después del reinicio."
+        },
         "class": {
           "network": "Adaptadores de red",
           "display": "Dispositivos de visualización",
@@ -1159,6 +1228,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "El controlador de {name} no funciona normalmente",
+          "driver_status_unknown": "Windows no pudo verificar el estado del controlador para {name}",
           "no_radio": "No se encontró {adapter}",
           "bthserv_not_running": "{service} no se está ejecutando",
           "bthserv_status_unknown": "No se puede leer el estado de {service}",
@@ -1264,6 +1334,11 @@ export const generatedLocalePatches = {
       "sortPort": "Por puerto",
       "sortCategory": "Por categoría",
       "sortReleasable": "Liberable primero",
+      "confirmTitle": "¿Terminar este proceso?",
+      "confirmMessage": "{name} (PID {pid}) está utilizando el puerto local {port}.",
+      "confirmWarning": "Finalizarlo inmediatamente puede interrumpir el programa y descartar el trabajo no guardado. Continúe sólo si lo reconoce.",
+      "confirmRun": "Finalizar proceso",
+      "cancel": "Cancelar",
       "releaseConn": "Conexión clara",
       "message": {
         "time_wait_releasable": "Conexión residual: puede intentar la liberación manual (admin)",
@@ -1311,6 +1386,7 @@ export const generatedLocalePatches = {
       "localFirst": "Los diagnósticos permanecen en este dispositivo a menos que los exportes",
       "openSource": "Código abierto",
       "license": "Licenciado bajo la licencia MIT",
+      "website": "Sitio web",
       "sourceCode": "código fuente",
       "reportIssue": "Informar problema",
       "projectInfo": "Información del proyecto",
@@ -1691,6 +1767,8 @@ export const generatedLocalePatches = {
         "connected": "Conectado",
         "disconnected": "Não conectado",
         "battery": "Bateria {percent}%",
+        "batteryRefreshing": "Lendo o nível atual da bateria…",
+        "batteryUnavailable": "Nível atual da bateria indisponível",
         "devicesTitle": "Dispositivos emparelhados",
         "noDevices": "Nenhum periférico Bluetooth encontrado",
         "radio": "Adaptador Bluetooth",
@@ -1708,6 +1786,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Remover dispositivo",
         "issue": {
           "driver_error": "O driver para {name} não está funcionando normalmente",
+          "driver_status_unknown": "O Windows não conseguiu verificar o estado do driver para {name}",
           "no_radio": "Nenhum {adapter} encontrado",
           "bthserv_not_running": "{service} não está em execução",
           "bthserv_status_unknown": "Não é possível ler o estado de {service}",
@@ -1737,6 +1816,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "A verificação de hardware não foi concluída. Ative detalhes avançados para o resultado bruto.",
         "problemsTitle": "Dispositivos que precisam de atenção",
         "noProblems": "Nenhum erro do Gerenciador de dispositivos foi encontrado.",
+        "driverEvidenceUnavailable": "O Windows não retornou metadados do driver instalado para este dispositivo.",
+        "repairing": "Aplicando a operação do dispositivo Windows selecionado e verificando o dispositivo novamente...",
+        "infFilter": "Informações de configuração do driver",
+        "confirmTitle": "Confirme a operação do driver de dispositivo",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Execute e verifique",
+        "cancel": "Cancelar",
+        "action": {
+          "enable": "Ativar dispositivo",
+          "restart": "Reiniciar dispositivo",
+          "reinstall_store": "Reinstale o driver armazenado",
+          "install_inf": "Instale o pacote INF oficial"
+        },
+        "risk": {
+          "enable": "O Windows habilitará este dispositivo. Seu hardware pode começar a funcionar imediatamente.",
+          "restart": "O dispositivo irá parar brevemente. O acesso à rede, som, exibição, Bluetooth ou USB pode ser interrompido.",
+          "reinstall_store": "O Windows removerá este nó de dispositivo, verificará novamente e selecionará o driver mais adequado já no Driver Store. O pacote de driver em si não é excluído.",
+          "install_inf": "Selecione um INF apenas no Windows Update, no fabricante do PC ou no fabricante do hardware. O Windows irá instalá-lo somente quando corresponder e classificar adequadamente."
+        },
+        "result": {
+          "verified": "Verificado: o Windows agora relata o código 0 do Gerenciador de dispositivos para este dispositivo.",
+          "notVerified": "O dispositivo não foi verificado como reparado.",
+          "needsAdmin": "Nenhuma alteração foi feita. Execute ZeroTick como administrador e tente novamente.",
+          "commandFailed": "O Windows rejeitou ou falhou na operação. O dispositivo não está marcado como reparado.",
+          "deviceMissing": "A operação foi executada, mas o dispositivo não retornou durante a verificação. Digitalize novamente ou reconecte o hardware.",
+          "stillFaulty": "A operação foi executada, mas o dispositivo ainda informa o código do Gerenciador de dispositivos {code}.",
+          "reboot": "O Windows indicou que pode ser necessária uma reinicialização. O dispositivo não é considerado reparado até que seja verificado novamente após a reinicialização."
+        },
         "class": {
           "network": "Adaptadores de rede",
           "display": "Dispositivos de exibição",
@@ -1841,6 +1948,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "O driver para {name} não está funcionando normalmente",
+          "driver_status_unknown": "O Windows não conseguiu verificar o estado do driver para {name}",
           "no_radio": "Nenhum {adapter} encontrado",
           "bthserv_not_running": "{service} não está em execução",
           "bthserv_status_unknown": "Não é possível ler o estado de {service}",
@@ -1946,6 +2054,11 @@ export const generatedLocalePatches = {
       "sortPort": "Por porto",
       "sortCategory": "Por categoria",
       "sortReleasable": "Liberável primeiro",
+      "confirmTitle": "Terminar este processo?",
+      "confirmMessage": "{name} (PID {pid}) está usando a porta local {port}.",
+      "confirmWarning": "Encerrá-lo imediatamente pode interromper o programa e descartar o trabalho não salvo. Só continue se você reconhecer.",
+      "confirmRun": "Finalizar processo",
+      "cancel": "Cancelar",
       "releaseConn": "Conexão clara",
       "message": {
         "time_wait_releasable": "Conexão residual – pode tentar a liberação manual (admin)",
@@ -1993,6 +2106,7 @@ export const generatedLocalePatches = {
       "localFirst": "Os diagnósticos permanecem neste dispositivo, a menos que você os exporte",
       "openSource": "Código aberto",
       "license": "Licenciado sob a licença MIT",
+      "website": "Site",
       "sourceCode": "Código fonte",
       "reportIssue": "Informar problema",
       "projectInfo": "Informações do projeto",
@@ -2373,6 +2487,8 @@ export const generatedLocalePatches = {
         "connected": "Подключено",
         "disconnected": "Не подключено",
         "battery": "Батарея {percent}%",
+        "batteryRefreshing": "Чтение текущего уровня заряда батареи…",
+        "batteryUnavailable": "Текущий уровень заряда батареи недоступен",
         "devicesTitle": "Сопряженные устройства",
         "noDevices": "Периферийные устройства Bluetooth не найдены",
         "radio": "Bluetooth-адаптер",
@@ -2390,6 +2506,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Удалить устройство",
         "issue": {
           "driver_error": "Драйвер для {name} работает неправильно.",
+          "driver_status_unknown": "Windows не удалось проверить состояние драйвера для {name}.",
           "no_radio": "{adapter} не найдено",
           "bthserv_not_running": "{service} не работает",
           "bthserv_status_unknown": "Невозможно прочитать состояние {service}.",
@@ -2419,6 +2536,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "Сканирование оборудования не завершено. Включите расширенную информацию для необработанного результата.",
         "problemsTitle": "Устройства, требующие внимания",
         "noProblems": "Ошибок диспетчера устройств не обнаружено.",
+        "driverEvidenceUnavailable": "Windows не вернула метаданные установленного драйвера для этого устройства.",
+        "repairing": "Применение выбранной операции с устройством Windows, а затем повторная проверка устройства...",
+        "infFilter": "Информация о настройке драйвера",
+        "confirmTitle": "Подтвердите работу драйвера устройства",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Запустите и проверьте",
+        "cancel": "Отмена",
+        "action": {
+          "enable": "Включить устройство",
+          "restart": "Перезагрузить устройство",
+          "reinstall_store": "Переустановите сохраненный драйвер",
+          "install_inf": "Установите официальный пакет INF."
+        },
+        "risk": {
+          "enable": "Windows включит это устройство. Его оборудование может начать работать немедленно.",
+          "restart": "Устройство ненадолго остановится. Доступ к сети, звуку, дисплею, Bluetooth или USB может быть прерван.",
+          "reinstall_store": "Windows удалит этот узел устройства, просканирует еще раз и выберет наиболее подходящий драйвер, уже имеющийся в хранилище драйверов. Сам пакет драйверов не удаляется.",
+          "install_inf": "Выбирайте INF только из Центра обновления Windows, производителя ПК или производителя оборудования. Windows установит его только тогда, когда он соответствует и имеет соответствующий рейтинг."
+        },
+        "result": {
+          "verified": "Проверено: Windows теперь сообщает код диспетчера устройств 0 для этого устройства.",
+          "notVerified": "Устройство не проверено как отремонтированное.",
+          "needsAdmin": "Никаких изменений не произошло. Запустите ZeroTick от имени администратора и повторите попытку.",
+          "commandFailed": "Windows отклонила или не выполнила операцию. Устройство не отмечено как отремонтированное.",
+          "deviceMissing": "Операция прошла, но во время проверки устройство не вернулось. Сканируйте еще раз или повторно подключите оборудование.",
+          "stillFaulty": "Операция выполнена, но устройство по-прежнему сообщает диспетчеру устройств код {code}.",
+          "reboot": "Windows указала, что может потребоваться перезагрузка. Устройство не считается отремонтированным до тех пор, пока оно не будет проверено повторно после перезапуска."
+        },
         "class": {
           "network": "Сетевые адаптеры",
           "display": "Устройства отображения",
@@ -2523,6 +2668,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "Драйвер для {name} работает неправильно.",
+          "driver_status_unknown": "Windows не удалось проверить состояние драйвера для {name}.",
           "no_radio": "{adapter} не найдено",
           "bthserv_not_running": "{service} не работает",
           "bthserv_status_unknown": "Невозможно прочитать состояние {service}.",
@@ -2628,6 +2774,11 @@ export const generatedLocalePatches = {
       "sortPort": "По порту",
       "sortCategory": "По категориям",
       "sortReleasable": "Выпускается первым",
+      "confirmTitle": "Завершить этот процесс?",
+      "confirmMessage": "{name} (PID {pid}) использует локальный порт {port}.",
+      "confirmWarning": "Немедленное завершение может прервать работу программы и отменить несохраненную работу. Продолжайте, только если вы это узнали.",
+      "confirmRun": "Завершить процесс",
+      "cancel": "Отмена",
       "releaseConn": "Четкое соединение",
       "message": {
         "time_wait_releasable": "Остаточное соединение — попробуйте разблокировать вручную (администратор).",
@@ -2675,6 +2826,7 @@ export const generatedLocalePatches = {
       "localFirst": "Диагностические данные останутся на этом устройстве, пока вы их не экспортируете.",
       "openSource": "Открытый исходный код",
       "license": "Лицензия MIT",
+      "website": "Веб-сайт",
       "sourceCode": "Исходный код",
       "reportIssue": "Сообщить о проблеме",
       "projectInfo": "Информация о проекте",
@@ -3055,6 +3207,8 @@ export const generatedLocalePatches = {
         "connected": "متصل",
         "disconnected": "غير متصل",
         "battery": "البطارية {percent}%",
+        "batteryRefreshing": "قراءة مستوى البطارية الحالي...",
+        "batteryUnavailable": "مستوى البطارية الحالي غير متاح",
         "devicesTitle": "الأجهزة المقترنة",
         "noDevices": "لم يتم العثور على أجهزة بلوتوث طرفية",
         "radio": "محول بلوتوث",
@@ -3072,6 +3226,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "قم بإزالة الجهاز",
         "issue": {
           "driver_error": "برنامج التشغيل {name} لا يعمل بشكل طبيعي",
+          "driver_status_unknown": "تعذر على Windows التحقق من حالة برنامج التشغيل لـ {name}",
           "no_radio": "لم يتم العثور على {adapter}",
           "bthserv_not_running": "{service} لا يعمل",
           "bthserv_status_unknown": "لا يمكن قراءة حالة {service}",
@@ -3101,6 +3256,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "لم يكتمل فحص الأجهزة. تمكين التفاصيل المتقدمة للنتيجة الأولية.",
         "problemsTitle": "الأجهزة التي تحتاج إلى الاهتمام",
         "noProblems": "لم يتم العثور على أخطاء في إدارة الأجهزة.",
+        "driverEvidenceUnavailable": "لم يُرجع Windows بيانات تعريف برنامج التشغيل المثبت لهذا الجهاز.",
+        "repairing": "تطبيق العملية المحددة لجهاز Windows، ثم فحص الجهاز مرة أخرى...",
+        "infFilter": "معلومات إعداد السائق",
+        "confirmTitle": "تأكيد تشغيل برنامج تشغيل الجهاز",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "تشغيل والتحقق",
+        "cancel": "إلغاء",
+        "action": {
+          "enable": "تمكين الجهاز",
+          "restart": "أعد تشغيل الجهاز",
+          "reinstall_store": "أعد تثبيت برنامج التشغيل المخزن",
+          "install_inf": "قم بتثبيت حزمة INF الرسمية"
+        },
+        "risk": {
+          "enable": "سيقوم Windows بتمكين هذا الجهاز. قد تبدأ أجهزتها في العمل على الفور.",
+          "restart": "سيتوقف الجهاز لفترة وجيزة. قد تتم مقاطعة الوصول إلى الشبكة أو الصوت أو العرض أو Bluetooth أو USB.",
+          "reinstall_store": "سيقوم Windows بإزالة عقدة الجهاز هذه، وإجراء المسح الضوئي مرة أخرى، وتحديد أفضل برنامج تشغيل مطابق موجود بالفعل في متجر برامج التشغيل. لا يتم حذف حزمة برنامج التشغيل نفسها.",
+          "install_inf": "حدد INF فقط من Windows Update أو الشركة المصنعة للكمبيوتر الشخصي أو الشركة المصنعة للجهاز. سيقوم Windows بتثبيته فقط عندما يتطابق ويرتب بشكل مناسب."
+        },
+        "result": {
+          "verified": "تم التحقق: يقوم Windows الآن بالإبلاغ عن رمز إدارة الأجهزة 0 لهذا الجهاز.",
+          "notVerified": "لم يتم التحقق من أن الجهاز تم إصلاحه.",
+          "needsAdmin": "لم يتم إجراء أي تغيير. قم بتشغيل ZeroTick كمسؤول ثم أعد المحاولة.",
+          "commandFailed": "رفض Windows العملية أو فشلها. لم يتم وضع علامة على الجهاز على أنه تم إصلاحه.",
+          "deviceMissing": "تم تنفيذ العملية، لكن الجهاز لم يعود أثناء التحقق. قم بالمسح الضوئي مرة أخرى أو أعد توصيل الجهاز.",
+          "stillFaulty": "تم تنفيذ العملية، لكن الجهاز لا يزال يُبلغ عن رمز إدارة الأجهزة {code}.",
+          "reboot": "أشار Windows إلى أنه قد تكون هناك حاجة إلى إعادة التشغيل. لا يعتبر الجهاز تم إصلاحه حتى يتم فحصه مرة أخرى بعد إعادة التشغيل."
+        },
         "class": {
           "network": "محولات الشبكة",
           "display": "أجهزة العرض",
@@ -3205,6 +3388,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "برنامج التشغيل {name} لا يعمل بشكل طبيعي",
+          "driver_status_unknown": "تعذر على Windows التحقق من حالة برنامج التشغيل لـ {name}",
           "no_radio": "لم يتم العثور على {adapter}",
           "bthserv_not_running": "{service} لا يعمل",
           "bthserv_status_unknown": "لا يمكن قراءة حالة {service}",
@@ -3310,6 +3494,11 @@ export const generatedLocalePatches = {
       "sortPort": "عن طريق الميناء",
       "sortCategory": "حسب الفئة",
       "sortReleasable": "يمكن الافراج عنه أولا",
+      "confirmTitle": "إنهاء هذه العملية؟",
+      "confirmMessage": "{name} (PID {pid}) يستخدم المنفذ المحلي {port}.",
+      "confirmWarning": "قد يؤدي إنهاء البرنامج على الفور إلى مقاطعة البرنامج وتجاهل العمل غير المحفوظ. استمر فقط إذا تعرفت عليه.",
+      "confirmRun": "إنهاء العملية",
+      "cancel": "إلغاء",
       "releaseConn": "اتصال واضح",
       "message": {
         "time_wait_releasable": "الاتصال المتبقي - يمكن تجربة الإصدار اليدوي (المسؤول)",
@@ -3357,6 +3546,7 @@ export const generatedLocalePatches = {
       "localFirst": "تظل بيانات التشخيص على هذا الجهاز ما لم تقم بتصديرها",
       "openSource": "مفتوح المصدر",
       "license": "مرخص بموجب ترخيص MIT",
+      "website": "موقع الكتروني",
       "sourceCode": "كود المصدر",
       "reportIssue": "الإبلاغ عن مشكلة",
       "projectInfo": "معلومات المشروع",
@@ -3737,6 +3927,8 @@ export const generatedLocalePatches = {
         "connected": "जुड़ा हुआ",
         "disconnected": "जुड़ा नहीं",
         "battery": "बैटरी {percent}%",
+        "batteryRefreshing": "वर्तमान बैटरी स्तर पढ़ रहा है...",
+        "batteryUnavailable": "वर्तमान बैटरी स्तर अनुपलब्ध है",
         "devicesTitle": "युग्मित उपकरण",
         "noDevices": "कोई ब्लूटूथ परिधीय नहीं मिला",
         "radio": "ब्लूटूथ एडाप्टर",
@@ -3754,6 +3946,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "डिवाइस निकालें",
         "issue": {
           "driver_error": "{name} का ड्राइवर सामान्य रूप से काम नहीं कर रहा है",
+          "driver_status_unknown": "विंडोज़ {name} के लिए ड्राइवर स्थिति को सत्यापित नहीं कर सका",
           "no_radio": "कोई {adapter} नहीं मिला",
           "bthserv_not_running": "{service} नहीं चल रहा है",
           "bthserv_status_unknown": "{service} की स्थिति नहीं पढ़ सकता",
@@ -3783,6 +3976,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "हार्डवेयर स्कैन पूरा नहीं हुआ. कच्चे परिणाम के लिए उन्नत विवरण सक्षम करें।",
         "problemsTitle": "वे उपकरण जिन पर ध्यान देने की आवश्यकता है",
         "noProblems": "कोई डिवाइस प्रबंधक त्रुटियाँ नहीं मिलीं.",
+        "driverEvidenceUnavailable": "विंडोज़ ने इस डिवाइस के लिए इंस्टॉल-ड्राइवर मेटाडेटा वापस नहीं किया।",
+        "repairing": "चयनित विंडोज़ डिवाइस ऑपरेशन को लागू करना, फिर डिवाइस की दोबारा जाँच करना...",
+        "infFilter": "ड्राइवर सेटअप जानकारी",
+        "confirmTitle": "डिवाइस ड्राइवर संचालन की पुष्टि करें",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "चलाएँ और सत्यापित करें",
+        "cancel": "रद्द करें",
+        "action": {
+          "enable": "डिवाइस सक्षम करें",
+          "restart": "डिवाइस पुनः प्रारंभ करें",
+          "reinstall_store": "संग्रहीत ड्राइवर को पुनः स्थापित करें",
+          "install_inf": "आधिकारिक INF पैकेज स्थापित करें"
+        },
+        "risk": {
+          "enable": "विंडोज़ इस डिवाइस को सक्षम कर देगा। इसका हार्डवेयर तुरंत काम करना शुरू कर सकता है।",
+          "restart": "डिवाइस थोड़ी देर के लिए बंद हो जाएगा. नेटवर्क, ध्वनि, डिस्प्ले, ब्लूटूथ, या यूएसबी एक्सेस बाधित हो सकता है।",
+          "reinstall_store": "विंडोज़ इस डिवाइस नोड को हटा देगा, फिर से स्कैन करेगा, और ड्राइवर स्टोर में पहले से ही सबसे अच्छे मिलान वाले ड्राइवर का चयन करेगा। ड्राइवर पैकेज स्वयं हटाया नहीं गया है.",
+          "install_inf": "केवल Windows अद्यतन, पीसी निर्माता, या हार्डवेयर निर्माता से एक INF का चयन करें। विंडोज़ इसे तभी इंस्टॉल करेगा जब यह मेल खाएगा और उचित रूप से रैंक करेगा।"
+        },
+        "result": {
+          "verified": "सत्यापित: विंडोज़ अब इस डिवाइस के लिए डिवाइस मैनेजर कोड 0 की रिपोर्ट करता है।",
+          "notVerified": "डिवाइस को मरम्मत के रूप में सत्यापित नहीं किया गया है।",
+          "needsAdmin": "कोई बदलाव नहीं किया गया. ZeroTick को व्यवस्थापक के रूप में चलाएँ और पुनः प्रयास करें।",
+          "commandFailed": "विंडोज़ ने ऑपरेशन को अस्वीकार कर दिया या विफल कर दिया। डिवाइस को मरम्मत के रूप में चिह्नित नहीं किया गया है।",
+          "deviceMissing": "ऑपरेशन चला, लेकिन सत्यापन के दौरान डिवाइस वापस नहीं आया। पुनः स्कैन करें या हार्डवेयर पुनः कनेक्ट करें।",
+          "stillFaulty": "ऑपरेशन चला, लेकिन डिवाइस अभी भी डिवाइस मैनेजर कोड {code} की रिपोर्ट करता है।",
+          "reboot": "विंडोज़ ने संकेत दिया कि पुनरारंभ की आवश्यकता हो सकती है। डिवाइस को तब तक रिपेयर नहीं माना जाता जब तक कि उसे रीस्टार्ट करने के बाद दोबारा चेक न किया जाए।"
+        },
         "class": {
           "network": "नेटवर्क एडाप्टर",
           "display": "प्रदर्शन उपकरण",
@@ -3887,6 +4108,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "{name} का ड्राइवर सामान्य रूप से काम नहीं कर रहा है",
+          "driver_status_unknown": "विंडोज़ {name} के लिए ड्राइवर स्थिति को सत्यापित नहीं कर सका",
           "no_radio": "कोई {adapter} नहीं मिला",
           "bthserv_not_running": "{service} नहीं चल रहा है",
           "bthserv_status_unknown": "{service} की स्थिति नहीं पढ़ सकता",
@@ -3992,6 +4214,11 @@ export const generatedLocalePatches = {
       "sortPort": "बंदरगाह द्वारा",
       "sortCategory": "श्रेणी के अनुसार",
       "sortReleasable": "पहले रिलीज करने योग्य",
+      "confirmTitle": "यह प्रक्रिया समाप्त करें?",
+      "confirmMessage": "{name} (PID {pid}) स्थानीय पोर्ट {port} का उपयोग कर रहा है।",
+      "confirmWarning": "इसे तुरंत समाप्त करने से प्रोग्राम बाधित हो सकता है और सहेजा न गया कार्य खारिज हो सकता है। यदि आप इसे पहचानते हैं तो ही जारी रखें।",
+      "confirmRun": "अंतिम प्रक्रिया",
+      "cancel": "रद्द करें",
       "releaseConn": "स्पष्ट संबंध",
       "message": {
         "time_wait_releasable": "अवशिष्ट कनेक्शन - मैन्युअल रिलीज़ का प्रयास कर सकते हैं (व्यवस्थापक)",
@@ -4039,6 +4266,7 @@ export const generatedLocalePatches = {
       "localFirst": "डायग्नोस्टिक्स इस डिवाइस पर तब तक बने रहते हैं जब तक आप उन्हें निर्यात नहीं करते",
       "openSource": "खुला स्रोत",
       "license": "एमआईटी लाइसेंस के तहत लाइसेंस प्राप्त",
+      "website": "वेबसाइट",
       "sourceCode": "स्रोत कोड",
       "reportIssue": "रिपोर्ट मुद्दा",
       "projectInfo": "परियोजना की जानकारी",
@@ -4419,6 +4647,8 @@ export const generatedLocalePatches = {
         "connected": "Connesso",
         "disconnected": "Non connesso",
         "battery": "Batteria {percent}%",
+        "batteryRefreshing": "Lettura del livello attuale della batteria…",
+        "batteryUnavailable": "Livello attuale della batteria non disponibile",
         "devicesTitle": "Dispositivi accoppiati",
         "noDevices": "Nessuna periferica Bluetooth trovata",
         "radio": "Adattatore Bluetooth",
@@ -4436,6 +4666,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Rimuovi il dispositivo",
         "issue": {
           "driver_error": "Il driver per {name} non funziona normalmente",
+          "driver_status_unknown": "Windows non è riuscito a verificare lo stato del driver per {name}",
           "no_radio": "Nessun {adapter} trovato",
           "bthserv_not_running": "{service} non è in esecuzione",
           "bthserv_status_unknown": "Impossibile leggere lo stato di {service}",
@@ -4465,6 +4696,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "La scansione dell'hardware non è stata completata. Abilita i dettagli avanzati per il risultato grezzo.",
         "problemsTitle": "Dispositivi che necessitano di attenzione",
         "noProblems": "Non è stato trovato alcun errore in Gestione dispositivi.",
+        "driverEvidenceUnavailable": "Windows non ha restituito i metadati del driver installato per questo dispositivo.",
+        "repairing": "Applicazione dell'operazione del dispositivo Windows selezionata, quindi controllo successivo del dispositivo...",
+        "infFilter": "Informazioni sulla configurazione del driver",
+        "confirmTitle": "Conferma il funzionamento del driver del dispositivo",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Esegui e verifica",
+        "cancel": "Annulla",
+        "action": {
+          "enable": "Abilita dispositivo",
+          "restart": "Riavviare il dispositivo",
+          "reinstall_store": "Reinstallare il driver memorizzato",
+          "install_inf": "Installa il pacchetto INF ufficiale"
+        },
+        "risk": {
+          "enable": "Windows abiliterà questo dispositivo. Il suo hardware potrebbe iniziare a funzionare immediatamente.",
+          "restart": "Il dispositivo si fermerà brevemente. L'accesso alla rete, all'audio, al display, al Bluetooth o all'USB potrebbe essere interrotto.",
+          "reinstall_store": "Windows rimuoverà questo nodo del dispositivo, eseguirà nuovamente la scansione e selezionerà il driver con la migliore corrispondenza già presente nell'archivio driver. Il pacchetto driver stesso non viene eliminato.",
+          "install_inf": "Seleziona un INF solo da Windows Update, dal produttore del PC o dal produttore dell'hardware. Windows lo installerà solo quando corrisponde e si classifica in modo appropriato."
+        },
+        "result": {
+          "verified": "Verificato: Windows ora segnala il codice 0 di Gestione dispositivi per questo dispositivo.",
+          "notVerified": "Il dispositivo non è stato verificato come riparato.",
+          "needsAdmin": "Non è stata apportata alcuna modifica. Esegui ZeroTick come amministratore e riprova.",
+          "commandFailed": "Windows ha rifiutato o non è riuscita l'operazione. Il dispositivo non è contrassegnato come riparato.",
+          "deviceMissing": "L'operazione è stata eseguita, ma il dispositivo non è tornato durante la verifica. Eseguire nuovamente la scansione o ricollegare l'hardware.",
+          "stillFaulty": "L'operazione è stata eseguita, ma il dispositivo riporta ancora il codice Gestione dispositivi {code}.",
+          "reboot": "Windows ha indicato che potrebbe essere necessario un riavvio. Il dispositivo non viene considerato riparato finché non viene nuovamente controllato dopo il riavvio."
+        },
         "class": {
           "network": "Adattatori di rete",
           "display": "Dispositivi di visualizzazione",
@@ -4569,6 +4828,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "Il driver per {name} non funziona normalmente",
+          "driver_status_unknown": "Windows non è riuscito a verificare lo stato del driver per {name}",
           "no_radio": "Nessun {adapter} trovato",
           "bthserv_not_running": "{service} non è in esecuzione",
           "bthserv_status_unknown": "Impossibile leggere lo stato di {service}",
@@ -4674,6 +4934,11 @@ export const generatedLocalePatches = {
       "sortPort": "Per porto",
       "sortCategory": "Per categoria",
       "sortReleasable": "Prima rilasciabile",
+      "confirmTitle": "Terminare questo processo?",
+      "confirmMessage": "{name} (PID {pid}) utilizza la porta locale {port}.",
+      "confirmWarning": "Terminarlo immediatamente potrebbe interrompere il programma e scartare il lavoro non salvato. Continua solo se lo riconosci.",
+      "confirmRun": "Termina il processo",
+      "cancel": "Annulla",
       "releaseConn": "Connessione chiara",
       "message": {
         "time_wait_releasable": "Connessione residua: puoi provare il rilascio manuale (amministratore)",
@@ -4721,6 +4986,7 @@ export const generatedLocalePatches = {
       "localFirst": "La diagnostica rimane su questo dispositivo a meno che non la esporti",
       "openSource": "Fonte aperta",
       "license": "Concesso in licenza con la licenza MIT",
+      "website": "Sito web",
       "sourceCode": "Codice sorgente",
       "reportIssue": "Segnala il problema",
       "projectInfo": "Informazioni sul progetto",
@@ -5101,6 +5367,8 @@ export const generatedLocalePatches = {
         "connected": "Verbonden",
         "disconnected": "Niet verbonden",
         "battery": "Batterij {percent}%",
+        "batteryRefreshing": "Huidig batterijniveau aflezen…",
+        "batteryUnavailable": "Huidig batterijniveau niet beschikbaar",
         "devicesTitle": "Gekoppelde apparaten",
         "noDevices": "Geen Bluetooth-randapparatuur gevonden",
         "radio": "Bluetooth-adapter",
@@ -5118,6 +5386,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Apparaat verwijderen",
         "issue": {
           "driver_error": "Het stuurprogramma voor {name} werkt niet normaal",
+          "driver_status_unknown": "Windows kon de stuurprogrammastatus voor {name} niet verifiëren",
           "no_radio": "Geen {adapter} gevonden",
           "bthserv_not_running": "{service} is niet actief",
           "bthserv_status_unknown": "Kan de status van {service} niet lezen",
@@ -5147,6 +5416,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "De hardwarescan is niet voltooid. Schakel geavanceerde details in voor het onbewerkte resultaat.",
         "problemsTitle": "Apparaten die aandacht nodig hebben",
         "noProblems": "Er zijn geen apparaatbeheerfouten gevonden.",
+        "driverEvidenceUnavailable": "Windows heeft geen metagegevens van het geïnstalleerde stuurprogramma voor dit apparaat geretourneerd.",
+        "repairing": "De geselecteerde Windows-apparaatbewerking toepassen en vervolgens het apparaat opnieuw controleren...",
+        "infFilter": "Informatie over stuurprogramma-instellingen",
+        "confirmTitle": "Bevestig de werking van het apparaatstuurprogramma",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Uitvoeren en verifiëren",
+        "cancel": "Annuleer",
+        "action": {
+          "enable": "Schakel apparaat in",
+          "restart": "Start het apparaat opnieuw op",
+          "reinstall_store": "Installeer het opgeslagen stuurprogramma opnieuw",
+          "install_inf": "Installeer het officiële INF-pakket"
+        },
+        "risk": {
+          "enable": "Windows zal dit apparaat inschakelen. De hardware kan onmiddellijk in werking treden.",
+          "restart": "Het apparaat stopt even. Netwerk-, geluid-, weergave-, Bluetooth- of USB-toegang kan worden onderbroken.",
+          "reinstall_store": "Windows zal dit apparaatknooppunt verwijderen, opnieuw scannen en het best passende stuurprogramma selecteren dat zich al in de Driver Store bevindt. Het driverpakket zelf wordt niet verwijderd.",
+          "install_inf": "Selecteer alleen een INF van Windows Update, de pc-fabrikant of de hardwarefabrikant. Windows zal het alleen installeren als het overeenkomt en op de juiste manier scoort."
+        },
+        "result": {
+          "verified": "Geverifieerd: Windows rapporteert nu Apparaatbeheercode 0 voor dit apparaat.",
+          "notVerified": "Het apparaat is niet geverifieerd als gerepareerd.",
+          "needsAdmin": "Er is geen wijziging aangebracht. Voer ZeroTick uit als beheerder en probeer het opnieuw.",
+          "commandFailed": "Windows heeft de bewerking afgewezen of mislukt. Het apparaat is niet gemarkeerd als gerepareerd.",
+          "deviceMissing": "De bewerking is uitgevoerd, maar het apparaat is tijdens de verificatie niet teruggekeerd. Scan opnieuw of sluit de hardware opnieuw aan.",
+          "stillFaulty": "De bewerking is uitgevoerd, maar het apparaat rapporteert nog steeds Apparaatbeheercode {code}.",
+          "reboot": "Windows gaf aan dat een herstart mogelijk nodig was. Het apparaat wordt pas als gerepareerd beschouwd nadat het na het opnieuw opstarten opnieuw is gecontroleerd."
+        },
         "class": {
           "network": "Netwerkadapters",
           "display": "Weergaveapparaten",
@@ -5251,6 +5548,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "Het stuurprogramma voor {name} werkt niet normaal",
+          "driver_status_unknown": "Windows kon de stuurprogrammastatus voor {name} niet verifiëren",
           "no_radio": "Geen {adapter} gevonden",
           "bthserv_not_running": "{service} is niet actief",
           "bthserv_status_unknown": "Kan de status van {service} niet lezen",
@@ -5356,6 +5654,11 @@ export const generatedLocalePatches = {
       "sortPort": "Per haven",
       "sortCategory": "Per categorie",
       "sortReleasable": "Als eerste loslaatbaar",
+      "confirmTitle": "Dit proces beëindigen?",
+      "confirmMessage": "{name} (PID {pid}) gebruikt de lokale poort {port}.",
+      "confirmWarning": "Als u het onmiddellijk beëindigt, kan het programma worden onderbroken en niet-opgeslagen werk verloren gaan. Ga alleen verder als je het herkent.",
+      "confirmRun": "Beëindig het proces",
+      "cancel": "Annuleer",
       "releaseConn": "Duidelijke verbinding",
       "message": {
         "time_wait_releasable": "Resterende verbinding - kan handmatige vrijgave proberen (beheerder)",
@@ -5403,6 +5706,7 @@ export const generatedLocalePatches = {
       "localFirst": "Diagnostische gegevens blijven op dit apparaat staan, tenzij u ze exporteert",
       "openSource": "Open-source",
       "license": "Gelicentieerd onder de MIT-licentie",
+      "website": "Website",
       "sourceCode": "Broncode",
       "reportIssue": "Probleem melden",
       "projectInfo": "Projectinformatie",
@@ -5783,6 +6087,8 @@ export const generatedLocalePatches = {
         "connected": "Połączono",
         "disconnected": "Nie podłączony",
         "battery": "Bateria {percent}%",
+        "batteryRefreshing": "Odczytywanie aktualnego poziomu naładowania baterii…",
+        "batteryUnavailable": "Aktualny poziom naładowania baterii jest niedostępny",
         "devicesTitle": "Sparowane urządzenia",
         "noDevices": "Nie znaleziono urządzeń peryferyjnych Bluetooth",
         "radio": "Adapter Bluetooth",
@@ -5800,6 +6106,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Usuń urządzenie",
         "issue": {
           "driver_error": "Sterownik dla {name} nie działa normalnie",
+          "driver_status_unknown": "System Windows nie mógł zweryfikować stanu sterownika dla {name}",
           "no_radio": "Nie znaleziono {adapter}",
           "bthserv_not_running": "{service} nie działa",
           "bthserv_status_unknown": "Nie można odczytać stanu {service}",
@@ -5829,6 +6136,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "Skanowanie sprzętu nie zostało zakończone. Włącz zaawansowane szczegóły dla nieprzetworzonego wyniku.",
         "problemsTitle": "Urządzenia wymagające uwagi",
         "noProblems": "Nie znaleziono błędów Menedżera urządzeń.",
+        "driverEvidenceUnavailable": "System Windows nie zwrócił metadanych zainstalowanego sterownika dla tego urządzenia.",
+        "repairing": "Stosowanie wybranej operacji na urządzeniu z systemem Windows, a następnie ponowne sprawdzenie urządzenia...",
+        "infFilter": "Informacje o konfiguracji sterownika",
+        "confirmTitle": "Potwierdź działanie sterownika urządzenia",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Uruchom i sprawdź",
+        "cancel": "Anuluj",
+        "action": {
+          "enable": "Włącz urządzenie",
+          "restart": "Uruchom ponownie urządzenie",
+          "reinstall_store": "Zainstaluj ponownie zapisany sterownik",
+          "install_inf": "Zainstaluj oficjalny pakiet INF"
+        },
+        "risk": {
+          "enable": "System Windows włączy to urządzenie. Jego sprzęt może natychmiast zacząć działać.",
+          "restart": "Urządzenie zatrzyma się na chwilę. Dostęp do sieci, dźwięku, wyświetlacza, Bluetooth lub USB może zostać przerwany.",
+          "reinstall_store": "System Windows usunie ten węzeł urządzenia, przeskanuje ponownie i wybierze najlepiej pasujący sterownik znajdujący się już w sklepie ze sterownikami. Sam pakiet sterowników nie jest usuwany.",
+          "install_inf": "Wybierz plik INF tylko z witryny Windows Update, producenta komputera lub producenta sprzętu. System Windows zainstaluje go tylko wtedy, gdy będzie pasował i miał odpowiednią pozycję w rankingu."
+        },
+        "result": {
+          "verified": "Zweryfikowano: system Windows zgłasza teraz kod Menedżera urządzeń 0 dla tego urządzenia.",
+          "notVerified": "Urządzenie nie zostało zweryfikowane jako naprawione.",
+          "needsAdmin": "Nie wprowadzono żadnych zmian. Uruchom ZeroTick jako administrator i spróbuj ponownie.",
+          "commandFailed": "System Windows odrzucił operację lub nie powiódł się. Urządzenie nie jest oznaczone jako naprawione.",
+          "deviceMissing": "Operacja została wykonana, ale urządzenie nie wróciło podczas weryfikacji. Przeskanuj ponownie lub ponownie podłącz sprzęt.",
+          "stillFaulty": "Operacja została wykonana, ale urządzenie nadal zgłasza kod Menedżera urządzeń {code}.",
+          "reboot": "System Windows wskazał, że może być wymagane ponowne uruchomienie. Urządzenie nie jest uważane za naprawione, dopóki nie zostanie ponownie sprawdzone po ponownym uruchomieniu."
+        },
         "class": {
           "network": "Adaptery sieciowe",
           "display": "Urządzenia wyświetlające",
@@ -5933,6 +6268,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "Sterownik dla {name} nie działa normalnie",
+          "driver_status_unknown": "System Windows nie mógł zweryfikować stanu sterownika dla {name}",
           "no_radio": "Nie znaleziono {adapter}",
           "bthserv_not_running": "{service} nie działa",
           "bthserv_status_unknown": "Nie można odczytać stanu {service}",
@@ -6038,6 +6374,11 @@ export const generatedLocalePatches = {
       "sortPort": "Przez port",
       "sortCategory": "Według kategorii",
       "sortReleasable": "Najpierw do zwolnienia",
+      "confirmTitle": "Zakończyć ten proces?",
+      "confirmMessage": "{name} (PID {pid}) używa lokalnego portu {port}.",
+      "confirmWarning": "Natychmiastowe zakończenie może przerwać działanie programu i odrzucić niezapisaną pracę. Kontynuuj tylko wtedy, gdy to rozpoznasz.",
+      "confirmRun": "Zakończ proces",
+      "cancel": "Anuluj",
       "releaseConn": "Wyczyść połączenie",
       "message": {
         "time_wait_releasable": "Pozostałe połączenie — możesz spróbować zwolnić ręcznie (administrator)",
@@ -6085,6 +6426,7 @@ export const generatedLocalePatches = {
       "localFirst": "Diagnostyka pozostanie na tym urządzeniu, chyba że ją wyeksportujesz",
       "openSource": "Otwarte źródło",
       "license": "Licencjonowany na licencji MIT",
+      "website": "Strona internetowa",
       "sourceCode": "Kod źródłowy",
       "reportIssue": "Zgłoś problem",
       "projectInfo": "Informacje o projekcie",
@@ -6144,7 +6486,7 @@ export const generatedLocalePatches = {
       "network": "Ağ",
       "audio": "Ses",
       "usb": "Çıkarılabilir depolama",
-      "bluetooth": "Bluetooth",
+      "bluetooth": "Bluetooth'lu",
       "devices": "Cihazlar ve sürücüler",
       "bsod": "BSOD",
       "repair": "Onarım"
@@ -6163,7 +6505,7 @@ export const generatedLocalePatches = {
         "desc": "Harici sürücüleri ve çıkarılabilir medyayı kontrol edin, uygulama kullanımını inceleyin ve bunları güvenli bir şekilde çıkarın"
       },
       "bluetooth": {
-        "title": "Bluetooth",
+        "title": "Bluetooth'lu",
         "desc": "Eksik Bluetooth'u, bağlantı hatalarını ve servis sorunlarını kontrol edin"
       },
       "devices": {
@@ -6465,6 +6807,8 @@ export const generatedLocalePatches = {
         "connected": "Bağlı",
         "disconnected": "Bağlı değil",
         "battery": "Pil {percent}%",
+        "batteryRefreshing": "Mevcut pil seviyesi okunuyor…",
+        "batteryUnavailable": "Mevcut pil seviyesi kullanılamıyor",
         "devicesTitle": "Eşleştirilmiş cihazlar",
         "noDevices": "Bluetooth çevre birimi bulunamadı",
         "radio": "Bluetooth adaptörü",
@@ -6482,6 +6826,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Cihazı kaldır",
         "issue": {
           "driver_error": "{name} sürücüsü normal çalışmıyor",
+          "driver_status_unknown": "Windows {name} için sürücü durumunu doğrulayamadı",
           "no_radio": "{adapter} bulunamadı",
           "bthserv_not_running": "{service} çalışmıyor",
           "bthserv_status_unknown": "{service} durumu okunamıyor",
@@ -6511,11 +6856,39 @@ export const generatedLocalePatches = {
         "rescanFailed": "Donanım taraması tamamlanmadı. Ham sonuç için gelişmiş ayrıntıları etkinleştirin.",
         "problemsTitle": "Dikkat edilmesi gereken cihazlar",
         "noProblems": "Hiçbir Aygıt Yöneticisi hatası bulunamadı.",
+        "driverEvidenceUnavailable": "Windows bu aygıt için yüklü sürücü meta verilerini döndürmedi.",
+        "repairing": "Seçilen Windows cihaz işlemi uygulanıyor, ardından cihaz tekrar kontrol ediliyor...",
+        "infFilter": "Sürücü kurulum bilgileri",
+        "confirmTitle": "Aygıt sürücüsünün çalışmasını onaylayın",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Çalıştırın ve doğrulayın",
+        "cancel": "İptal",
+        "action": {
+          "enable": "Cihazı etkinleştir",
+          "restart": "Cihazı yeniden başlat",
+          "reinstall_store": "Saklanan sürücüyü yeniden yükleyin",
+          "install_inf": "Resmi INF paketini yükleyin"
+        },
+        "risk": {
+          "enable": "Windows bu aygıtı etkinleştirecek. Donanımı hemen çalışmaya başlayabilir.",
+          "restart": "Cihaz kısa süreliğine duracaktır. Ağ, ses, ekran, Bluetooth veya USB erişimi kesilebilir.",
+          "reinstall_store": "Windows bu aygıt düğümünü kaldıracak, yeniden tarayacak ve Sürücü Mağazası'nda zaten bulunan en iyi eşleşen sürücüyü seçecektir. Sürücü paketinin kendisi silinmez.",
+          "install_inf": "Yalnızca Windows Update'ten, bilgisayar üreticisinden veya donanım üreticisinden bir INF seçin. Windows bunu yalnızca eşleştiğinde ve uygun şekilde sıralandığında yükleyecektir."
+        },
+        "result": {
+          "verified": "Doğrulandı: Windows artık bu aygıt için Aygıt Yöneticisi kodunu 0 olarak bildiriyor.",
+          "notVerified": "Cihazın onarıldığı doğrulanmadı.",
+          "needsAdmin": "Herhangi bir değişiklik yapılmadı. ZeroTick'i yönetici olarak çalıştırın ve tekrar deneyin.",
+          "commandFailed": "Windows işlemi reddetti veya başarısız oldu. Cihaz onarıldı olarak işaretlenmemiş.",
+          "deviceMissing": "İşlem yürütüldü ancak cihaz doğrulama sırasında geri dönmedi. Tekrar tarayın veya donanımı yeniden bağlayın.",
+          "stillFaulty": "İşlem yürütüldü ancak cihaz hâlâ Cihaz Yöneticisi kodunu {code} olarak rapor ediyor.",
+          "reboot": "Windows, yeniden başlatmanın gerekli olabileceğini belirtti. Cihaz yeniden başlatıldıktan sonra tekrar kontrol edilene kadar tamir edilmiş sayılmaz."
+        },
         "class": {
           "network": "Ağ bağdaştırıcıları",
           "display": "Görüntüleme cihazları",
           "camera": "Kameralar",
-          "bluetooth": "Bluetooth",
+          "bluetooth": "Bluetooth'lu",
           "usb": "USB denetleyicileri",
           "other": "Diğer cihazlar"
         },
@@ -6615,6 +6988,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "{name} sürücüsü normal çalışmıyor",
+          "driver_status_unknown": "Windows {name} için sürücü durumunu doğrulayamadı",
           "no_radio": "{adapter} bulunamadı",
           "bthserv_not_running": "{service} çalışmıyor",
           "bthserv_status_unknown": "{service} durumu okunamıyor",
@@ -6720,6 +7094,11 @@ export const generatedLocalePatches = {
       "sortPort": "Limana göre",
       "sortCategory": "Kategoriye göre",
       "sortReleasable": "İlk önce yayınlanabilir",
+      "confirmTitle": "Bu süreç sonlandırılsın mı?",
+      "confirmMessage": "{name} (PID {pid}), {port} yerel bağlantı noktasını kullanıyor.",
+      "confirmWarning": "Programın hemen sonlandırılması programın kesintiye uğramasına ve kaydedilmemiş çalışmaların silinmesine yol açabilir. Yalnızca tanırsanız devam edin.",
+      "confirmRun": "İşlemi sonlandır",
+      "cancel": "İptal",
       "releaseConn": "Bağlantıyı temizle",
       "message": {
         "time_wait_releasable": "Artık bağlantı — manuel serbest bırakmayı deneyebilir (yönetici)",
@@ -6767,6 +7146,7 @@ export const generatedLocalePatches = {
       "localFirst": "Dışa aktarmadığınız sürece teşhisler bu cihazda kalır",
       "openSource": "Açık kaynak",
       "license": "MIT Lisansı kapsamında lisanslanmıştır",
+      "website": "Web sitesi",
       "sourceCode": "Kaynak kodu",
       "reportIssue": "Sorunu bildir",
       "projectInfo": "Proje bilgileri",
@@ -6777,7 +7157,7 @@ export const generatedLocalePatches = {
     "events": {
       "category": {
         "usb": "USB",
-        "bluetooth": "Bluetooth",
+        "bluetooth": "Bluetooth'lu",
         "unknown": "Bilinmiyor"
       },
       "msg": {
@@ -7147,6 +7527,8 @@ export const generatedLocalePatches = {
         "connected": "Đã kết nối",
         "disconnected": "Không được kết nối",
         "battery": "Pin {percent}%",
+        "batteryRefreshing": "Đọc mức pin hiện tại…",
+        "batteryUnavailable": "Mức pin hiện tại không có",
         "devicesTitle": "Thiết bị được ghép nối",
         "noDevices": "Không tìm thấy thiết bị ngoại vi Bluetooth nào",
         "radio": "Bộ chuyển đổi Bluetooth",
@@ -7164,6 +7546,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Xóa thiết bị",
         "issue": {
           "driver_error": "Trình điều khiển cho {name} không hoạt động bình thường",
+          "driver_status_unknown": "Windows không thể xác minh trạng thái trình điều khiển cho {name}",
           "no_radio": "Không tìm thấy {adapter}",
           "bthserv_not_running": "{service} hiện không chạy",
           "bthserv_status_unknown": "Không thể đọc trạng thái của {service}",
@@ -7193,6 +7576,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "Quá trình quét phần cứng không hoàn tất. Bật chi tiết nâng cao cho kết quả thô.",
         "problemsTitle": "Những thiết bị cần chú ý",
         "noProblems": "Không tìm thấy lỗi Trình quản lý thiết bị.",
+        "driverEvidenceUnavailable": "Windows không trả về siêu dữ liệu trình điều khiển đã cài đặt cho thiết bị này.",
+        "repairing": "Đang áp dụng thao tác trên thiết bị Windows đã chọn, sau đó kiểm tra lại thiết bị...",
+        "infFilter": "Thông tin cài đặt trình điều khiển",
+        "confirmTitle": "Xác nhận hoạt động của trình điều khiển thiết bị",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Chạy và xác minh",
+        "cancel": "Hủy bỏ",
+        "action": {
+          "enable": "Bật thiết bị",
+          "restart": "Khởi động lại thiết bị",
+          "reinstall_store": "Cài đặt lại trình điều khiển đã lưu",
+          "install_inf": "Cài đặt gói INF chính thức"
+        },
+        "risk": {
+          "enable": "Windows sẽ kích hoạt thiết bị này. Phần cứng của nó có thể bắt đầu hoạt động ngay lập tức.",
+          "restart": "Thiết bị sẽ dừng lại trong giây lát. Truy cập mạng, âm thanh, màn hình, Bluetooth hoặc USB có thể bị gián đoạn.",
+          "reinstall_store": "Windows sẽ xóa nút thiết bị này, quét lại và chọn trình điều khiển phù hợp nhất đã có trong Driver Store. Bản thân gói trình điều khiển không bị xóa.",
+          "install_inf": "Chỉ chọn INF từ Windows Update, nhà sản xuất PC hoặc nhà sản xuất phần cứng. Windows sẽ chỉ cài đặt nó khi nó phù hợp và được xếp hạng phù hợp."
+        },
+        "result": {
+          "verified": "Đã xác minh: Windows hiện báo cáo mã Trình quản lý thiết bị 0 cho thiết bị này.",
+          "notVerified": "Thiết bị chưa được xác minh là đã sửa chữa.",
+          "needsAdmin": "Không có thay đổi nào được thực hiện. Chạy ZeroTick với tư cách quản trị viên và thử lại.",
+          "commandFailed": "Windows từ chối hoặc thực hiện thao tác không thành công. Thiết bị không được đánh dấu là đã sửa chữa.",
+          "deviceMissing": "Thao tác đã chạy nhưng thiết bị không hoạt động trở lại trong quá trình xác minh. Quét lại hoặc kết nối lại phần cứng.",
+          "stillFaulty": "Thao tác đã chạy nhưng thiết bị vẫn báo mã Trình quản lý thiết bị {code}.",
+          "reboot": "Windows cho biết có thể cần phải khởi động lại. Thiết bị không được coi là đã sửa chữa cho đến khi được kiểm tra lại sau khi khởi động lại."
+        },
         "class": {
           "network": "Bộ điều hợp mạng",
           "display": "Thiết bị hiển thị",
@@ -7297,6 +7708,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "Trình điều khiển cho {name} không hoạt động bình thường",
+          "driver_status_unknown": "Windows không thể xác minh trạng thái trình điều khiển cho {name}",
           "no_radio": "Không tìm thấy {adapter}",
           "bthserv_not_running": "{service} hiện không chạy",
           "bthserv_status_unknown": "Không thể đọc trạng thái của {service}",
@@ -7402,6 +7814,11 @@ export const generatedLocalePatches = {
       "sortPort": "Bằng cổng",
       "sortCategory": "Theo danh mục",
       "sortReleasable": "Có thể phát hành đầu tiên",
+      "confirmTitle": "Kết thúc quá trình này?",
+      "confirmMessage": "{name} (PID {pid}) đang sử dụng cổng cục bộ {port}.",
+      "confirmWarning": "Việc kết thúc ngay lập tức có thể làm gián đoạn chương trình và loại bỏ công việc chưa được lưu. Chỉ tiếp tục nếu bạn nhận ra nó.",
+      "confirmRun": "Kết thúc quá trình",
+      "cancel": "Hủy bỏ",
       "releaseConn": "Xóa kết nối",
       "message": {
         "time_wait_releasable": "Kết nối còn lại - có thể thử phát hành thủ công (quản trị viên)",
@@ -7449,6 +7866,7 @@ export const generatedLocalePatches = {
       "localFirst": "Chẩn đoán vẫn còn trên thiết bị này trừ khi bạn xuất chúng",
       "openSource": "Nguồn mở",
       "license": "Được cấp phép theo Giấy phép MIT",
+      "website": "Trang web",
       "sourceCode": "Mã nguồn",
       "reportIssue": "Báo cáo vấn đề",
       "projectInfo": "Thông tin dự án",
@@ -7829,6 +8247,8 @@ export const generatedLocalePatches = {
         "connected": "เชื่อมต่อแล้ว",
         "disconnected": "ไม่ได้เชื่อมต่อ",
         "battery": "แบตเตอรี่ {percent}%",
+        "batteryRefreshing": "กำลังอ่านระดับแบตเตอรี่ปัจจุบัน...",
+        "batteryUnavailable": "ระดับแบตเตอรี่ปัจจุบันไม่พร้อมใช้งาน",
         "devicesTitle": "อุปกรณ์ที่จับคู่",
         "noDevices": "ไม่พบอุปกรณ์ต่อพ่วงบลูทูธ",
         "radio": "อะแดปเตอร์บลูทูธ",
@@ -7846,6 +8266,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "ถอดอุปกรณ์ออก",
         "issue": {
           "driver_error": "ไดรเวอร์สำหรับ {name} ทำงานไม่ปกติ",
+          "driver_status_unknown": "Windows ไม่สามารถตรวจสอบสถานะไดรเวอร์สำหรับ {name}",
           "no_radio": "ไม่พบ {adapter}",
           "bthserv_not_running": "{service} ไม่ทำงาน",
           "bthserv_status_unknown": "ไม่สามารถอ่านสถานะของ {service}",
@@ -7875,6 +8296,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "การสแกนฮาร์ดแวร์ไม่เสร็จสมบูรณ์ เปิดใช้งานรายละเอียดขั้นสูงสำหรับผลลัพธ์ดิบ",
         "problemsTitle": "อุปกรณ์ที่ต้องการการดูแลเอาใจใส่",
         "noProblems": "ไม่พบข้อผิดพลาดของตัวจัดการอุปกรณ์",
+        "driverEvidenceUnavailable": "Windows ไม่ได้ส่งคืนข้อมูลเมตาของไดรเวอร์ที่ติดตั้งสำหรับอุปกรณ์นี้",
+        "repairing": "กำลังใช้การทำงานของอุปกรณ์ Windows ที่เลือก จากนั้นตรวจสอบอุปกรณ์อีกครั้ง...",
+        "infFilter": "ข้อมูลการตั้งค่าไดร์เวอร์",
+        "confirmTitle": "ยืนยันการทำงานของไดรเวอร์อุปกรณ์",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "เรียกใช้และตรวจสอบ",
+        "cancel": "ยกเลิก",
+        "action": {
+          "enable": "เปิดใช้งานอุปกรณ์",
+          "restart": "รีสตาร์ทอุปกรณ์",
+          "reinstall_store": "ติดตั้งไดรเวอร์ที่เก็บไว้อีกครั้ง",
+          "install_inf": "ติดตั้งแพ็คเกจ INF อย่างเป็นทางการ"
+        },
+        "risk": {
+          "enable": "Windows จะเปิดใช้งานอุปกรณ์นี้ ฮาร์ดแวร์อาจเริ่มทำงานได้ทันที",
+          "restart": "อุปกรณ์จะหยุดทำงานชั่วครู่ การเข้าถึงเครือข่าย เสียง จอแสดงผล บลูทูธ หรือ USB อาจถูกขัดจังหวะ",
+          "reinstall_store": "Windows จะลบโหนดอุปกรณ์นี้ สแกนอีกครั้ง และเลือกไดรเวอร์ที่ตรงกันที่สุดที่มีอยู่ใน Driver Store แพ็คเกจไดรเวอร์จะไม่ถูกลบ",
+          "install_inf": "เลือก INF จาก Windows Update, ผู้ผลิตพีซี หรือผู้ผลิตฮาร์ดแวร์เท่านั้น Windows จะติดตั้งเมื่อตรงกันและจัดอันดับอย่างเหมาะสมเท่านั้น"
+        },
+        "result": {
+          "verified": "ตรวจสอบแล้ว: ขณะนี้ Windows รายงานรหัสตัวจัดการอุปกรณ์ 0 สำหรับอุปกรณ์นี้",
+          "notVerified": "อุปกรณ์ยังไม่ได้รับการยืนยันว่าได้รับการซ่อมแซมแล้ว",
+          "needsAdmin": "ไม่มีการเปลี่ยนแปลงใดๆ เรียกใช้ ZeroTick ในฐานะผู้ดูแลระบบแล้วลองอีกครั้ง",
+          "commandFailed": "Windows ปฏิเสธหรือล้มเหลวในการดำเนินการ อุปกรณ์ไม่ได้ทำเครื่องหมายว่าซ่อมแซมแล้ว",
+          "deviceMissing": "การดำเนินการดำเนินไป แต่อุปกรณ์ไม่กลับมาระหว่างการตรวจสอบ สแกนอีกครั้งหรือเชื่อมต่อฮาร์ดแวร์อีกครั้ง",
+          "stillFaulty": "การดำเนินการดำเนินไป แต่อุปกรณ์ยังคงรายงานรหัสตัวจัดการอุปกรณ์ {code}",
+          "reboot": "Windows ระบุว่าอาจจำเป็นต้องรีสตาร์ท อุปกรณ์จะไม่ถือว่าได้รับการซ่อมแซมจนกว่าจะมีการตรวจสอบอีกครั้งหลังจากรีสตาร์ท"
+        },
         "class": {
           "network": "อะแดปเตอร์เครือข่าย",
           "display": "อุปกรณ์แสดงผล",
@@ -7979,6 +8428,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "ไดรเวอร์สำหรับ {name} ทำงานไม่ปกติ",
+          "driver_status_unknown": "Windows ไม่สามารถตรวจสอบสถานะไดรเวอร์สำหรับ {name}",
           "no_radio": "ไม่พบ {adapter}",
           "bthserv_not_running": "{service} ไม่ทำงาน",
           "bthserv_status_unknown": "ไม่สามารถอ่านสถานะของ {service}",
@@ -8084,6 +8534,11 @@ export const generatedLocalePatches = {
       "sortPort": "โดยท่าเรือ",
       "sortCategory": "ตามหมวดหมู่",
       "sortReleasable": "ปล่อยไปก่อน",
+      "confirmTitle": "ยุติกระบวนการนี้หรือไม่?",
+      "confirmMessage": "{name} (PID {pid}) กำลังใช้พอร์ตภายในเครื่อง {port}",
+      "confirmWarning": "การสิ้นสุดทันทีอาจขัดจังหวะโปรแกรมและละทิ้งงานที่ยังไม่ได้บันทึก ดำเนินการต่อเมื่อคุณจำได้เท่านั้น",
+      "confirmRun": "สิ้นสุดกระบวนการ",
+      "cancel": "ยกเลิก",
       "releaseConn": "การเชื่อมต่อที่ชัดเจน",
       "message": {
         "time_wait_releasable": "การเชื่อมต่อที่เหลือ — สามารถลองปล่อยด้วยตนเอง (ผู้ดูแลระบบ)",
@@ -8131,6 +8586,7 @@ export const generatedLocalePatches = {
       "localFirst": "การวินิจฉัยจะยังคงอยู่ในอุปกรณ์นี้เว้นแต่คุณจะส่งออก",
       "openSource": "โอเพ่นซอร์ส",
       "license": "ได้รับอนุญาตภายใต้ใบอนุญาต MIT",
+      "website": "เว็บไซต์",
       "sourceCode": "ซอร์สโค้ด",
       "reportIssue": "รายงานปัญหา",
       "projectInfo": "ข้อมูลโครงการ",
@@ -8511,6 +8967,8 @@ export const generatedLocalePatches = {
         "connected": "Terhubung",
         "disconnected": "Tidak terhubung",
         "battery": "Baterai {percent}%",
+        "batteryRefreshing": "Membaca level baterai saat ini…",
+        "batteryUnavailable": "Level baterai saat ini tidak tersedia",
         "devicesTitle": "Perangkat berpasangan",
         "noDevices": "Tidak ditemukan periferal Bluetooth",
         "radio": "Adaptor Bluetooth",
@@ -8528,6 +8986,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Hapus perangkat",
         "issue": {
           "driver_error": "Driver untuk {name} tidak berfungsi normal",
+          "driver_status_unknown": "Windows tidak dapat memverifikasi status driver untuk {name}",
           "no_radio": "Tidak ada {adapter} yang ditemukan",
           "bthserv_not_running": "{service} tidak berjalan",
           "bthserv_status_unknown": "Tidak dapat membaca status {service}",
@@ -8557,6 +9016,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "Pemindaian perangkat keras tidak selesai. Aktifkan detail lanjutan untuk hasil mentah.",
         "problemsTitle": "Perangkat yang perlu diperhatikan",
         "noProblems": "Tidak ditemukan kesalahan Pengelola Perangkat.",
+        "driverEvidenceUnavailable": "Windows tidak mengembalikan metadata driver yang diinstal untuk perangkat ini.",
+        "repairing": "Menerapkan operasi perangkat Windows yang dipilih, lalu memeriksa perangkat lagi...",
+        "infFilter": "Informasi pengaturan driver",
+        "confirmTitle": "Konfirmasikan pengoperasian driver perangkat",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Jalankan dan verifikasi",
+        "cancel": "Batalkan",
+        "action": {
+          "enable": "Aktifkan perangkat",
+          "restart": "Mulai ulang perangkat",
+          "reinstall_store": "Instal ulang driver yang tersimpan",
+          "install_inf": "Instal paket INF resmi"
+        },
+        "risk": {
+          "enable": "Windows akan mengaktifkan perangkat ini. Perangkat kerasnya mungkin segera mulai beroperasi.",
+          "restart": "Perangkat akan berhenti sebentar. Akses jaringan, suara, tampilan, Bluetooth, atau USB mungkin terganggu.",
+          "reinstall_store": "Windows akan menghapus node perangkat ini, memindai lagi, dan memilih driver paling cocok yang sudah ada di Driver Store. Paket driver itu sendiri tidak dihapus.",
+          "install_inf": "Pilih INF hanya dari Pembaruan Windows, produsen PC, atau produsen perangkat keras. Windows akan menginstalnya hanya jika cocok dan diberi peringkat yang tepat."
+        },
+        "result": {
+          "verified": "Terverifikasi: Windows sekarang melaporkan kode Pengelola Perangkat 0 untuk perangkat ini.",
+          "notVerified": "Perangkat belum diverifikasi sebagai diperbaiki.",
+          "needsAdmin": "Tidak ada perubahan yang dilakukan. Jalankan ZeroTick sebagai administrator dan coba lagi.",
+          "commandFailed": "Windows menolak atau gagal dalam operasi. Perangkat tidak ditandai sebagai diperbaiki.",
+          "deviceMissing": "Operasi berjalan, namun perangkat tidak kembali selama verifikasi. Pindai lagi atau sambungkan kembali perangkat keras.",
+          "stillFaulty": "Operasi berjalan, namun perangkat masih melaporkan kode Pengelola Perangkat {code}.",
+          "reboot": "Windows mengindikasikan bahwa restart mungkin diperlukan. Perangkat tidak dianggap diperbaiki sampai diperiksa kembali setelah dihidupkan ulang."
+        },
         "class": {
           "network": "Adaptor jaringan",
           "display": "Perangkat tampilan",
@@ -8661,6 +9148,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "Driver untuk {name} tidak berfungsi normal",
+          "driver_status_unknown": "Windows tidak dapat memverifikasi status driver untuk {name}",
           "no_radio": "Tidak ada {adapter} yang ditemukan",
           "bthserv_not_running": "{service} tidak berjalan",
           "bthserv_status_unknown": "Tidak dapat membaca status {service}",
@@ -8766,6 +9254,11 @@ export const generatedLocalePatches = {
       "sortPort": "Melalui pelabuhan",
       "sortCategory": "Berdasarkan kategori",
       "sortReleasable": "Dapat dirilis terlebih dahulu",
+      "confirmTitle": "Akhiri proses ini?",
+      "confirmMessage": "{name} (PID {pid}) menggunakan port lokal {port}.",
+      "confirmWarning": "Mengakhirinya segera dapat mengganggu program dan membuang pekerjaan yang belum disimpan. Lanjutkan hanya jika Anda mengenalinya.",
+      "confirmRun": "Akhiri proses",
+      "cancel": "Batalkan",
       "releaseConn": "Koneksi yang jelas",
       "message": {
         "time_wait_releasable": "Koneksi sisa — dapat mencoba rilis manual (admin)",
@@ -8813,6 +9306,7 @@ export const generatedLocalePatches = {
       "localFirst": "Diagnostik tetap ada di perangkat ini kecuali Anda mengekspornya",
       "openSource": "Sumber terbuka",
       "license": "Berlisensi di bawah Lisensi MIT",
+      "website": "Situs web",
       "sourceCode": "Kode sumber",
       "reportIssue": "Laporkan masalah",
       "projectInfo": "Informasi proyek",
@@ -9193,6 +9687,8 @@ export const generatedLocalePatches = {
         "connected": "Připojeno",
         "disconnected": "Nepřipojeno",
         "battery": "Baterie {percent}%",
+        "batteryRefreshing": "Čtení aktuálního stavu baterie…",
+        "batteryUnavailable": "Aktuální stav baterie není k dispozici",
         "devicesTitle": "Spárovaná zařízení",
         "noDevices": "Nebyla nalezena žádná periferní zařízení Bluetooth",
         "radio": "Bluetooth adaptér",
@@ -9210,6 +9706,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Odstraňte zařízení",
         "issue": {
           "driver_error": "Ovladač pro {name} nefunguje normálně",
+          "driver_status_unknown": "Windows nemohl ověřit stav ovladače pro {name}",
           "no_radio": "Nebylo nalezeno žádné {adapter}",
           "bthserv_not_running": "{service} neběží",
           "bthserv_status_unknown": "Nelze přečíst stav {service}",
@@ -9239,6 +9736,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "Kontrola hardwaru nebyla dokončena. Povolte pokročilé podrobnosti pro nezpracovaný výsledek.",
         "problemsTitle": "Zařízení, která vyžadují pozornost",
         "noProblems": "Nebyly nalezeny žádné chyby Správce zařízení.",
+        "driverEvidenceUnavailable": "Systém Windows nevrátil metadata nainstalovaného ovladače pro toto zařízení.",
+        "repairing": "Probíhá použití vybrané operace zařízení se systémem Windows a poté znovu kontrola zařízení...",
+        "infFilter": "Informace o nastavení ovladače",
+        "confirmTitle": "Potvrďte činnost ovladače zařízení",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Spustit a ověřit",
+        "cancel": "Zrušit",
+        "action": {
+          "enable": "Povolit zařízení",
+          "restart": "Restartujte zařízení",
+          "reinstall_store": "Znovu nainstalujte uložený ovladač",
+          "install_inf": "Nainstalujte oficiální balíček INF"
+        },
+        "risk": {
+          "enable": "Windows toto zařízení povolí. Jeho hardware může začít fungovat okamžitě.",
+          "restart": "Zařízení se krátce zastaví. Může být přerušen přístup k síti, zvuku, displeji, Bluetooth nebo USB.",
+          "reinstall_store": "Systém Windows odebere tento uzel zařízení, znovu prohledá a vybere nejvhodnější ovladač již v obchodě s ovladači. Samotný balíček ovladače nebude odstraněn.",
+          "install_inf": "Vyberte INF pouze ze služby Windows Update, výrobce počítače nebo výrobce hardwaru. Systém Windows jej nainstaluje pouze tehdy, když se shoduje a zařadí odpovídajícím způsobem."
+        },
+        "result": {
+          "verified": "Ověřeno: Windows nyní hlásí pro toto zařízení kód Správce zařízení 0.",
+          "notVerified": "Zařízení nebylo ověřeno jako opravené.",
+          "needsAdmin": "Nebyla provedena žádná změna. Spusťte ZeroTick jako správce a zkuste to znovu.",
+          "commandFailed": "Windows operaci odmítl nebo selhal. Zařízení není označeno jako opravené.",
+          "deviceMissing": "Operace proběhla, ale zařízení se během ověřování nevrátilo. Naskenujte znovu nebo znovu připojte hardware.",
+          "stillFaulty": "Operace proběhla, ale zařízení stále hlásí kód Správce zařízení {code}.",
+          "reboot": "Systém Windows naznačil, že může být vyžadován restart. Zařízení není považováno za opravené, dokud není po restartu znovu zkontrolováno."
+        },
         "class": {
           "network": "Síťové adaptéry",
           "display": "Zobrazovací zařízení",
@@ -9343,6 +9868,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "Ovladač pro {name} nefunguje normálně",
+          "driver_status_unknown": "Windows nemohl ověřit stav ovladače pro {name}",
           "no_radio": "Nebylo nalezeno žádné {adapter}",
           "bthserv_not_running": "{service} neběží",
           "bthserv_status_unknown": "Nelze přečíst stav {service}",
@@ -9448,6 +9974,11 @@ export const generatedLocalePatches = {
       "sortPort": "Po přístavu",
       "sortCategory": "Podle kategorie",
       "sortReleasable": "Nejprve uvolnitelné",
+      "confirmTitle": "Ukončit tento proces?",
+      "confirmMessage": "{name} (PID {pid}) používá místní port {port}.",
+      "confirmWarning": "Okamžité ukončení může přerušit program a zahodit neuloženou práci. Pokračujte, pouze pokud to poznáte.",
+      "confirmRun": "Ukončení procesu",
+      "cancel": "Zrušit",
       "releaseConn": "Jasné spojení",
       "message": {
         "time_wait_releasable": "Zbytkové připojení – můžete zkusit ruční uvolnění (admin)",
@@ -9495,6 +10026,7 @@ export const generatedLocalePatches = {
       "localFirst": "Diagnostika zůstane na tomto zařízení, dokud je neexportujete",
       "openSource": "Open source",
       "license": "Licencováno pod licencí MIT",
+      "website": "webové stránky",
       "sourceCode": "Zdrojový kód",
       "reportIssue": "Nahlásit problém",
       "projectInfo": "Informace o projektu",
@@ -9875,6 +10407,8 @@ export const generatedLocalePatches = {
         "connected": "Forbundet",
         "disconnected": "Ikke forbundet",
         "battery": "Batteri {percent}%",
+        "batteryRefreshing": "Læser det aktuelle batteriniveau...",
+        "batteryUnavailable": "Aktuelt batteriniveau er ikke tilgængeligt",
         "devicesTitle": "Parrede enheder",
         "noDevices": "Ingen Bluetooth-ydre enheder fundet",
         "radio": "Bluetooth adapter",
@@ -9892,6 +10426,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Fjern enheden",
         "issue": {
           "driver_error": "Driveren til {name} fungerer ikke normalt",
+          "driver_status_unknown": "Windows kunne ikke bekræfte drivertilstanden for {name}",
           "no_radio": "Ingen {adapter} fundet",
           "bthserv_not_running": "{service} kører ikke",
           "bthserv_status_unknown": "Kan ikke læse tilstanden for {service}",
@@ -9921,6 +10456,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "Hardwarescanningen blev ikke fuldført. Aktiver avancerede detaljer for det rå resultat.",
         "problemsTitle": "Enheder, der kræver opmærksomhed",
         "noProblems": "Der blev ikke fundet nogen enhedshåndteringsfejl.",
+        "driverEvidenceUnavailable": "Windows returnerede ikke installeret driver-metadata for denne enhed.",
+        "repairing": "Anvender den valgte Windows-enhedshandling og kontrollerer derefter enheden igen...",
+        "infFilter": "Oplysninger om driveropsætning",
+        "confirmTitle": "Bekræft enhedsdriverens betjening",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Kør og bekræft",
+        "cancel": "Annuller",
+        "action": {
+          "enable": "Aktiver enhed",
+          "restart": "Genstart enheden",
+          "reinstall_store": "Geninstaller den gemte driver",
+          "install_inf": "Installer den officielle INF-pakke"
+        },
+        "risk": {
+          "enable": "Windows aktiverer denne enhed. Dets hardware kan begynde at fungere med det samme.",
+          "restart": "Enheden stopper kortvarigt. Netværk, lyd, skærm, Bluetooth eller USB-adgang kan blive afbrudt.",
+          "reinstall_store": "Windows fjerner denne enhedsknude, scanner igen og vælger den bedst matchende driver allerede i Driver Store. Selve driverpakken slettes ikke.",
+          "install_inf": "Vælg kun en INF fra Windows Update, pc-producenten eller hardwareproducenten. Windows installerer det kun, når det matcher og rangerer korrekt."
+        },
+        "result": {
+          "verified": "Verificeret: Windows rapporterer nu Enhedshåndtering kode 0 for denne enhed.",
+          "notVerified": "Enheden er ikke blevet bekræftet som repareret.",
+          "needsAdmin": "Der blev ikke foretaget nogen ændring. Kør ZeroTick som administrator og prøv igen.",
+          "commandFailed": "Windows afviste eller mislykkede handlingen. Enheden er ikke markeret som repareret.",
+          "deviceMissing": "Handlingen kørte, men enheden vendte ikke tilbage under verificeringen. Scan igen, eller tilslut hardwaren igen.",
+          "stillFaulty": "Handlingen kørte, men enheden rapporterer stadig Enhedshåndteringskode {code}.",
+          "reboot": "Windows indikerede, at en genstart kan være påkrævet. Enheden anses ikke for at være repareret, før den er kontrolleret igen efter genstart."
+        },
         "class": {
           "network": "Netværksadaptere",
           "display": "Displayenheder",
@@ -10025,6 +10588,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "Driveren til {name} fungerer ikke normalt",
+          "driver_status_unknown": "Windows kunne ikke bekræfte drivertilstanden for {name}",
           "no_radio": "Ingen {adapter} fundet",
           "bthserv_not_running": "{service} kører ikke",
           "bthserv_status_unknown": "Kan ikke læse tilstanden for {service}",
@@ -10130,6 +10694,11 @@ export const generatedLocalePatches = {
       "sortPort": "Ved havn",
       "sortCategory": "Efter kategori",
       "sortReleasable": "Udløses først",
+      "confirmTitle": "Vil du afslutte denne proces?",
+      "confirmMessage": "{name} (PID {pid}) bruger lokal port {port}.",
+      "confirmWarning": "Hvis du afslutter det med det samme, kan det afbryde programmet og kassere ikke-gemt arbejde. Fortsæt kun, hvis du genkender det.",
+      "confirmRun": "Afslut processen",
+      "cancel": "Annuller",
       "releaseConn": "Ryd forbindelse",
       "message": {
         "time_wait_releasable": "Restforbindelse - kan prøve manuel frigivelse (admin)",
@@ -10177,6 +10746,7 @@ export const generatedLocalePatches = {
       "localFirst": "Diagnostik forbliver på denne enhed, medmindre du eksporterer dem",
       "openSource": "Open source",
       "license": "Licenseret under MIT-licensen",
+      "website": "Hjemmeside",
       "sourceCode": "Kildekode",
       "reportIssue": "Rapportér problem",
       "projectInfo": "Projektinformation",
@@ -10557,6 +11127,8 @@ export const generatedLocalePatches = {
         "connected": "Yhdistetty",
         "disconnected": "Ei yhdistetty",
         "battery": "Akku {percent}%",
+        "batteryRefreshing": "Luetaan nykyistä akun varaustasoa…",
+        "batteryUnavailable": "Nykyinen akun varaustaso ei ole saatavilla",
         "devicesTitle": "Laiteparit",
         "noDevices": "Bluetooth-oheislaitteita ei löydy",
         "radio": "Bluetooth sovitin",
@@ -10574,6 +11146,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Poista laite",
         "issue": {
           "driver_error": "Kohteen {name} ohjain ei toimi normaalisti",
+          "driver_status_unknown": "Windows ei voinut vahvistaa ohjaimen tilaa {name}",
           "no_radio": "Ei löytynyt {adapter}",
           "bthserv_not_running": "{service} ei ole käynnissä",
           "bthserv_status_unknown": "Ei voi lukea tilaa {service}",
@@ -10603,6 +11176,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "Laitteiston tarkistus ei päättynyt. Ota raakatuloksen lisätiedot käyttöön.",
         "problemsTitle": "Huomiota vaativat laitteet",
         "noProblems": "Laitehallinnan virheitä ei löytynyt.",
+        "driverEvidenceUnavailable": "Windows ei palauttanut asennetun ohjaimen metatietoja tälle laitteelle.",
+        "repairing": "Käytetään valittua Windows-laitetoimintoa ja tarkistetaan laite uudelleen...",
+        "infFilter": "Ohjaimen asetustiedot",
+        "confirmTitle": "Vahvista laiteohjaimen toiminta",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Suorita ja tarkista",
+        "cancel": "Peruuta",
+        "action": {
+          "enable": "Ota laite käyttöön",
+          "restart": "Käynnistä laite uudelleen",
+          "reinstall_store": "Asenna tallennettu ohjain uudelleen",
+          "install_inf": "Asenna virallinen INF-paketti"
+        },
+        "risk": {
+          "enable": "Windows ottaa tämän laitteen käyttöön. Sen laitteisto voi alkaa toimia välittömästi.",
+          "restart": "Laite pysähtyy hetkeksi. Verkko-, ääni-, näyttö-, Bluetooth- tai USB-yhteys saattaa katketa.",
+          "reinstall_store": "Windows poistaa tämän laitesolmun, skannaa uudelleen ja valitsee parhaiten vastaavan ohjaimen jo ohjainkaupasta. Itse ohjainpakettia ei poisteta.",
+          "install_inf": "Valitse INF vain Windows Updatesta, tietokoneen valmistajalta tai laitteiston valmistajalta. Windows asentaa sen vain, kun se vastaa ja sijoittuu asianmukaisesti."
+        },
+        "result": {
+          "verified": "Vahvistettu: Windows raportoi nyt tämän laitteen laitehallintakoodin 0.",
+          "notVerified": "Laitetta ei ole tarkistettu korjatuksi.",
+          "needsAdmin": "Muutosta ei tehty. Suorita ZeroTick järjestelmänvalvojana ja yritä uudelleen.",
+          "commandFailed": "Windows hylkäsi toiminnon tai epäonnistui. Laitetta ei ole merkitty korjatuksi.",
+          "deviceMissing": "Toiminto suoritettiin, mutta laite ei palannut varmennuksen aikana. Skannaa uudelleen tai liitä laitteisto uudelleen.",
+          "stillFaulty": "Toiminto suoritettiin, mutta laite raportoi edelleen laitehallintakoodin {code}.",
+          "reboot": "Windows ilmoitti, että uudelleenkäynnistys saattaa olla tarpeen. Laitetta ei katsota korjatuksi ennen kuin se tarkistetaan uudelleen uudelleenkäynnistyksen jälkeen."
+        },
         "class": {
           "network": "Verkkosovittimet",
           "display": "Näyttölaitteet",
@@ -10707,6 +11308,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "Kohteen {name} ohjain ei toimi normaalisti",
+          "driver_status_unknown": "Windows ei voinut vahvistaa ohjaimen tilaa {name}",
           "no_radio": "Ei löytynyt {adapter}",
           "bthserv_not_running": "{service} ei ole käynnissä",
           "bthserv_status_unknown": "Ei voi lukea tilaa {service}",
@@ -10812,6 +11414,11 @@ export const generatedLocalePatches = {
       "sortPort": "Sataman mukaan",
       "sortCategory": "Luokan mukaan",
       "sortReleasable": "Vapautuu ensin",
+      "confirmTitle": "Lopetetaanko tämä prosessi?",
+      "confirmMessage": "{name} (PID {pid}) käyttää paikallista porttia {port}.",
+      "confirmWarning": "Sen välitön lopettaminen voi keskeyttää ohjelman ja hylätä tallentamattoman työn. Jatka vain, jos tunnistat sen.",
+      "confirmRun": "Lopeta prosessi",
+      "cancel": "Peruuta",
       "releaseConn": "Tyhjennä yhteys",
       "message": {
         "time_wait_releasable": "Jäljellä oleva yhteys – voit kokeilla manuaalista vapautusta (järjestelmänvalvoja)",
@@ -10859,6 +11466,7 @@ export const generatedLocalePatches = {
       "localFirst": "Diagnostiikkatiedot pysyvät tässä laitteessa, ellet viet niitä",
       "openSource": "Avoin lähdekoodi",
       "license": "Lisensoitu MIT-lisenssillä",
+      "website": "Verkkosivusto",
       "sourceCode": "Lähdekoodi",
       "reportIssue": "Ilmoita ongelmasta",
       "projectInfo": "Hankkeen tiedot",
@@ -11239,6 +11847,8 @@ export const generatedLocalePatches = {
         "connected": "Tilkoblet",
         "disconnected": "Ikke tilkoblet",
         "battery": "Batteri {percent}%",
+        "batteryRefreshing": "Leser gjeldende batterinivå …",
+        "batteryUnavailable": "Nåværende batterinivå utilgjengelig",
         "devicesTitle": "Sammenkoblede enheter",
         "noDevices": "Ingen Bluetooth-tilbehør funnet",
         "radio": "Bluetooth-adapter",
@@ -11256,6 +11866,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Fjern enheten",
         "issue": {
           "driver_error": "Driveren for {name} fungerer ikke normalt",
+          "driver_status_unknown": "Windows kunne ikke bekrefte driverstatusen for {name}",
           "no_radio": "Ingen {adapter} funnet",
           "bthserv_not_running": "{service} kjører ikke",
           "bthserv_status_unknown": "Kan ikke lese tilstanden til {service}",
@@ -11285,6 +11896,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "Maskinvareskanningen ble ikke fullført. Aktiver avanserte detaljer for råresultatet.",
         "problemsTitle": "Enheter som trenger oppmerksomhet",
         "noProblems": "Ingen enhetsbehandlingsfeil ble funnet.",
+        "driverEvidenceUnavailable": "Windows returnerte ikke metadata for installert driver for denne enheten.",
+        "repairing": "Bruker den valgte Windows-enhetsoperasjonen, og kontroller deretter enheten på nytt...",
+        "infFilter": "Informasjon om driveroppsett",
+        "confirmTitle": "Bekreft driften av enhetsdriveren",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Kjør og verifiser",
+        "cancel": "Avbryt",
+        "action": {
+          "enable": "Aktiver enheten",
+          "restart": "Start enheten på nytt",
+          "reinstall_store": "Installer lagret driver på nytt",
+          "install_inf": "Installer den offisielle INF-pakken"
+        },
+        "risk": {
+          "enable": "Windows vil aktivere denne enheten. Maskinvaren kan begynne å fungere umiddelbart.",
+          "restart": "Enheten stopper kort. Nettverks-, lyd-, skjerm-, Bluetooth- eller USB-tilgang kan bli avbrutt.",
+          "reinstall_store": "Windows vil fjerne denne enhetsnoden, skanne på nytt og velge den best samsvarende driveren allerede i Driver Store. Selve driverpakken slettes ikke.",
+          "install_inf": "Velg kun en INF fra Windows Update, PC-produsenten eller maskinvareprodusenten. Windows installerer det bare når det matcher og rangerer riktig."
+        },
+        "result": {
+          "verified": "Verifisert: Windows rapporterer nå Enhetsbehandlingskode 0 for denne enheten.",
+          "notVerified": "Enheten er ikke bekreftet som reparert.",
+          "needsAdmin": "Ingen endring ble gjort. Kjør ZeroTick som administrator og prøv på nytt.",
+          "commandFailed": "Windows avviste eller mislyktes operasjonen. Enheten er ikke merket som reparert.",
+          "deviceMissing": "Operasjonen kjørte, men enheten kom ikke tilbake under verifiseringen. Skann igjen eller koble til maskinvaren på nytt.",
+          "stillFaulty": "Operasjonen kjørte, men enheten rapporterer fortsatt Enhetsbehandlingskode {code}.",
+          "reboot": "Windows indikerte at en omstart kan være nødvendig. Enheten anses ikke som reparert før den er kontrollert igjen etter omstart."
+        },
         "class": {
           "network": "Nettverkskort",
           "display": "Vis enheter",
@@ -11389,6 +12028,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "Driveren for {name} fungerer ikke normalt",
+          "driver_status_unknown": "Windows kunne ikke bekrefte driverstatusen for {name}",
           "no_radio": "Ingen {adapter} funnet",
           "bthserv_not_running": "{service} kjører ikke",
           "bthserv_status_unknown": "Kan ikke lese tilstanden til {service}",
@@ -11494,6 +12134,11 @@ export const generatedLocalePatches = {
       "sortPort": "Ved havn",
       "sortCategory": "Etter kategori",
       "sortReleasable": "Slippes først",
+      "confirmTitle": "Vil du avslutte denne prosessen?",
+      "confirmMessage": "{name} (PID {pid}) bruker lokal port {port}.",
+      "confirmWarning": "Hvis du avslutter det umiddelbart, kan det avbryte programmet og forkaste ulagret arbeid. Bare fortsett hvis du gjenkjenner det.",
+      "confirmRun": "Avslutt prosessen",
+      "cancel": "Avbryt",
       "releaseConn": "Fjern forbindelsen",
       "message": {
         "time_wait_releasable": "Restforbindelse - kan prøve manuell utgivelse (admin)",
@@ -11541,6 +12186,7 @@ export const generatedLocalePatches = {
       "localFirst": "Diagnostikk forblir på denne enheten med mindre du eksporterer dem",
       "openSource": "Åpen kildekode",
       "license": "Lisensiert under MIT-lisensen",
+      "website": "Nettsted",
       "sourceCode": "Kildekode",
       "reportIssue": "Rapporter problem",
       "projectInfo": "Prosjektinformasjon",
@@ -11921,6 +12567,8 @@ export const generatedLocalePatches = {
         "connected": "Ansluten",
         "disconnected": "Ej ansluten",
         "battery": "Batteri {percent}%",
+        "batteryRefreshing": "Läser aktuell batterinivå...",
+        "batteryUnavailable": "Aktuell batterinivå är inte tillgänglig",
         "devicesTitle": "Parade enheter",
         "noDevices": "Ingen Bluetooth-kringutrustning hittades",
         "radio": "Bluetooth-adapter",
@@ -11938,6 +12586,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Ta bort enheten",
         "issue": {
           "driver_error": "Drivrutinen för {name} fungerar inte normalt",
+          "driver_status_unknown": "Windows kunde inte verifiera drivrutinsstatusen för {name}",
           "no_radio": "Ingen {adapter} hittades",
           "bthserv_not_running": "{service} körs inte",
           "bthserv_status_unknown": "Kan inte läsa tillståndet för {service}",
@@ -11967,6 +12616,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "Maskinvaruskanningen slutfördes inte. Aktivera avancerade detaljer för råresultatet.",
         "problemsTitle": "Enheter som behöver uppmärksamhet",
         "noProblems": "Inga enhetshanterarfel hittades.",
+        "driverEvidenceUnavailable": "Windows returnerade inte metadata för installerad drivrutin för den här enheten.",
+        "repairing": "Använder den valda Windows-enhetsåtgärden och kontrollerar sedan enheten igen...",
+        "infFilter": "Information om drivrutinsinställningar",
+        "confirmTitle": "Bekräfta drivrutinens funktion",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Kör och verifiera",
+        "cancel": "Avbryt",
+        "action": {
+          "enable": "Aktivera enheten",
+          "restart": "Starta om enheten",
+          "reinstall_store": "Installera om den lagrade drivrutinen",
+          "install_inf": "Installera det officiella INF-paketet"
+        },
+        "risk": {
+          "enable": "Windows kommer att aktivera den här enheten. Dess hårdvara kan börja fungera omedelbart.",
+          "restart": "Enheten stannar kort. Nätverk, ljud, display, Bluetooth eller USB-åtkomst kan avbrytas.",
+          "reinstall_store": "Windows kommer att ta bort den här enhetsnoden, skanna igen och välja den bäst matchande drivrutinen redan i Driver Store. Själva drivrutinspaketet raderas inte.",
+          "install_inf": "Välj endast en INF från Windows Update, PC-tillverkaren eller maskinvarutillverkaren. Windows installerar det bara när det matchar och rankas på lämpligt sätt."
+        },
+        "result": {
+          "verified": "Verifierad: Windows rapporterar nu Enhetshanterarens kod 0 för den här enheten.",
+          "notVerified": "Enheten har inte verifierats som reparerad.",
+          "needsAdmin": "Ingen förändring gjordes. Kör ZeroTick som administratör och försök igen.",
+          "commandFailed": "Windows avvisade eller misslyckades åtgärden. Enheten är inte märkt som reparerad.",
+          "deviceMissing": "Åtgärden kördes, men enheten kom inte tillbaka under verifieringen. Skanna igen eller anslut hårdvaran igen.",
+          "stillFaulty": "Åtgärden kördes, men enheten rapporterar fortfarande Enhetshanterarens kod {code}.",
+          "reboot": "Windows indikerade att en omstart kan krävas. Enheten anses inte vara reparerad förrän den kontrolleras igen efter omstart."
+        },
         "class": {
           "network": "Nätverksadaptrar",
           "display": "Visa enheter",
@@ -12071,6 +12748,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "Drivrutinen för {name} fungerar inte normalt",
+          "driver_status_unknown": "Windows kunde inte verifiera drivrutinsstatusen för {name}",
           "no_radio": "Ingen {adapter} hittades",
           "bthserv_not_running": "{service} körs inte",
           "bthserv_status_unknown": "Kan inte läsa tillståndet för {service}",
@@ -12176,6 +12854,11 @@ export const generatedLocalePatches = {
       "sortPort": "Med hamn",
       "sortCategory": "Efter kategori",
       "sortReleasable": "Släpps först",
+      "confirmTitle": "Vill du avsluta den här processen?",
+      "confirmMessage": "{name} (PID {pid}) använder lokal port {port}.",
+      "confirmWarning": "Att avsluta det omedelbart kan avbryta programmet och kassera osparat arbete. Fortsätt bara om du känner igen det.",
+      "confirmRun": "Avsluta processen",
+      "cancel": "Avbryt",
       "releaseConn": "Tydlig anslutning",
       "message": {
         "time_wait_releasable": "Återstående anslutning — kan prova manuell frigivning (admin)",
@@ -12223,6 +12906,7 @@ export const generatedLocalePatches = {
       "localFirst": "Diagnostiken stannar på den här enheten om du inte exporterar dem",
       "openSource": "Öppen källkod",
       "license": "Licensierad under MIT-licensen",
+      "website": "Webbplats",
       "sourceCode": "Källkod",
       "reportIssue": "Rapportera problem",
       "projectInfo": "Projektinformation",
@@ -12603,6 +13287,8 @@ export const generatedLocalePatches = {
         "connected": "Підключено",
         "disconnected": "Не підключено",
         "battery": "Акумулятор {percent}%",
+        "batteryRefreshing": "Зчитування поточного рівня заряду акумулятора…",
+        "batteryUnavailable": "Поточний рівень заряду акумулятора недоступний",
         "devicesTitle": "Сполучені пристрої",
         "noDevices": "Периферійні пристрої Bluetooth не знайдено",
         "radio": "Bluetooth адаптер",
@@ -12620,6 +13306,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Видаліть пристрій",
         "issue": {
           "driver_error": "Драйвер для {name} не працює належним чином",
+          "driver_status_unknown": "Windows не вдалося перевірити стан драйвера для {name}",
           "no_radio": "{adapter} не знайдено",
           "bthserv_not_running": "{service} не працює",
           "bthserv_status_unknown": "Неможливо прочитати стан {service}",
@@ -12649,6 +13336,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "Сканування апаратного забезпечення не завершено. Увімкніть додаткові деталі для необробленого результату.",
         "problemsTitle": "Пристрої, які потребують уваги",
         "noProblems": "Помилок диспетчера пристроїв не знайдено.",
+        "driverEvidenceUnavailable": "Windows не повернула метадані встановленого драйвера для цього пристрою.",
+        "repairing": "Застосування вибраної операції пристрою Windows, а потім повторна перевірка пристрою...",
+        "infFilter": "Інформація про налаштування драйвера",
+        "confirmTitle": "Підтвердити роботу драйвера пристрою",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Запустіть і перевірте",
+        "cancel": "Скасувати",
+        "action": {
+          "enable": "Увімкнути пристрій",
+          "restart": "Перезапустіть пристрій",
+          "reinstall_store": "Перевстановіть збережений драйвер",
+          "install_inf": "Встановіть офіційний пакет INF"
+        },
+        "risk": {
+          "enable": "Windows увімкне цей пристрій. Його апаратне забезпечення може почати працювати негайно.",
+          "restart": "Пристрій ненадовго зупиниться. Доступ до мережі, звуку, дисплея, Bluetooth або USB може бути перервано.",
+          "reinstall_store": "Windows видалить цей вузол пристрою, повторить сканування та вибере найкращий відповідний драйвер уже в Driver Store. Сам пакет драйверів не видаляється.",
+          "install_inf": "Виберіть INF лише з Windows Update, виробника ПК або виробника обладнання. Windows встановить його лише тоді, коли він відповідатиме та матиме належний ранг."
+        },
+        "result": {
+          "verified": "Перевірено: тепер Windows повідомляє код диспетчера пристроїв 0 для цього пристрою.",
+          "notVerified": "Пристрій не перевірено на ремонт.",
+          "needsAdmin": "Змін не було внесено. Запустіть ZeroTick як адміністратор і повторіть спробу.",
+          "commandFailed": "Операція Windows відхилена або не виконана. Прилад не позначений як відремонтований.",
+          "deviceMissing": "Операція виконана, але пристрій не повернувся під час перевірки. Скануйте ще раз або повторно підключіть апаратне забезпечення.",
+          "stillFaulty": "Операція виконана, але пристрій усе ще повідомляє код диспетчера пристроїв {code}.",
+          "reboot": "Windows вказала, що може знадобитися перезавантаження. Пристрій не вважається відремонтованим, доки його не перевірять знову після перезапуску."
+        },
         "class": {
           "network": "Мережеві адаптери",
           "display": "Пристрої відображення",
@@ -12753,6 +13468,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "Драйвер для {name} не працює належним чином",
+          "driver_status_unknown": "Windows не вдалося перевірити стан драйвера для {name}",
           "no_radio": "{adapter} не знайдено",
           "bthserv_not_running": "{service} не працює",
           "bthserv_status_unknown": "Неможливо прочитати стан {service}",
@@ -12858,6 +13574,11 @@ export const generatedLocalePatches = {
       "sortPort": "Портом",
       "sortCategory": "За категорією",
       "sortReleasable": "Випускається спочатку",
+      "confirmTitle": "Завершити цей процес?",
+      "confirmMessage": "{name} (PID {pid}) використовує локальний порт {port}.",
+      "confirmWarning": "Негайне завершення може перервати програму та скасувати незбережену роботу. Продовжуйте, лише якщо ви це впізнаєте.",
+      "confirmRun": "Завершити процес",
+      "cancel": "Скасувати",
       "releaseConn": "Чисте з'єднання",
       "message": {
         "time_wait_releasable": "Залишкове підключення — можна спробувати розблокувати вручну (адміністратор)",
@@ -12905,6 +13626,7 @@ export const generatedLocalePatches = {
       "localFirst": "Діагностика залишається на цьому пристрої, доки ви її не експортуєте",
       "openSource": "Відкритий код",
       "license": "Ліцензовано згідно з ліцензією MIT",
+      "website": "Веб-сайт",
       "sourceCode": "Вихідний код",
       "reportIssue": "Повідомити про проблему",
       "projectInfo": "Інформація про проект",
@@ -13285,6 +14007,8 @@ export const generatedLocalePatches = {
         "connected": "מחובר",
         "disconnected": "לא מחובר",
         "battery": "סוללה {percent}%",
+        "batteryRefreshing": "קורא את רמת הסוללה הנוכחית...",
+        "batteryUnavailable": "רמת הסוללה הנוכחית אינה זמינה",
         "devicesTitle": "מכשירים מותאמים",
         "noDevices": "לא נמצאו ציוד היקפי Bluetooth",
         "radio": "מתאם בלוטות'",
@@ -13302,6 +14026,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "הסר את המכשיר",
         "issue": {
           "driver_error": "מנהל ההתקן עבור {name} אינו פועל כרגיל",
+          "driver_status_unknown": "Windows לא הצליח לאמת את מצב מנהל ההתקן עבור {name}",
           "no_radio": "לא נמצאו {adapter}",
           "bthserv_not_running": "{service} אינו פועל",
           "bthserv_status_unknown": "לא ניתן לקרוא את המצב של {service}",
@@ -13331,6 +14056,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "סריקת החומרה לא הושלמה. אפשר פרטים מתקדמים עבור התוצאה הגולמית.",
         "problemsTitle": "מכשירים שצריכים תשומת לב",
         "noProblems": "לא נמצאו שגיאות במנהל ההתקנים.",
+        "driverEvidenceUnavailable": "Windows לא החזיר מטא נתונים של מנהל ההתקן המותקן עבור התקן זה.",
+        "repairing": "החלת פעולת מכשיר Windows שנבחרה, ולאחר מכן בדיקת המכשיר שוב...",
+        "infFilter": "מידע על הגדרת מנהל ההתקן",
+        "confirmTitle": "אשר את פעולת מנהל ההתקן",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "הרץ ואמת",
+        "cancel": "בטל",
+        "action": {
+          "enable": "הפעל את המכשיר",
+          "restart": "הפעל מחדש את המכשיר",
+          "reinstall_store": "התקן מחדש דרייבר מאוחסן",
+          "install_inf": "התקן את חבילת ה-INF הרשמית"
+        },
+        "risk": {
+          "enable": "Windows יפעיל מכשיר זה. החומרה שלו עשויה להתחיל לפעול באופן מיידי.",
+          "restart": "המכשיר יפסיק לזמן קצר. גישה לרשת, צליל, תצוגה, Bluetooth או USB עשויה להיקטע.",
+          "reinstall_store": "Windows תסיר את צומת ההתקן הזה, תסרוק שוב ותבחר את מנהל ההתקן המתאים ביותר כבר בחנות מנהלי ההתקנים. חבילת מנהל ההתקן עצמה לא נמחקת.",
+          "install_inf": "בחר INF רק מ-Windows Update, מיצרן המחשב או יצרן החומרה. Windows תתקין אותו רק כאשר הוא תואם ומדורג כראוי."
+        },
+        "result": {
+          "verified": "מאומת: Windows מדווח כעת על קוד מנהל ההתקנים 0 עבור מכשיר זה.",
+          "notVerified": "המכשיר לא אומת כתוקן.",
+          "needsAdmin": "שום שינוי לא נעשה. הפעל את ZeroTick כמנהל ונסה שוב.",
+          "commandFailed": "Windows דחה או נכשל בפעולה. המכשיר אינו מסומן כתיקון.",
+          "deviceMissing": "הפעולה רצה, אך המכשיר לא חזר במהלך האימות. סרוק שוב או חבר מחדש את החומרה.",
+          "stillFaulty": "הפעולה רצה, אך המכשיר עדיין מדווח על קוד מנהל ההתקנים {code}.",
+          "reboot": "Windows ציינה כי ייתכן שתידרש הפעלה מחדש. המכשיר אינו נחשב לתיקון עד שהוא נבדק שוב לאחר הפעלה מחדש."
+        },
         "class": {
           "network": "מתאמי רשת",
           "display": "מכשירי תצוגה",
@@ -13435,6 +14188,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "מנהל ההתקן עבור {name} אינו פועל כרגיל",
+          "driver_status_unknown": "Windows לא הצליח לאמת את מצב מנהל ההתקן עבור {name}",
           "no_radio": "לא נמצאו {adapter}",
           "bthserv_not_running": "{service} אינו פועל",
           "bthserv_status_unknown": "לא ניתן לקרוא את המצב של {service}",
@@ -13540,6 +14294,11 @@ export const generatedLocalePatches = {
       "sortPort": "לפי נמל",
       "sortCategory": "לפי קטגוריה",
       "sortReleasable": "ניתן לשחרור ראשון",
+      "confirmTitle": "לסיים את התהליך הזה?",
+      "confirmMessage": "{name} (PID {pid}) משתמש ביציאה המקומית {port}.",
+      "confirmWarning": "סיום מיידית עלול להפריע לתוכנית ולבטל עבודה שלא נשמרה. המשך רק אם אתה מזהה את זה.",
+      "confirmRun": "סיום תהליך",
+      "cancel": "בטל",
       "releaseConn": "נקה חיבור",
       "message": {
         "time_wait_releasable": "חיבור שיורי - יכול לנסות שחרור ידני (אדמין)",
@@ -13587,6 +14346,7 @@ export const generatedLocalePatches = {
       "localFirst": "אבחון נשאר במכשיר הזה אלא אם כן אתה מייצא אותם",
       "openSource": "קוד פתוח",
       "license": "מורשה תחת רישיון MIT",
+      "website": "אתר אינטרנט",
       "sourceCode": "קוד מקור",
       "reportIssue": "דווח על בעיה",
       "projectInfo": "מידע על הפרויקט",
@@ -13774,7 +14534,7 @@ export const generatedLocalePatches = {
       "audio": {
         "hint": "Periksa pembesar suara, fon kepala, mikrofon dan perkhidmatan audio Windows",
         "idle": "Klik Imbas untuk menyenaraikan peranti audio",
-        "outputTitle": "Output",
+        "outputTitle": "Keluaran",
         "inputTitle": "Input",
         "devicesTitle": "Peranti",
         "noDevices": "Tiada peranti audio ditemui",
@@ -13967,6 +14727,8 @@ export const generatedLocalePatches = {
         "connected": "Bersambung",
         "disconnected": "Tidak bersambung",
         "battery": "Bateri {percent}%",
+        "batteryRefreshing": "Membaca paras bateri semasa…",
+        "batteryUnavailable": "Paras bateri semasa tidak tersedia",
         "devicesTitle": "Peranti berpasangan",
         "noDevices": "Tiada peranti Bluetooth ditemui",
         "radio": "Penyesuai Bluetooth",
@@ -13984,6 +14746,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Alih keluar peranti",
         "issue": {
           "driver_error": "Pemandu untuk {name} tidak berfungsi seperti biasa",
+          "driver_status_unknown": "Windows tidak dapat mengesahkan keadaan pemacu untuk {name}",
           "no_radio": "Tiada {adapter} ditemui",
           "bthserv_not_running": "{service} tidak berjalan",
           "bthserv_status_unknown": "Tidak boleh membaca keadaan {service}",
@@ -14013,6 +14776,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "Imbasan perkakasan tidak selesai. Dayakan butiran lanjutan untuk hasil mentah.",
         "problemsTitle": "Peranti yang memerlukan perhatian",
         "noProblems": "Tiada ralat Pengurus Peranti ditemui.",
+        "driverEvidenceUnavailable": "Windows tidak mengembalikan metadata pemacu terpasang untuk peranti ini.",
+        "repairing": "Menggunakan operasi peranti Windows yang dipilih, kemudian semak peranti itu semula...",
+        "infFilter": "Maklumat persediaan pemandu",
+        "confirmTitle": "Sahkan operasi pemacu peranti",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Jalankan dan sahkan",
+        "cancel": "Batal",
+        "action": {
+          "enable": "Dayakan peranti",
+          "restart": "Mulakan semula peranti",
+          "reinstall_store": "Pasang semula pemacu yang disimpan",
+          "install_inf": "Pasang pakej INF rasmi"
+        },
+        "risk": {
+          "enable": "Windows akan mendayakan peranti ini. Perkakasannya mungkin mula beroperasi serta-merta.",
+          "restart": "Peranti akan berhenti seketika. Akses rangkaian, bunyi, paparan, Bluetooth atau USB mungkin terganggu.",
+          "reinstall_store": "Windows akan mengalih keluar nod peranti ini, mengimbas sekali lagi dan memilih pemacu padanan terbaik yang sudah ada di Stor Pemandu. Pakej pemandu itu sendiri tidak dipadamkan.",
+          "install_inf": "Pilih INF sahaja daripada Windows Update, pengilang PC atau pengilang perkakasan. Windows akan memasangnya hanya apabila ia sepadan dan mempunyai kedudukan yang sesuai."
+        },
+        "result": {
+          "verified": "Disahkan: Windows kini melaporkan kod Pengurus Peranti 0 untuk peranti ini.",
+          "notVerified": "Peranti belum disahkan sebagai dibaiki.",
+          "needsAdmin": "Tiada perubahan dibuat. Jalankan ZeroTick sebagai pentadbir dan cuba semula.",
+          "commandFailed": "Windows menolak atau gagal operasi. Peranti tidak ditandakan sebagai dibaiki.",
+          "deviceMissing": "Operasi berjalan, tetapi peranti tidak kembali semasa pengesahan. Imbas semula atau sambung semula perkakasan.",
+          "stillFaulty": "Operasi berjalan, tetapi peranti masih melaporkan kod Pengurus Peranti {code}.",
+          "reboot": "Windows menunjukkan bahawa permulaan semula mungkin diperlukan. Peranti tidak dianggap dibaiki sehingga ia diperiksa semula selepas dimulakan semula."
+        },
         "class": {
           "network": "Penyesuai rangkaian",
           "display": "Peranti paparan",
@@ -14117,6 +14908,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "Pemandu untuk {name} tidak berfungsi seperti biasa",
+          "driver_status_unknown": "Windows tidak dapat mengesahkan keadaan pemacu untuk {name}",
           "no_radio": "Tiada {adapter} ditemui",
           "bthserv_not_running": "{service} tidak berjalan",
           "bthserv_status_unknown": "Tidak boleh membaca keadaan {service}",
@@ -14222,6 +15014,11 @@ export const generatedLocalePatches = {
       "sortPort": "Melalui pelabuhan",
       "sortCategory": "Mengikut kategori",
       "sortReleasable": "Boleh dilepaskan dahulu",
+      "confirmTitle": "Tamatkan proses ini?",
+      "confirmMessage": "{name} (PID {pid}) menggunakan port tempatan {port}.",
+      "confirmWarning": "Menamatkannya dengan segera mungkin mengganggu program dan membuang kerja yang tidak disimpan. Hanya teruskan jika anda mengenalinya.",
+      "confirmRun": "Tamat proses",
+      "cancel": "Batal",
       "releaseConn": "Sambungan yang jelas",
       "message": {
         "time_wait_releasable": "Sambungan baki — boleh mencuba keluaran manual (admin)",
@@ -14269,6 +15066,7 @@ export const generatedLocalePatches = {
       "localFirst": "Diagnostik kekal pada peranti ini melainkan anda mengeksportnya",
       "openSource": "Sumber terbuka",
       "license": "Dilesenkan di bawah Lesen MIT",
+      "website": "laman web",
       "sourceCode": "Kod sumber",
       "reportIssue": "Laporkan isu",
       "projectInfo": "Maklumat projek",
@@ -14649,6 +15447,8 @@ export const generatedLocalePatches = {
         "connected": "Conectat",
         "disconnected": "Nu este conectat",
         "battery": "Baterie {percent}%",
+        "batteryRefreshing": "Se citește nivelul actual al bateriei...",
+        "batteryUnavailable": "Nivelul actual al bateriei indisponibil",
         "devicesTitle": "Dispozitive asociate",
         "noDevices": "Nu s-au găsit periferice Bluetooth",
         "radio": "Adaptor Bluetooth",
@@ -14666,6 +15466,7 @@ export const generatedLocalePatches = {
         "removeConfirm": "Scoateți dispozitivul",
         "issue": {
           "driver_error": "Driverul pentru {name} nu funcționează normal",
+          "driver_status_unknown": "Windows nu a putut verifica starea driverului pentru {name}",
           "no_radio": "Nu s-a găsit {adapter}",
           "bthserv_not_running": "{service} nu rulează",
           "bthserv_status_unknown": "Nu se poate citi starea {service}",
@@ -14695,6 +15496,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "Scanarea hardware nu s-a finalizat. Activați detaliile avansate pentru rezultatul brut.",
         "problemsTitle": "Dispozitive care necesită atenție",
         "noProblems": "Nu au fost găsite erori în Managerul de dispozitive.",
+        "driverEvidenceUnavailable": "Windows nu a returnat metadatele driverului instalat pentru acest dispozitiv.",
+        "repairing": "Se aplică operațiunea dispozitivului Windows selectat, apoi se verifică din nou dispozitivul...",
+        "infFilter": "Informații despre configurarea driverului",
+        "confirmTitle": "Confirmați funcționarea driverului de dispozitiv",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Rulați și verificați",
+        "cancel": "Anulează",
+        "action": {
+          "enable": "Activați dispozitivul",
+          "restart": "Reporniți dispozitivul",
+          "reinstall_store": "Reinstalați driverul stocat",
+          "install_inf": "Instalați pachetul INF oficial"
+        },
+        "risk": {
+          "enable": "Windows va activa acest dispozitiv. Hardware-ul său poate începe să funcționeze imediat.",
+          "restart": "Dispozitivul se va opri pentru scurt timp. Accesul la rețea, sunet, afișaj, Bluetooth sau USB poate fi întrerupt.",
+          "reinstall_store": "Windows va elimina acest nod de dispozitiv, va scana din nou și va selecta cel mai bun driver care se potrivește deja în Magazinul de drivere. Pachetul de driver în sine nu este șters.",
+          "install_inf": "Selectați un INF numai din Windows Update, producătorul PC-ului sau producătorul hardware. Windows îl va instala numai atunci când se potrivește și se clasează corespunzător."
+        },
+        "result": {
+          "verified": "Verificat: Windows raportează acum codul Device Manager 0 pentru acest dispozitiv.",
+          "notVerified": "Dispozitivul nu a fost verificat ca reparat.",
+          "needsAdmin": "Nu s-a făcut nicio modificare. Rulați ZeroTick ca administrator și reîncercați.",
+          "commandFailed": "Windows a respins sau a eșuat operația. Dispozitivul nu este marcat ca reparat.",
+          "deviceMissing": "Operația a derulat, dar dispozitivul nu a revenit în timpul verificării. Scanați din nou sau reconectați hardware-ul.",
+          "stillFaulty": "Operațiunea a rulat, dar dispozitivul încă raportează codul Device Manager {code}.",
+          "reboot": "Windows a indicat că poate fi necesară o repornire. Dispozitivul nu este considerat reparat până când nu este verificat din nou după repornire."
+        },
         "class": {
           "network": "Adaptoare de rețea",
           "display": "Dispozitive de afișare",
@@ -14799,6 +15628,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "Driverul pentru {name} nu funcționează normal",
+          "driver_status_unknown": "Windows nu a putut verifica starea driverului pentru {name}",
           "no_radio": "Nu s-a găsit {adapter}",
           "bthserv_not_running": "{service} nu rulează",
           "bthserv_status_unknown": "Nu se poate citi starea {service}",
@@ -14904,6 +15734,11 @@ export const generatedLocalePatches = {
       "sortPort": "Prin port",
       "sortCategory": "Pe categorii",
       "sortReleasable": "Lansabil mai întâi",
+      "confirmTitle": "Încheiați acest proces?",
+      "confirmMessage": "{name} (PID {pid}) folosește portul local {port}.",
+      "confirmWarning": "Încheierea imediată poate întrerupe programul și poate elimina lucrările nesalvate. Continuați doar dacă îl recunoașteți.",
+      "confirmRun": "Încheiați procesul",
+      "cancel": "Anulează",
       "releaseConn": "Ștergeți conexiunea",
       "message": {
         "time_wait_releasable": "Conexiune reziduală - poate încerca eliberarea manuală (administrator)",
@@ -14951,6 +15786,7 @@ export const generatedLocalePatches = {
       "localFirst": "Diagnosticarea rămâne pe acest dispozitiv dacă nu le exportați",
       "openSource": "Sursă deschisă",
       "license": "Licențiat sub licența MIT",
+      "website": "Site-ul web",
       "sourceCode": "Cod sursă",
       "reportIssue": "Raportați problema",
       "projectInfo": "Informații despre proiect",
@@ -15221,7 +16057,7 @@ export const generatedLocalePatches = {
         "backupConfirmed": "Ellenőriztem a meghajtó betűjelét, és minden fontos fájlról biztonsági másolatot készítettem",
         "typeDriveLetter": "Írja be a következőt: {letter} a teljes formátum megerősítéséhez",
         "typeDriveLetterPlaceholder": "Írja be a meghajtó betűjelét {letter}",
-        "cancelFormat": "Mégse",
+        "cancelFormat": "Mégsem",
         "confirmQuickFormat": "Gyors formázás megerősítése",
         "confirmFullFormat": "Erősítse meg a teljes formátumot",
         "formattingQuick": "Gyors formázás {letter}:. Ne húzza ki a készüléket…",
@@ -15331,6 +16167,8 @@ export const generatedLocalePatches = {
         "connected": "Csatlakozva",
         "disconnected": "Nincs csatlakoztatva",
         "battery": "Akkumulátor {percent}%",
+        "batteryRefreshing": "Az akkumulátor töltöttségi szintjének leolvasása…",
+        "batteryUnavailable": "Az akkumulátor jelenlegi szintje nem érhető el",
         "devicesTitle": "Párosított eszközök",
         "noDevices": "Nem található Bluetooth periféria",
         "radio": "Bluetooth adapter",
@@ -15344,10 +16182,11 @@ export const generatedLocalePatches = {
         "removeConfirmSummary": "A ZeroTick eltávolítja ezt az eszközpéldányt a Windowsból, nem csupán leválasztja.",
         "removeConfirmRisk": "Az aktuális kapcsolati és párosítási információ elveszhet. Lehetséges, hogy újra párosítania kell az eszközt a Windows beállításaiban.",
         "removeConfirmHint": "Ezt csak akkor használja, ha az újracsatlakozás és a Bluetooth-javítás nem oldotta meg a problémát.",
-        "removeCancel": "Mégse",
+        "removeCancel": "Mégsem",
         "removeConfirm": "Távolítsa el az eszközt",
         "issue": {
           "driver_error": "A {name} illesztőprogramja nem működik megfelelően",
+          "driver_status_unknown": "A Windows nem tudta ellenőrizni a {name} illesztőprogram-állapotát",
           "no_radio": "Nem található {adapter}",
           "bthserv_not_running": "{service} nem fut",
           "bthserv_status_unknown": "Nem olvasható a {service} állapota",
@@ -15377,6 +16216,34 @@ export const generatedLocalePatches = {
         "rescanFailed": "A hardveres vizsgálat nem fejeződött be. Speciális részletek engedélyezése a nyers eredményhez.",
         "problemsTitle": "Figyelmet igénylő eszközök",
         "noProblems": "Nem található Eszközkezelő hiba.",
+        "driverEvidenceUnavailable": "A Windows nem adta vissza a telepített illesztőprogram metaadatait ehhez az eszközhöz.",
+        "repairing": "A kiválasztott Windows-eszközművelet alkalmazása, majd az eszköz újbóli ellenőrzése...",
+        "infFilter": "Az illesztőprogram beállítási információi",
+        "confirmTitle": "Erősítse meg az eszközillesztő működését",
+        "confirmMessage": "{action}: {name}",
+        "confirmRun": "Futtassa és ellenőrizze",
+        "cancel": "Mégsem",
+        "action": {
+          "enable": "Eszköz engedélyezése",
+          "restart": "Indítsa újra az eszközt",
+          "reinstall_store": "Telepítse újra a tárolt illesztőprogramot",
+          "install_inf": "Telepítse a hivatalos INF csomagot"
+        },
+        "risk": {
+          "enable": "A Windows engedélyezi ezt az eszközt. Hardvere azonnal működésbe léphet.",
+          "restart": "A készülék rövid időre leáll. A hálózati, hang-, kijelző-, Bluetooth- vagy USB-hozzáférés megszakadhat.",
+          "reinstall_store": "A Windows eltávolítja ezt az eszközcsomópontot, újra megvizsgálja, és kiválasztja a legmegfelelőbb illesztőprogramot az Illesztőprogram-áruházból. Maga az illesztőprogram-csomag nem törlődik.",
+          "install_inf": "Válasszon INF-et csak a Windows Update-től, a számítógép gyártójától vagy a hardvergyártótól. A Windows csak akkor telepíti, ha megfelel, és megfelelően rangsorolja."
+        },
+        "result": {
+          "verified": "Ellenőrizve: a Windows mostantól 0-s Eszközkezelő-kódot jelent ehhez az eszközhöz.",
+          "notVerified": "A készüléket nem ellenőrizték javítottként.",
+          "needsAdmin": "Nem történt változás. Futtassa a ZeroTick-et rendszergazdaként, és próbálkozzon újra.",
+          "commandFailed": "A Windows elutasította vagy meghiúsította a műveletet. A készülék nincs javítottként megjelölve.",
+          "deviceMissing": "A művelet lefutott, de az eszköz nem tért vissza az ellenőrzés során. Vizsgálja meg újra, vagy csatlakoztassa újra a hardvert.",
+          "stillFaulty": "A művelet lefutott, de az eszköz továbbra is jelzi az Eszközkezelő kódot: {code}.",
+          "reboot": "A Windows jelezte, hogy újraindításra lehet szükség. Az eszköz mindaddig nem tekinthető javítottnak, amíg újra nem ellenőrizték az újraindítás után."
+        },
         "class": {
           "network": "Hálózati adapterek",
           "display": "Kijelző eszközök",
@@ -15481,6 +16348,7 @@ export const generatedLocalePatches = {
       "bluetooth": {
         "issue": {
           "driver_error": "A {name} illesztőprogramja nem működik megfelelően",
+          "driver_status_unknown": "A Windows nem tudta ellenőrizni a {name} illesztőprogram-állapotát",
           "no_radio": "Nem található {adapter}",
           "bthserv_not_running": "{service} nem fut",
           "bthserv_status_unknown": "Nem olvasható a {service} állapota",
@@ -15586,6 +16454,11 @@ export const generatedLocalePatches = {
       "sortPort": "Kikötőn keresztül",
       "sortCategory": "Kategóriánként",
       "sortReleasable": "Először kiadható",
+      "confirmTitle": "Befejezi ezt a folyamatot?",
+      "confirmMessage": "{name} (PID {pid}) a {port} helyi portot használja.",
+      "confirmWarning": "Az azonnali leállítás megszakíthatja a programot, és elvetheti a nem mentett munkákat. Csak akkor folytassa, ha felismeri.",
+      "confirmRun": "A folyamat befejezése",
+      "cancel": "Mégsem",
       "releaseConn": "Tiszta kapcsolat",
       "message": {
         "time_wait_releasable": "Fennmaradó kapcsolat – kipróbálhatja a kézi kioldást (admin)",
@@ -15633,6 +16506,7 @@ export const generatedLocalePatches = {
       "localFirst": "A diagnosztikai adatok ezen az eszközön maradnak, hacsak nem exportálja őket",
       "openSource": "Nyílt forráskódú",
       "license": "Licenc az MIT licenc alatt",
+      "website": "Weboldal",
       "sourceCode": "Forráskód",
       "reportIssue": "Probléma bejelentése",
       "projectInfo": "Projekt információk",

@@ -87,10 +87,18 @@ pub fn export_csv() -> Result<String, String> {
 }
 
 fn csv_cell(value: &str) -> String {
+    // Device names and paths can originate from untrusted hardware metadata. Spreadsheet
+    // programs interpret cells beginning with these characters as formulas, even when the
+    // CSV field is quoted. Prefix an apostrophe so exported diagnostics stay inert.
+    let value = if value.starts_with(['=', '+', '-', '@', '\t', '\r']) {
+        format!("'{value}")
+    } else {
+        value.to_string()
+    };
     if value.contains(',') || value.contains('"') || value.contains('\n') || value.contains('\r') {
         format!("\"{}\"", value.replace('"', "\"\""))
     } else {
-        value.to_string()
+        value
     }
 }
 
@@ -131,5 +139,11 @@ mod export_tests {
     #[test]
     fn csv_escapes_commas() {
         assert_eq!(csv_cell("a,b"), "\"a,b\"");
+    }
+
+    #[test]
+    fn csv_neutralizes_spreadsheet_formulas_from_device_metadata() {
+        assert_eq!(csv_cell("=1+1"), "'=1+1");
+        assert_eq!(csv_cell("@SUM(1,2)"), "\"'@SUM(1,2)\"");
     }
 }

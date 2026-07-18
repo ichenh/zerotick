@@ -75,16 +75,16 @@ pub struct SpeedTestResult {
     pub duration_ms: u64,
     pub speed_mbps: f64,
     pub url: String,
-    pub vpn_active: bool,
+    pub vpn_active: Option<bool>,
 }
 
 pub fn diagnose() -> Result<NetworkDiagReport, String> {
     let (services, gateway, gateway_reachable, adapter_count, vpn) = std::thread::scope(|scope| {
         let services_task = scope.spawn(|| services::diagnose_group(NETWORK));
         let gateway_task = scope.spawn(|| {
-            let gateway = detect_gateway();
-            let reachable = gateway.as_ref().map(|value| ping_once(value));
-            (gateway, reachable)
+            let gateway = detect_gateway()?;
+            let reachable = gateway.as_ref().and_then(|value| ping_once(value));
+            Ok::<_, String>((gateway, reachable))
         });
         let adapters_task = scope.spawn(count_adapters);
         let vpn_task = scope.spawn(detect_vpn);
@@ -93,13 +93,13 @@ pub fn diagnose() -> Result<NetworkDiagReport, String> {
             .map_err(|_| "网络服务扫描异常终止".to_string())??;
         let (gateway, gateway_reachable) = gateway_task
             .join()
-            .map_err(|_| "网关扫描异常终止".to_string())?;
+            .map_err(|_| "网关扫描异常终止".to_string())??;
         let adapter_count = adapters_task
             .join()
-            .map_err(|_| "网络适配器扫描异常终止".to_string())?;
+            .map_err(|_| "网络适配器扫描异常终止".to_string())??;
         let vpn = vpn_task
             .join()
-            .map_err(|_| "VPN 扫描异常终止".to_string())?;
+            .map_err(|_| "VPN 扫描异常终止".to_string())??;
         Ok::<_, String>((services, gateway, gateway_reachable, adapter_count, vpn))
     })?;
     Ok(NetworkDiagReport {
@@ -127,7 +127,7 @@ pub fn flush_dns() -> Result<(), String> {
 
 pub fn speed_test() -> Result<SpeedTestResult, String> {
     const URL: &str = "https://speed.cloudflare.com/__down?bytes=1048576";
-    let vpn_active = detect_vpn().active;
+    let vpn_active = detect_vpn().map(|report| report.active).ok();
     let (bytes, duration_ms) = download_speed_sample_rustls(URL)
         .or_else(|_| download_speed_sample_curl(URL, false))
         .or_else(|_| download_speed_sample_curl(URL, true))?;
@@ -250,14 +250,14 @@ pub fn repair() -> (Vec<String>, Vec<String>) {
     services::repair_group(NETWORK)
 }
 
-fn detect_vpn() -> VpnReport {
+fn detect_vpn() -> Result<VpnReport, String> {
     let script = r#"
 $pattern = 'VPN|TAP-Windows|TUN|WireGuard|Wintun|OpenVPN|ZeroTier|Tailscale|NordLynx|Cisco|AnyConnect|PANGP|GlobalProtect|Juniper|Pulse Secure|Fortinet|Cloudflare|WARP|Clash|Mihomo|sing-box|V2Ray|Xray|Outline|Hiddify|Neko|SSTP|IKEv2|L2TP|PPTP'
 $platformPattern = 'Hyper-V|VMware|VirtualBox|WSL|Docker|vEthernet|Loopback|Npcap'
-$defaultIndexes = @(Get-NetRoute -ErrorAction SilentlyContinue | Where-Object {
+$defaultIndexes = @(Get-NetRoute -ErrorAction Stop | Where-Object {
   $_.DestinationPrefix -in @('0.0.0.0/0', '::/0')
 } | Select-Object -ExpandProperty InterfaceIndex -Unique)
-$adapters = @(Get-NetAdapter -IncludeHidden -ErrorAction SilentlyContinue | Where-Object {
+$adapters = @(Get-NetAdapter -IncludeHidden -ErrorAction Stop | Where-Object {
   if ($_.Status -ne 'Up') { return $false }
   $namedTunnel = $_.InterfaceDescription -match $pattern -or $_.Name -match $pattern
   $defaultVirtual = $defaultIndexes -contains $_.ifIndex -and $_.HardwareInterface -eq $false -and $_.InterfaceDescription -notmatch $platformPattern -and $_.Name -notmatch $platformPattern
@@ -399,10 +399,15 @@ $tunnelActive = ($adapters.Count -gt 0) -or ($vpnConns.Count -gt 0)
   }
 }
 "#;
-    powershell::run_json(script)
-        .ok()
-        .map(parse_vpn_json)
-        .unwrap_or_default()
+    let value = powershell::run_json(script)?;
+    if !value
+        .get("active")
+        .is_some_and(serde_json::Value::is_boolean)
+        || !value.get("proxy").is_some_and(serde_json::Value::is_object)
+    {
+        return Err("network_vpn:invalid_response".into());
+    }
+    Ok(parse_vpn_json(value))
 }
 
 fn parse_vpn_json(v: serde_json::Value) -> VpnReport {
@@ -498,40 +503,46 @@ impl Default for VpnReport {
     }
 }
 
-fn detect_gateway() -> Option<String> {
+fn detect_gateway() -> Result<Option<String>, String> {
     let output = Command::new("powershell")
         .hide_window()
         .args([
             "-NoProfile",
             "-NonInteractive",
             "-Command",
-            "(Get-NetRoute -DestinationPrefix '0.0.0.0/0' | Sort-Object RouteMetric | Select-Object -First 1).NextHop",
+            "$ErrorActionPreference='Stop'; @(Get-NetRoute -AddressFamily IPv4 | Where-Object DestinationPrefix -eq '0.0.0.0/0' | Sort-Object RouteMetric | Select-Object -First 1 -ExpandProperty NextHop)",
         ])
         .output()
-        .ok()?;
+        .map_err(|error| format!("network_gateway:start_failed:{error}"))?;
+    if !output.status.success() {
+        let detail = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        return Err(format!("network_gateway:query_failed:{detail}"));
+    }
     let ip = String::from_utf8_lossy(&output.stdout).trim().to_string();
     if ip.is_empty() || ip == "0.0.0.0" {
-        None
+        Ok(None)
     } else {
-        Some(ip)
+        Ok(Some(ip))
     }
 }
 
-fn ping_once(host: &str) -> bool {
+fn ping_once(host: &str) -> Option<bool> {
     Command::new("ping")
         .hide_window()
         .args(["-n", "1", "-w", "1500", host])
         .output()
         .map(|o| o.status.success())
-        .unwrap_or(false)
+        .ok()
 }
 
-fn count_adapters() -> usize {
+fn count_adapters() -> Result<usize, String> {
     let script = "(@(Get-NetAdapter | Where-Object Status -eq 'Up')).Count";
-    powershell::run_json(script)
-        .ok()
-        .and_then(|v| v.as_u64().map(|n| n as usize))
-        .unwrap_or(0)
+    powershell::run_json(script).and_then(|value| {
+        value
+            .as_u64()
+            .map(|count| count as usize)
+            .ok_or_else(|| "network_adapters:invalid_response".to_string())
+    })
 }
 
 #[cfg(test)]

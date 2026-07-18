@@ -6,6 +6,15 @@ use crate::utils::wmi_runner;
 use serde::{Deserialize, Serialize};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
+use windows::core::PCWSTR;
+use windows::Win32::System::Services::{
+    CloseServiceHandle, OpenSCManagerW, OpenServiceW, QueryServiceConfigW, QueryServiceStatusEx,
+    QUERY_SERVICE_CONFIGW, SC_HANDLE, SC_MANAGER_CONNECT, SC_STATUS_PROCESS_INFO,
+    SERVICE_AUTO_START, SERVICE_BOOT_START, SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START,
+    SERVICE_DISABLED, SERVICE_PAUSED, SERVICE_PAUSE_PENDING, SERVICE_QUERY_CONFIG,
+    SERVICE_QUERY_STATUS, SERVICE_RUNNING, SERVICE_START_PENDING, SERVICE_STATUS_CURRENT_STATE,
+    SERVICE_STATUS_PROCESS, SERVICE_STOPPED, SERVICE_STOP_PENDING, SERVICE_SYSTEM_START,
+};
 use wmi::WMIConnection;
 
 const SNAPSHOT_TTL: Duration = Duration::from_secs(2);
@@ -148,6 +157,30 @@ pub fn diagnose_group(defs: &'static [ServiceDef]) -> Result<ServicesReport, Str
     Ok(build_report(defs, &snapshot))
 }
 
+/// Query required services directly through the Service Control Manager. This
+/// avoids waiting behind unrelated WMI jobs while preserving the same state and
+/// start-mode evidence. Groups with on-demand OS-specific policy keep using the
+/// WMI snapshot so their Windows-version interpretation remains unchanged.
+pub fn diagnose_group_native(defs: &'static [ServiceDef]) -> Result<ServicesReport, String> {
+    if defs
+        .iter()
+        .any(|definition| definition.run_policy != ServiceRunPolicy::Required)
+    {
+        return Err("native service query does not support OS-specific run policies".into());
+    }
+    let services = defs
+        .iter()
+        .map(|definition| query_service_native(definition.name))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(build_report(
+        defs,
+        &ServiceSnapshot {
+            services,
+            windows_11_workstation: false,
+        },
+    ))
+}
+
 pub fn invalidate_diagnostic_cache() {
     if let Some(cache) = SNAPSHOT_CACHE.get() {
         if let Ok(mut cache) = cache.lock() {
@@ -189,6 +222,105 @@ fn query_service_snapshot(wmi: &WMIConnection) -> Result<ServiceSnapshot, wmi::W
         services,
         windows_11_workstation: is_windows_11_workstation(wmi),
     })
+}
+
+fn query_service_native(name: &str) -> Result<Win32Service, String> {
+    unsafe {
+        let manager = OpenSCManagerW(None, None, SC_MANAGER_CONNECT)
+            .map_err(|error| format!("open service manager failed: {error}"))?;
+        let wide_name = name
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect::<Vec<_>>();
+        let service = match OpenServiceW(
+            manager,
+            PCWSTR(wide_name.as_ptr()),
+            SERVICE_QUERY_STATUS | SERVICE_QUERY_CONFIG,
+        ) {
+            Ok(service) => service,
+            Err(error) => {
+                let _ = CloseServiceHandle(manager);
+                return Err(format!("open service {name} failed: {error}"));
+            }
+        };
+        let result = (|| {
+            let status = query_service_status_native(service)?;
+            let start_type = query_service_start_type_native(service)?;
+            Ok(Win32Service {
+                name: Some(name.to_string()),
+                state: Some(service_state_name(status.dwCurrentState).to_string()),
+                start_mode: Some(service_start_mode_name(start_type).to_string()),
+            })
+        })();
+        let _ = CloseServiceHandle(service);
+        let _ = CloseServiceHandle(manager);
+        result
+    }
+}
+
+unsafe fn query_service_status_native(
+    service: SC_HANDLE,
+) -> Result<SERVICE_STATUS_PROCESS, String> {
+    let mut status = SERVICE_STATUS_PROCESS::default();
+    let mut bytes_needed = 0_u32;
+    let buffer = unsafe {
+        std::slice::from_raw_parts_mut(
+            (&mut status as *mut SERVICE_STATUS_PROCESS).cast::<u8>(),
+            std::mem::size_of::<SERVICE_STATUS_PROCESS>(),
+        )
+    };
+    unsafe {
+        QueryServiceStatusEx(
+            service,
+            SC_STATUS_PROCESS_INFO,
+            Some(buffer),
+            &mut bytes_needed,
+        )
+    }
+    .map_err(|error| format!("query service status failed: {error}"))?;
+    Ok(status)
+}
+
+unsafe fn query_service_start_type_native(service: SC_HANDLE) -> Result<u32, String> {
+    let mut bytes_needed = 0_u32;
+    let first = unsafe { QueryServiceConfigW(service, None, 0, &mut bytes_needed) };
+    if bytes_needed < std::mem::size_of::<QUERY_SERVICE_CONFIGW>() as u32 {
+        return Err(first
+            .err()
+            .map(|error| format!("query service config size failed: {error}"))
+            .unwrap_or_else(|| "query service config returned an invalid size".into()));
+    }
+    let word_size = std::mem::size_of::<usize>();
+    let words = (bytes_needed as usize).div_ceil(word_size);
+    let mut buffer = vec![0_usize; words];
+    let config = buffer.as_mut_ptr().cast::<QUERY_SERVICE_CONFIGW>();
+    unsafe { QueryServiceConfigW(service, Some(config), bytes_needed, &mut bytes_needed) }
+        .map_err(|error| format!("query service config failed: {error}"))?;
+    Ok(unsafe { (*config).dwStartType.0 })
+}
+
+fn service_state_name(state: SERVICE_STATUS_CURRENT_STATE) -> &'static str {
+    match state {
+        SERVICE_RUNNING => "Running",
+        SERVICE_STOPPED => "Stopped",
+        SERVICE_START_PENDING => "Start Pending",
+        SERVICE_STOP_PENDING => "Stop Pending",
+        SERVICE_PAUSED => "Paused",
+        SERVICE_PAUSE_PENDING => "Pause Pending",
+        SERVICE_CONTINUE_PENDING => "Continue Pending",
+        _ => "Unknown",
+    }
+}
+
+fn service_start_mode_name(start_type: u32) -> &'static str {
+    match start_type {
+        value if value == SERVICE_AUTO_START.0 => "Auto",
+        value if value == SERVICE_DEMAND_START.0 => "Manual",
+        value if value == SERVICE_DISABLED.0 => "Disabled",
+        value if value == SERVICE_BOOT_START.0 => "Boot",
+        value if value == SERVICE_SYSTEM_START.0 => "System",
+        _ => "Unknown",
+    }
 }
 
 fn build_report(defs: &'static [ServiceDef], snapshot: &ServiceSnapshot) -> ServicesReport {
@@ -298,7 +430,13 @@ fn is_expected_stopped(
 
 #[cfg(test)]
 mod tests {
-    use super::{is_expected_stopped, ServiceRunPolicy};
+    use super::{
+        is_expected_stopped, service_start_mode_name, service_state_name, ServiceRunPolicy,
+    };
+    use windows::Win32::System::Services::{
+        SERVICE_AUTO_START, SERVICE_DEMAND_START, SERVICE_DISABLED, SERVICE_RUNNING,
+        SERVICE_STOPPED,
+    };
 
     #[test]
     fn windows_11_manual_nla_is_expected_to_be_idle() {
@@ -324,5 +462,14 @@ mod tests {
             Some("Manual"),
             false,
         ));
+    }
+
+    #[test]
+    fn native_service_values_match_existing_diagnostic_terms() {
+        assert_eq!(service_state_name(SERVICE_RUNNING), "Running");
+        assert_eq!(service_state_name(SERVICE_STOPPED), "Stopped");
+        assert_eq!(service_start_mode_name(SERVICE_AUTO_START.0), "Auto");
+        assert_eq!(service_start_mode_name(SERVICE_DEMAND_START.0), "Manual");
+        assert_eq!(service_start_mode_name(SERVICE_DISABLED.0), "Disabled");
     }
 }
