@@ -375,7 +375,7 @@ export function renderNetworkReport(report) {
       <span class="result-label">${escapeHtml(t("toolkit.network.diagnosisTitle"))}</span>
       <span class="result-value"><ul class="result-list">${networkDiagnosisKeys(report).map((key) => `<li>${escapeHtml(t(key))}</li>`).join("")}</ul></span>
     </div>
-    <div class="result-row advanced-only"><span class="result-label">${escapeHtml(t("toolkit.network.gateway"))}</span><span class="result-value mono">${escapeHtml(gw)} · ${escapeHtml(reachText)}</span></div>
+    <div class="result-row advanced-only"><span class="result-label">${escapeHtml(t("toolkit.network.gateway"))}</span><span class="result-value network-gateway-value"><span class="mono">${escapeHtml(gw)}</span><span class="network-gateway-state">${escapeHtml(reachText)}</span></span></div>
     <div class="result-row advanced-only"><span class="result-label">${escapeHtml(t("toolkit.network.adapters"))}</span><span class="result-value">${escapeHtml(String(report.adapter_count ?? 0))}</span></div>
     <div class="result-row advanced-only"><span class="result-label">${escapeHtml(t("toolkit.network.adaptersPresent"))}</span><span class="result-value">${escapeHtml(String(report.adapter_present_count ?? report.adapter_count ?? 0))}</span></div>
     ${renderVpnBlock(report.vpn)}

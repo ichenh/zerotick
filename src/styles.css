@@ -925,16 +925,8 @@ input {
   background: var(--accent-subtle);
 }
 
-.advanced-only {
+html:not(.show-advanced) .advanced-only {
   display: none !important;
-}
-
-html.show-advanced .advanced-only {
-  display: revert !important;
-}
-
-html.show-advanced .advanced-inline {
-  display: inline !important;
 }
 
 html.show-advanced .advanced-only.mono,
@@ -1158,11 +1150,30 @@ html.show-advanced .toolkit-device-info .result-muted {
   min-width: 0;
   text-align: right;
   font-size: 13px;
-  word-break: break-all;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .result-value.mono {
   font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.network-gateway-value {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  column-gap: 8px;
+}
+
+.network-gateway-value .mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.network-gateway-state {
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -1187,7 +1198,8 @@ html.show-advanced .toolkit-device-info .result-muted {
 .result-list li {
   padding: 3px 0 3px 12px;
   position: relative;
-  word-break: break-all;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .result-list li::before {
@@ -1195,6 +1207,14 @@ html.show-advanced .toolkit-device-info .result-muted {
   position: absolute;
   left: 0;
   color: var(--text-tertiary);
+}
+
+.result-value > .result-list li {
+  padding-left: 0;
+}
+
+.result-value > .result-list li::before {
+  content: none;
 }
 
 .result-muted {
