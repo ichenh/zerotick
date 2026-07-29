@@ -32,6 +32,9 @@ const BACKGROUND_LAUNCH_ARG: &str = "--background";
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    if usb_storage::run_safe_dismount_helper_if_requested() {
+        return;
+    }
     if let Err(e) = run_inner() {
         eprintln!("ZeroTick 致命错误: {e}");
         std::process::exit(1);
@@ -98,11 +101,12 @@ fn run_inner() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             // 自启同步延后执行，避免注册表指向旧 exe 时阻断启动
-            let handle = app.handle().clone();
-            let launch = settings::get().launch_at_startup;
-            tauri::async_runtime::spawn(async move {
-                autostart::sync_on_startup(&handle, launch);
-            });
+            let current_settings = settings::get();
+            autostart::sync_on_startup(
+                app.handle(),
+                current_settings.launch_at_startup,
+                current_settings.run_as_admin,
+            );
 
             utils::logging::info("ZeroTick Tauri 后端初始化完成");
             Ok(())
@@ -143,6 +147,7 @@ fn run_inner() -> Result<(), Box<dyn std::error::Error>> {
             commands::restart_elevated,
             commands::get_settings,
             commands::save_settings,
+            commands::take_autostart_error,
             commands::export_device_history,
             commands::get_app_version,
             commands::check_for_updates,

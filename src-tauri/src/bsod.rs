@@ -5,7 +5,7 @@ use crate::notify;
 use crate::settings;
 use crate::tray::{self, TrayLevel};
 use crate::utils::{logging, powershell, process::CommandExt, wmi_runner};
-use chrono::{DateTime, Duration, Local, Utc};
+use chrono::{DateTime, Duration, FixedOffset, Local, NaiveDateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -70,6 +70,14 @@ struct NtLogEvent {
     time_generated: Option<String>,
     #[serde(rename = "SourceName")]
     source_name: Option<String>,
+}
+
+#[derive(Debug, Default)]
+struct BugcheckEvent {
+    code: Option<String>,
+    driver: Option<String>,
+    message: Option<String>,
+    occurred_at: Option<DateTime<Utc>>,
 }
 
 pub fn init_seen_store(path: PathBuf) {
@@ -150,17 +158,35 @@ fn emit_bsod_event(app: &AppHandle, report: &BsodReport) {
 }
 
 pub fn analyze_latest_dump() -> windows::core::Result<Option<BsodReport>> {
+    let event_info = query_bugcheck_event();
     let dump_dir = Path::new(MINIDUMP_DIR);
-    if !dump_dir.is_dir() {
-        return Ok(None);
-    }
-    let latest = find_latest_dump(dump_dir)?;
+    let latest = if dump_dir.is_dir() {
+        find_latest_dump(dump_dir)?
+    } else {
+        None
+    };
     let Some((path, modified_utc)) = latest else {
-        return Ok(None);
+        if event_info.code.is_none() && event_info.message.is_none() {
+            return Ok(None);
+        }
+        let event_occurred_at = event_info.occurred_at;
+        let is_recent = event_occurred_at
+            .as_ref()
+            .is_some_and(|time| Utc::now().signed_duration_since(*time) < ALERT_WINDOW);
+        let occurred_utc = event_occurred_at.unwrap_or_else(Utc::now);
+        let occurred_at: DateTime<Local> = occurred_utc.into();
+        return Ok(Some(BsodReport {
+            dump_path: PathBuf::new(),
+            modified_at: occurred_at,
+            is_recent,
+            bugcheck_code: event_info.code,
+            faulting_driver: event_info.driver,
+            event_message: event_info.message,
+            debugger_evidence: None,
+        }));
     };
     let modified_at: DateTime<Local> = modified_utc.into();
     let is_recent = Utc::now().signed_duration_since(modified_utc) < ALERT_WINDOW;
-    let event_info = query_bugcheck_event();
     let cached = (!is_recent)
         .then(|| load_seen_dump(&path, modified_at.timestamp_millis()))
         .flatten();
@@ -171,22 +197,25 @@ pub fn analyze_latest_dump() -> windows::core::Result<Option<BsodReport>> {
     let bugcheck_code = debugger_evidence
         .as_ref()
         .and_then(|evidence| evidence.bugcheck_code.clone())
-        .or(event_info.0);
-    let faulting_driver = debugger_evidence.as_ref().and_then(|evidence| {
-        evidence
-            .image
-            .as_deref()
-            .or(evidence.module.as_deref())
-            .filter(|name| name.to_ascii_lowercase().ends_with(".sys"))
-            .map(str::to_string)
-    });
+        .or(event_info.code);
+    let faulting_driver = debugger_evidence
+        .as_ref()
+        .and_then(|evidence| {
+            evidence
+                .image
+                .as_deref()
+                .or(evidence.module.as_deref())
+                .filter(|name| name.to_ascii_lowercase().ends_with(".sys"))
+                .map(str::to_string)
+        })
+        .or(event_info.driver);
     Ok(Some(BsodReport {
         dump_path: path,
         modified_at,
         is_recent,
         bugcheck_code,
         faulting_driver,
-        event_message: event_info.2,
+        event_message: event_info.message,
         debugger_evidence,
     }))
 }
@@ -472,15 +501,13 @@ fn find_latest_dump(dir: &Path) -> windows::core::Result<Option<(PathBuf, DateTi
     Ok(best)
 }
 
-type BugcheckEvent = (Option<String>, Option<String>, Option<String>);
-
 fn query_bugcheck_event() -> BugcheckEvent {
     if let Ok(info) = wmi_runner::run(query_bugcheck_inner) {
         return info;
     }
     query_bugcheck_powershell().unwrap_or_else(|e| {
         logging::warn(format!("BugCheck 事件查询失败: {e}"));
-        (None, None, None)
+        BugcheckEvent::default()
     })
 }
 
@@ -488,7 +515,7 @@ fn query_bugcheck_inner(wmi: &WMIConnection) -> Result<BugcheckEvent, wmi::WMIEr
     let query = "SELECT EventCode, Message, TimeGenerated, SourceName \
                  FROM Win32_NTLogEvent \
                  WHERE Logfile='System' AND EventCode=1001";
-    let mut events: Vec<NtLogEvent> = wmi.raw_query(query).unwrap_or_default();
+    let mut events: Vec<NtLogEvent> = wmi.raw_query(query)?;
     events.sort_by(|a, b| {
         b.time_generated
             .as_deref()
@@ -496,32 +523,44 @@ fn query_bugcheck_inner(wmi: &WMIConnection) -> Result<BugcheckEvent, wmi::WMIEr
             .cmp(a.time_generated.as_deref().unwrap_or(""))
     });
     let event = match events.iter().find(|event| {
-        event
-            .message
-            .as_deref()
-            .and_then(parse_bugcheck_code)
-            .is_some()
+        is_bugcheck_event_source(event.source_name.as_deref())
+            && event
+                .message
+                .as_deref()
+                .and_then(parse_bugcheck_code)
+                .is_some()
     }) {
         Some(e) => e,
-        None => return Ok((None, None, None)),
+        None => return Ok(BugcheckEvent::default()),
     };
     let message = event.message.clone();
     let bugcheck = message.as_ref().and_then(|m| parse_bugcheck_code(m));
     let driver = message.as_ref().and_then(|m| parse_faulting_driver(m));
-    Ok((bugcheck, driver, message))
+    Ok(BugcheckEvent {
+        code: bugcheck,
+        driver,
+        message,
+        occurred_at: event.time_generated.as_deref().and_then(parse_wmi_datetime),
+    })
 }
 
 fn query_bugcheck_powershell() -> Result<BugcheckEvent, String> {
     let script = r#"
 $e = Get-WinEvent -FilterHashtable @{LogName='System'; Id=1001} -MaxEvents 20 -ErrorAction SilentlyContinue |
-  Where-Object { $_.Message -match '0x[0-9a-fA-F]{1,8}' } |
+  Where-Object {
+    $_.ProviderName -in @('Microsoft-Windows-WER-SystemErrorReporting', 'BugCheck') -and
+    $_.Message -match '0x[0-9a-fA-F]{1,8}'
+  } |
   Select-Object -First 1
 if (-not $e) { return $null }
-[pscustomobject]@{ message = [string]$e.Message }
+[pscustomobject]@{
+  message = [string]$e.Message
+  occurred_at = $e.TimeCreated.ToUniversalTime().ToString('o')
+}
 "#;
     let val = powershell::run_json(script)?;
     if val.is_null() {
-        return Ok((None, None, None));
+        return Ok(BugcheckEvent::default());
     }
     let message = val
         .get("message")
@@ -529,7 +568,40 @@ if (-not $e) { return $null }
         .map(str::to_string);
     let bugcheck = message.as_ref().and_then(|m| parse_bugcheck_code(m));
     let driver = message.as_ref().and_then(|m| parse_faulting_driver(m));
-    Ok((bugcheck, driver, message))
+    let occurred_at = val
+        .get("occurred_at")
+        .and_then(|v| v.as_str())
+        .and_then(|value| DateTime::parse_from_rfc3339(value).ok())
+        .map(|value| value.with_timezone(&Utc));
+    Ok(BugcheckEvent {
+        code: bugcheck,
+        driver,
+        message,
+        occurred_at,
+    })
+}
+
+fn is_bugcheck_event_source(source: Option<&str>) -> bool {
+    source.is_some_and(|value| {
+        let normalized = value.to_ascii_lowercase();
+        normalized == "bugcheck" || normalized == "microsoft-windows-wer-systemerrorreporting"
+    })
+}
+
+fn parse_wmi_datetime(value: &str) -> Option<DateTime<Utc>> {
+    let local = NaiveDateTime::parse_from_str(value.get(..14)?, "%Y%m%d%H%M%S").ok()?;
+    let sign = value.as_bytes().get(21).copied();
+    let offset_minutes = value.get(22..25)?.parse::<i32>().ok()?;
+    let offset_seconds = offset_minutes.checked_mul(60)?;
+    let offset = match sign {
+        Some(b'+') => FixedOffset::east_opt(offset_seconds)?,
+        Some(b'-') => FixedOffset::west_opt(offset_seconds)?,
+        _ => return None,
+    };
+    offset
+        .from_local_datetime(&local)
+        .single()
+        .map(|time| time.with_timezone(&Utc))
 }
 
 fn parse_bugcheck_code(message: &str) -> Option<String> {
@@ -806,17 +878,20 @@ fn load_seen_dump(path: &Path, modified_at: i64) -> Option<SeenDump> {
 }
 
 fn emit_report(report: &BsodReport) {
+    let source = if report.dump_path.as_os_str().is_empty() {
+        "Windows BugCheck event".to_string()
+    } else {
+        format!("Dump: {}", report.dump_path.display())
+    };
     if report.is_recent {
         logging::critical("⚠ BSOD 高能预警 — 过去 24 小时内发生蓝屏！");
         logging::warn(format!(
-            "Dump: {} ({})",
-            report.dump_path.display(),
+            "{source} ({})",
             report.modified_at.format("%Y-%m-%d %H:%M:%S")
         ));
     } else {
         logging::info(format!(
-            "历史 Dump: {} ({})",
-            report.dump_path.display(),
+            "历史 {source} ({})",
             report.modified_at.format("%Y-%m-%d %H:%M:%S")
         ));
     }
@@ -865,6 +940,27 @@ mod tests {
     fn parses_localized_bugcheck_code() {
         let msg = "计算机已经从检测错误后重新启动。检测错误: 0x00000133 (0x0, 0x1)。";
         assert_eq!(parse_bugcheck_code(msg).as_deref(), Some("0x00000133"));
+    }
+
+    #[test]
+    fn parses_wmi_event_time_with_utc_offset() {
+        let parsed = parse_wmi_datetime("20260729143015.000000+480").expect("valid WMI timestamp");
+        assert_eq!(
+            parsed,
+            Utc.with_ymd_and_hms(2026, 7, 29, 6, 30, 15)
+                .single()
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn accepts_only_windows_bugcheck_event_sources() {
+        assert!(is_bugcheck_event_source(Some(
+            "Microsoft-Windows-WER-SystemErrorReporting"
+        )));
+        assert!(is_bugcheck_event_source(Some("BugCheck")));
+        assert!(!is_bugcheck_event_source(Some("Application Error")));
+        assert!(!is_bugcheck_event_source(None));
     }
 
     #[test]

@@ -766,6 +766,37 @@ fn validate_present_bluetooth_peripheral(instance_id: &str) -> Result<(), String
     }
 }
 
+fn read_present_bluetooth_peripheral(
+    instance_id: &str,
+) -> Result<Option<BluetoothDeviceEntry>, String> {
+    let report = diagnose_pnp_native().or_else(|native_error| {
+        wmi_runner::run(diagnose_pnp_inner)
+            .map_err(|wmi_error| format!("native SetupAPI={native_error}; WMI={wmi_error}"))
+    })?;
+    Ok(report
+        .devices
+        .into_iter()
+        .find(|device| device.instance_id.eq_ignore_ascii_case(instance_id)))
+}
+
+fn wait_for_bluetooth_peripheral_state(
+    instance_id: &str,
+    should_be_present: bool,
+) -> Result<Option<BluetoothDeviceEntry>, String> {
+    let mut last_device = None;
+    for attempt in 0..12 {
+        let current = read_present_bluetooth_peripheral(instance_id)?;
+        if current.is_some() == should_be_present {
+            return Ok(current);
+        }
+        last_device = current;
+        if attempt < 11 {
+            std::thread::sleep(Duration::from_millis(150));
+        }
+    }
+    Ok(last_device)
+}
+
 pub fn remove_device(instance_id: &str) -> Result<(), String> {
     validate_present_bluetooth_peripheral(instance_id)?;
     let output = std::process::Command::new("pnputil")
@@ -775,7 +806,11 @@ pub fn remove_device(instance_id: &str) -> Result<(), String> {
         .map_err(|e| format!("pnputil 失败: {e}"))?;
     if output.status.success() {
         invalidate_diagnostic_cache();
-        Ok(())
+        if wait_for_bluetooth_peripheral_state(instance_id, false)?.is_none() {
+            Ok(())
+        } else {
+            Err("bluetooth_remove:verification_failed: Windows reported success, but the device is still present.".into())
+        }
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -791,7 +826,17 @@ pub fn reconnect_device(instance_id: &str) -> Result<(), String> {
     );
     crate::utils::powershell::run_void(&script)?;
     invalidate_diagnostic_cache();
-    Ok(())
+    match wait_for_bluetooth_peripheral_state(instance_id, true)? {
+        Some(device) if device.status == "OK" => Ok(()),
+        Some(device) => Err(format!(
+            "bluetooth_reconnect:verification_failed: device status is {}.",
+            device.status
+        )),
+        None => Err(
+            "bluetooth_reconnect:verification_failed: the device did not return after restart."
+                .into(),
+        ),
+    }
 }
 
 pub fn repair_service() -> (Vec<String>, Vec<String>) {

@@ -1,11 +1,17 @@
 //! 网络诊断 — 服务、网速测试、连通性、VPN
 
 use crate::services::{self, ServicesReport, NETWORK};
+use crate::utils::logging;
 use crate::utils::powershell;
 use crate::utils::process::CommandExt;
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 use std::time::Instant;
+use windows::Win32::Foundation::RPC_E_CHANGED_MODE;
+use windows::Win32::Networking::NetworkListManager::{INetworkListManager, NetworkListManager};
+use windows::Win32::System::Com::{
+    CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_ALL, COINIT_MULTITHREADED,
+};
 
 #[derive(Debug, Serialize)]
 pub struct VpnAdapterInfo {
@@ -62,8 +68,15 @@ pub struct ProxyProviderInfo {
 #[derive(Debug, Serialize)]
 pub struct NetworkDiagReport {
     pub services: ServicesReport,
+    /// Windows Network List Manager currently sees a network connection.
+    pub network_connected: Option<bool>,
+    /// Windows NCSI currently reports IPv4 or IPv6 Internet access.
+    pub internet_reachable: Option<bool>,
     pub gateway: Option<String>,
     pub gateway_reachable: Option<bool>,
+    /// Adapters currently present in Windows, including disconnected or disabled adapters.
+    pub adapter_present_count: usize,
+    /// Adapters whose current operational status is Up.
     pub adapter_count: usize,
     pub vpn: VpnReport,
     pub dns_flush_ok: bool,
@@ -79,8 +92,17 @@ pub struct SpeedTestResult {
 }
 
 pub fn diagnose() -> Result<NetworkDiagReport, String> {
-    let (services, gateway, gateway_reachable, adapter_count, vpn) = std::thread::scope(|scope| {
+    let (
+        services,
+        network_connected,
+        internet_reachable,
+        gateway,
+        gateway_reachable,
+        adapter_counts,
+        vpn,
+    ) = std::thread::scope(|scope| {
         let services_task = scope.spawn(|| services::diagnose_group(NETWORK));
+        let connectivity_task = scope.spawn(detect_windows_connectivity);
         let gateway_task = scope.spawn(|| {
             let gateway = detect_gateway()?;
             let reachable = gateway.as_ref().and_then(|value| ping_once(value));
@@ -91,25 +113,91 @@ pub fn diagnose() -> Result<NetworkDiagReport, String> {
         let services = services_task
             .join()
             .map_err(|_| "网络服务扫描异常终止".to_string())??;
+        // NLM/NCSI is live user-facing connectivity evidence. If Windows cannot
+        // provide it, retain unknown instead of silently claiming Internet access.
+        let (network_connected, internet_reachable) = match connectivity_task.join() {
+            Ok(Ok(status)) => (Some(status.connected), Some(status.internet)),
+            Ok(Err(error)) => {
+                logging::warn(format!("Windows 网络连通性读取失败: {error}"));
+                (None, None)
+            }
+            Err(_) => {
+                logging::warn("Windows 网络连通性检测线程异常终止");
+                (None, None)
+            }
+        };
         let (gateway, gateway_reachable) = gateway_task
             .join()
             .map_err(|_| "网关扫描异常终止".to_string())??;
-        let adapter_count = adapters_task
+        let adapter_counts = adapters_task
             .join()
             .map_err(|_| "网络适配器扫描异常终止".to_string())??;
         let vpn = vpn_task
             .join()
             .map_err(|_| "VPN 扫描异常终止".to_string())??;
-        Ok::<_, String>((services, gateway, gateway_reachable, adapter_count, vpn))
+        Ok::<_, String>((
+            services,
+            network_connected,
+            internet_reachable,
+            gateway,
+            gateway_reachable,
+            adapter_counts,
+            vpn,
+        ))
     })?;
     Ok(NetworkDiagReport {
         services,
+        network_connected,
+        internet_reachable,
         gateway,
         gateway_reachable,
-        adapter_count,
+        adapter_present_count: adapter_counts.present,
+        adapter_count: adapter_counts.active,
         vpn,
         dns_flush_ok: false,
     })
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct WindowsConnectivity {
+    connected: bool,
+    internet: bool,
+}
+
+fn detect_windows_connectivity() -> Result<WindowsConnectivity, String> {
+    unsafe {
+        let init = CoInitializeEx(None, COINIT_MULTITHREADED);
+        let uninitialize_com = if init.is_ok() {
+            true
+        } else if init == RPC_E_CHANGED_MODE {
+            false
+        } else {
+            return Err(format!("network_connectivity:com_init_failed:{init:?}"));
+        };
+
+        let result = (|| {
+            let manager: INetworkListManager =
+                CoCreateInstance(&NetworkListManager, None, CLSCTX_ALL)
+                    .map_err(|error| format!("network_connectivity:create_failed:{error}"))?;
+            let connected = manager
+                .IsConnected()
+                .map_err(|error| format!("network_connectivity:connected_failed:{error}"))?
+                .as_bool();
+            let internet = manager
+                .IsConnectedToInternet()
+                .map_err(|error| format!("network_connectivity:internet_failed:{error}"))?
+                .as_bool();
+            Ok(WindowsConnectivity {
+                connected,
+                internet,
+            })
+        })();
+
+        if uninitialize_com {
+            CoUninitialize();
+        }
+        result
+    }
 }
 
 pub fn flush_dns() -> Result<(), String> {
@@ -535,19 +623,46 @@ fn ping_once(host: &str) -> Option<bool> {
         .ok()
 }
 
-fn count_adapters() -> Result<usize, String> {
-    let script = "(@(Get-NetAdapter | Where-Object Status -eq 'Up')).Count";
+#[derive(Debug, Deserialize)]
+struct AdapterCounts {
+    present: usize,
+    active: usize,
+}
+
+fn count_adapters() -> Result<AdapterCounts, String> {
+    let script = r#"
+try {
+  $adapters = @(Get-NetAdapter -ErrorAction Stop)
+  $present = @($adapters | Where-Object Status -ne 'Not Present').Count
+  $active = @($adapters | Where-Object Status -eq 'Up').Count
+} catch {
+  # Standard users can receive WBEM_E_ACCESS_DENIED from MSFT_NetAdapter.
+  # NetworkInterface is less detailed but still gives live presence and operational state.
+  $adapters = @([System.Net.NetworkInformation.NetworkInterface]::GetAllNetworkInterfaces() |
+    Where-Object { [string]$_.NetworkInterfaceType -notin @('Loopback', 'Tunnel') })
+  $present = $adapters.Count
+  $active = @($adapters | Where-Object { [string]$_.OperationalStatus -eq 'Up' }).Count
+}
+[pscustomobject]@{
+  present = $present
+  active = $active
+}"#;
     powershell::run_json(script).and_then(|value| {
-        value
-            .as_u64()
-            .map(|count| count as usize)
-            .ok_or_else(|| "network_adapters:invalid_response".to_string())
+        serde_json::from_value(value)
+            .map_err(|error| format!("network_adapters:invalid_response:{error}"))
     })
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{curl_error_id, parse_vpn_json};
+    use super::{curl_error_id, detect_windows_connectivity, parse_vpn_json};
+
+    #[test]
+    fn windows_connectivity_evidence_is_consistent() {
+        let status =
+            detect_windows_connectivity().expect("Network List Manager should be available");
+        assert!(!status.internet || status.connected);
+    }
 
     #[test]
     fn curl_failures_map_to_actionable_error_ids() {

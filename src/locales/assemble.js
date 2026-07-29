@@ -3,6 +3,10 @@ import zhCN from "./zh-CN.js";
 import { packs, terminology } from "./packs.js";
 import { currentLocalePatches } from "./current-patches.js";
 import { generatedLocalePatches } from "./generated-patches.js";
+import {
+  releaseLocalePatches,
+  releaseSupplementLocalePatches,
+} from "./release-patches.js";
 import { OPTIONAL_LANGUAGE_OPTIONS } from "./catalog.js";
 import { officialWebsiteLabels } from "./shared-labels.js";
 
@@ -24,10 +28,16 @@ const sourceBundles = {
     locale,
     deepMerge(
       deepMerge(
-        deepMerge(packs[locale] ?? {}, { terms: terminology[locale] ?? {} }),
-        currentLocalePatches[locale] ?? {},
+        deepMerge(
+          deepMerge(packs[locale] ?? {}, { terms: terminology[locale] ?? {} }),
+          currentLocalePatches[locale] ?? {},
+        ),
+        generatedLocalePatches[locale] ?? {},
       ),
-      generatedLocalePatches[locale] ?? {},
+      deepMerge(
+        releaseLocalePatches[locale] ?? {},
+        releaseSupplementLocalePatches[locale] ?? {},
+      ),
     ),
   ])),
 };
@@ -64,6 +74,32 @@ export function assembleLocaleBundle(definition) {
   // that locale supplies its own translation. Never expose internal state IDs.
   for (const key of ["batteryRefreshing", "batteryUnavailable"]) {
     base.toolkit.bluetooth[key] ??= en.toolkit.bluetooth[key];
+  }
+  // Connectivity verdicts must remain readable in every bundled locale while
+  // translation packs catch up with the new live Network List Manager evidence.
+  for (const key of [
+    "internetAccess", "networkConnection", "available", "unavailable", "connected", "disconnected",
+    "adaptersPresent",
+    "diagnosisTitle",
+  ]) {
+    base.toolkit.network[key] ??= en.toolkit.network[key];
+  }
+  base.toolkit.network.diagnosis ??= {};
+  for (const key of [
+    "snapshotHealthy", "noAdapter", "linkDisconnected", "gatewayUnreachable",
+    "upstreamUnavailable", "vpnOrProxy", "serviceIssue", "statusUnknown",
+  ]) {
+    base.toolkit.network.diagnosis[key] ??= en.toolkit.network.diagnosis[key];
+  }
+  for (const key of [
+    "disconnectedTitle", "disconnectedSummary", "disconnectedStep1", "disconnectedStep2",
+    "noInternetTitle", "noInternetSummary", "noInternetStep1", "noInternetStep2", "noInternetStep3",
+    "connectivityUnknownTitle", "connectivityUnknownSummary", "connectivityUnknownStep1",
+  ]) {
+    base.toolkit.network.guide[key] ??= en.toolkit.network.guide[key];
+  }
+  for (const key of ["networkDisconnected", "internetUnavailable", "connectivityUnknown"]) {
+    base.overview.health[key] ??= en.overview.health[key];
   }
   // Driver repair is evidence-driven and must never expose internal action IDs.
   // Until each translation pack is refreshed, use complete user-facing English

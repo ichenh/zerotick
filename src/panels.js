@@ -302,9 +302,37 @@ export function renderNetworkSpeedResult(result) {
   );
 }
 
+function networkDiagnosisKeys(report) {
+  if ((report.adapter_present_count ?? report.adapter_count ?? 0) === 0) {
+    return ["toolkit.network.diagnosis.noAdapter"];
+  }
+  if (report.network_connected === false) {
+    return ["toolkit.network.diagnosis.linkDisconnected"];
+  }
+
+  const reasons = [];
+  if (report.gateway_reachable === false) {
+    reasons.push("toolkit.network.diagnosis.gatewayUnreachable");
+  } else if (report.internet_reachable === false) {
+    reasons.push("toolkit.network.diagnosis.upstreamUnavailable");
+  }
+  if (report.internet_reachable === false && report.vpn?.active) {
+    reasons.push("toolkit.network.diagnosis.vpnOrProxy");
+  }
+  if (report.services?.issues?.length) {
+    reasons.push("toolkit.network.diagnosis.serviceIssue");
+  }
+  if (report.network_connected == null || report.internet_reachable == null) {
+    reasons.push("toolkit.network.diagnosis.statusUnknown");
+  }
+  return reasons.length ? reasons : ["toolkit.network.diagnosis.snapshotHealthy"];
+}
+
 export function renderNetworkReport(report) {
   const el = $("network-result");
   const healthy = !(report.services?.issues?.length);
+  const connected = report.network_connected;
+  const internet = report.internet_reachable;
   const gw = report.gateway ?? t("toolkit.unknown");
   const reach = report.gateway_reachable;
   const reachText =
@@ -312,12 +340,21 @@ export function renderNetworkReport(report) {
 
   let guide = renderGuidance("ok", "toolkit.network.guide.okTitle", "toolkit.network.guide.okSummary");
   let state = "ok";
-  if ((report.adapter_count ?? 0) === 0) {
+  if ((report.adapter_present_count ?? report.adapter_count ?? 0) === 0) {
     state = "crit";
     guide = renderGuidance("crit", "toolkit.network.guide.noAdapterTitle", "toolkit.network.guide.noAdapterSummary", ["toolkit.network.guide.noAdapterStep1", "toolkit.network.guide.noAdapterStep2", "toolkit.network.guide.noAdapterStep3"]);
+  } else if (connected === false) {
+    state = "crit";
+    guide = renderGuidance("crit", "toolkit.network.guide.disconnectedTitle", "toolkit.network.guide.disconnectedSummary", ["toolkit.network.guide.disconnectedStep1", "toolkit.network.guide.disconnectedStep2"]);
   } else if (reach === false) {
     state = "warn";
     guide = renderGuidance("warn", "toolkit.network.guide.gatewayTitle", "toolkit.network.guide.gatewaySummary", ["toolkit.network.guide.gatewayStep1", "toolkit.network.guide.gatewayStep2", "toolkit.network.guide.gatewayStep3"]);
+  } else if (internet === false) {
+    state = "warn";
+    guide = renderGuidance("warn", "toolkit.network.guide.noInternetTitle", "toolkit.network.guide.noInternetSummary", ["toolkit.network.guide.noInternetStep1", "toolkit.network.guide.noInternetStep2", "toolkit.network.guide.noInternetStep3"]);
+  } else if (connected == null || internet == null) {
+    state = "warn";
+    guide = renderGuidance("warn", "toolkit.network.guide.connectivityUnknownTitle", "toolkit.network.guide.connectivityUnknownSummary", ["toolkit.network.guide.connectivityUnknownStep1"]);
   } else if (!healthy) {
     state = "warn";
     guide = renderGuidance("warn", "toolkit.network.guide.serviceTitle", "toolkit.network.guide.serviceSummary", ["toolkit.network.guide.serviceStep1", "toolkit.network.guide.serviceStep2"]);
@@ -332,8 +369,15 @@ export function renderNetworkReport(report) {
       <span class="result-badge result-badge-${state}">${escapeHtml(t(`toolkit.verdict.${state}`))}</span>
       <span class="result-time">${formatTime(new Date().toISOString())}</span>
     </div>
+    <div class="result-row"><span class="result-label">${escapeHtml(t("toolkit.network.internetAccess"))}</span><span class="result-value">${escapeHtml(internet === true ? t("toolkit.network.available") : internet === false ? t("toolkit.network.unavailable") : t("toolkit.unknown"))}</span></div>
+    <div class="result-row"><span class="result-label">${escapeHtml(t("toolkit.network.networkConnection"))}</span><span class="result-value">${escapeHtml(connected === true ? t("toolkit.network.connected") : connected === false ? t("toolkit.network.disconnected") : t("toolkit.unknown"))}</span></div>
+    <div class="result-row">
+      <span class="result-label">${escapeHtml(t("toolkit.network.diagnosisTitle"))}</span>
+      <span class="result-value"><ul class="result-list">${networkDiagnosisKeys(report).map((key) => `<li>${escapeHtml(t(key))}</li>`).join("")}</ul></span>
+    </div>
     <div class="result-row advanced-only"><span class="result-label">${escapeHtml(t("toolkit.network.gateway"))}</span><span class="result-value mono">${escapeHtml(gw)} · ${escapeHtml(reachText)}</span></div>
     <div class="result-row advanced-only"><span class="result-label">${escapeHtml(t("toolkit.network.adapters"))}</span><span class="result-value">${escapeHtml(String(report.adapter_count ?? 0))}</span></div>
+    <div class="result-row advanced-only"><span class="result-label">${escapeHtml(t("toolkit.network.adaptersPresent"))}</span><span class="result-value">${escapeHtml(String(report.adapter_present_count ?? report.adapter_count ?? 0))}</span></div>
     ${renderVpnBlock(report.vpn)}
     ${renderServicesBlock(report.services, "toolkit.network.servicesTitle")}
   `,
@@ -548,7 +592,7 @@ function renderCardReaderSlots(device, drivesByLetter) {
 export function renderUsbReport(report) {
   const el = $("usb-result");
   const completionHint = report.complete === false
-    ? `<p class="result-muted">${escapeHtml(t("toolkit.loading"))}</p>`
+    ? `<div data-usb-completion><p class="result-muted">${escapeHtml(t("toolkit.loading"))}</p></div>`
     : "";
   const drivesByLetter = new Map((report.drives ?? []).map((drive) => [drive.letter.replace(":", "").toUpperCase(), drive]));
   const claimedLetters = new Set();
@@ -836,6 +880,7 @@ function usbFormatErrorMessage(error) {
   if (raw.includes("system_volume_forbidden")) return t("toolkit.usb.formatSystemBlocked");
   if (raw.includes("volume_not_found")) return t("toolkit.usb.formatVolumeMissing");
   if (raw.includes("invalid_volume_label") || raw.includes("invalid label")) return t("toolkit.usb.formatInvalidLabel");
+  if (raw.includes("usb_format:verification_")) return t("toolkit.usb.formatVerificationFailed");
   return userErrorMessage(error, "toolkit.usb.formatFailed");
 }
 
@@ -858,9 +903,16 @@ function usbEjectFailureMessage(result) {
   if (result.status === "vetoed") {
     const key = `toolkit.usb.veto.${result.veto_type || "unknown"}`;
     const reason = t(key);
+    const rawName = result.veto_name || "";
+    if (/virtual[ _-]?cd|usbstor\\cdrom/i.test(rawName)) {
+      return t("toolkit.usb.ejectVirtualOpticalBlocked", { reason });
+    }
+    const name = /[\\&]/.test(rawName)
+      ? t("toolkit.usb.veto.deviceComponent")
+      : rawName || t("toolkit.usb.veto.unknownSource");
     return t("toolkit.usb.ejectVetoed", {
       reason: reason === key ? t("toolkit.usb.veto.unknown") : reason,
-      name: result.veto_name || t("toolkit.usb.veto.unknownSource"),
+      name,
     });
   }
   const stageKey = `toolkit.usb.stage.${result.stage || "pnp"}`;
@@ -1217,7 +1269,10 @@ function summarizeFullScanItem(id, command, scanItem) {
 
   const report = scanItem.result;
   if (id === "network") {
-    if ((report.adapter_count ?? 0) === 0) return { id, state: "crit", detail: t("overview.health.networkMissing") };
+    if ((report.adapter_present_count ?? report.adapter_count ?? 0) === 0) return { id, state: "crit", detail: t("overview.health.networkMissing") };
+    if (report.network_connected === false) return { id, state: "crit", detail: t("overview.health.networkDisconnected") };
+    if (report.internet_reachable === false) return { id, state: "warn", detail: t("overview.health.internetUnavailable") };
+    if (report.network_connected == null || report.internet_reachable == null) return { id, state: "warn", detail: t("overview.health.connectivityUnknown") };
     if (report.gateway_reachable === false || report.services?.issues?.length) return { id, state: "warn", detail: t("overview.health.networkIssue") };
   } else if (id === "audio") {
     const count = (report.playback?.length ?? 0) + (report.capture?.length ?? 0);
@@ -1523,8 +1578,11 @@ export function bindToolkitHandlers({ showToast }) {
       usbEject.textContent = t("toolkit.usb.ejecting");
       try {
         const result = await invoke("usb_eject", { driveLetter: `${letter}:` });
-        if (result.status === "ejected") {
-          showToast(t("toast.usbEjected", { letter }), false);
+        if (result.status === "ejected" || result.status === "volume_ejected") {
+          showToast(
+            t(result.status === "volume_ejected" ? "toast.usbVolumeEjected" : "toast.usbEjected", { letter }),
+            false,
+          );
           renderUsbReport(await invoke("diagnose_usb"));
         } else {
           const message = usbEjectFailureMessage(result);
@@ -1622,7 +1680,11 @@ export function bindToolkitHandlers({ showToast }) {
         const r = await invoke("repair_network");
         const report = await invoke("diagnose_network");
         renderNetworkReport(report);
-        const remainingIssue = (report.adapter_count ?? 0) === 0
+        const remainingIssue = (report.adapter_present_count ?? report.adapter_count ?? 0) === 0
+          || report.network_connected === false
+          || report.internet_reachable === false
+          || report.network_connected == null
+          || report.internet_reachable == null
           || report.gateway_reachable === false
           || (report.services?.issues?.length ?? 0) > 0;
         const el = $("network-result");

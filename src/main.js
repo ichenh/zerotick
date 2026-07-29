@@ -339,7 +339,7 @@ function renderBsodCard(ev) {
       ${ev.debugger ? `<div class="result-row"><span class="result-label">${escapeHtml(t("diag.bsod.debugger"))}</span><span class="result-value mono">${escapeHtml(ev.debugger)}</span></div>` : ""}
       ${ev.failure_bucket ? `<div class="result-row"><span class="result-label">${escapeHtml(t("diag.bsod.failureBucket"))}</span><span class="result-value mono">${escapeHtml(ev.failure_bucket)}</span></div>` : ""}
       ${ev.dump_time ? `<div class="result-row"><span class="result-label">${escapeHtml(t("diag.bsod.dumpTime"))}</span><span class="result-value mono">${escapeHtml(ev.dump_time)}</span></div>` : ""}
-      <div class="result-row"><span class="result-label">${escapeHtml(t("diag.bsod.dumpPath"))}</span><span class="result-value mono" title="${escapeHtml(ev.dump_path)}">${escapeHtml(ev.dump_path)}</span></div>
+      ${ev.dump_path ? `<div class="result-row"><span class="result-label">${escapeHtml(t("diag.bsod.dumpPath"))}</span><span class="result-value mono" title="${escapeHtml(ev.dump_path)}">${escapeHtml(ev.dump_path)}</span></div>` : `<p class="result-muted">${escapeHtml(t("diag.bsod.eventOnlyEvidence"))}</p>`}
       ${ev.stack_summary ? `<div class="result-section"><div class="result-section-title">${escapeHtml(t("diag.bsod.stackSummary"))}</div><p class="result-value mono">${escapeHtml(ev.stack_summary)}</p></div>` : ""}
     </details>
     <div class="result-section">
@@ -523,6 +523,10 @@ async function loadSettings() {
     if (s.locale) localeEl.value = normalizeLocale(s.locale);
     renderLanguageList();
     refreshSelectMenus();
+    const autostartError = await invoke("take_autostart_error");
+    if (autostartError) {
+      showOperationError(autostartError, "autostart", "errors.autostartSetupFailed");
+    }
   } catch {
     /* 使用默认值 */
   } finally {
@@ -537,6 +541,18 @@ function rawErrorText(error) {
 
 function userErrorMessage(error, fallbackKey = "errors.operationFailed") {
   const raw = rawErrorText(error).toLowerCase();
+  if (raw.includes("autostart_admin_required")) {
+    return t("errors.autostartAdminRequired");
+  }
+  if (raw.includes("autostart_task_failed") || raw.includes("autostart_standard_failed")) {
+    return t("errors.autostartSetupFailed");
+  }
+  if (
+    raw.includes("bluetooth_remove:verification_failed") ||
+    raw.includes("bluetooth_reconnect:verification_failed")
+  ) {
+    return t("errors.bluetoothVerificationFailed");
+  }
   if (
     raw.includes("admin_required") ||
     raw.includes("permissiondenied") ||
@@ -602,7 +618,7 @@ function saveSettingsImmediately() {
     .catch(() => {})
     .then(async () => {
       const previous = appSettings;
-      const shouldElevate = !previous.run_as_admin && payload.run_as_admin;
+        const shouldElevate = payload.run_as_admin;
       try {
         const saved = await invoke("save_settings", { settings: payload });
         const localeChanged = normalizeLocale(previous.locale) !== normalizeLocale(saved.locale);
@@ -835,6 +851,20 @@ async function bindEvents() {
 
   await listen("usb-storage-refresh", ({ payload: report }) => {
     renderUsbReport(report);
+  });
+
+  await listen("usb-storage-refresh-error", ({ payload: error }) => {
+    const panel = $("usb-result");
+    const completion = panel?.querySelector("[data-usb-completion]");
+    if (completion) {
+      completion.innerHTML = renderOperationError(
+        error,
+        "diagnose_usb_background",
+        "errors.detectionFailed",
+      );
+      panel.classList.remove("result-ok");
+      panel.classList.add("result-warn");
+    }
   });
 
   await listen("bsod-alert", ({ payload: ev }) => {
@@ -1170,7 +1200,10 @@ async function init() {
       const messages = await invoke("apply_bsod_repairs", { fixIds });
       const failed = messages.some((message) => String(message).trim().startsWith("✗"));
       if (results) results.innerHTML = `<p class="repair-verdict ${failed ? "warn" : "ok"}">${escapeHtml(t(failed ? "toolkit.repairResult.needsAttention" : "diag.bsod.repairComplete"))}</p><div class="advanced-only">${renderList(messages, t("diag.bsod.noRepairResults"))}</div>`;
-      showToast(t("diag.bsod.repairComplete"), false);
+      showToast(
+        t(failed ? "toolkit.repairResult.needsAttention" : "diag.bsod.repairComplete"),
+        failed,
+      );
     } catch (error) {
       const fallback = String(error) === "bsod_repair:admin_required"
         ? "diag.bsod.adminRequired"

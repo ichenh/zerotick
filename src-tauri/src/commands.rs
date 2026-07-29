@@ -414,9 +414,16 @@ pub async fn diagnose_usb_progressive(app: AppHandle) -> Result<UsbDiagReport, S
                     utils::logging::warn(format!("emit usb-storage-refresh failed: {error}"));
                 }
             }
-            Err(error) => utils::logging::warn(format!(
-                "USB complete background diagnostic failed: {error}"
-            )),
+            Err(error) => {
+                utils::logging::warn(format!(
+                    "USB complete background diagnostic failed: {error}"
+                ));
+                if let Err(emit_error) = app.emit("usb-storage-refresh-error", &error) {
+                    utils::logging::warn(format!(
+                        "emit usb-storage-refresh-error failed: {emit_error}"
+                    ));
+                }
+            }
         }
     });
     Ok(initial)
@@ -614,13 +621,20 @@ pub fn get_settings() -> AppSettings {
 pub fn save_settings(app: AppHandle, settings: AppSettings) -> Result<AppSettings, String> {
     let previous = settings::get();
     let saved = settings::save(settings)?;
-    if previous.launch_at_startup != saved.launch_at_startup {
-        autostart::sync(&app, saved.launch_at_startup)?;
+    let startup_mode_changed = previous.launch_at_startup != saved.launch_at_startup
+        || previous.run_as_admin != saved.run_as_admin;
+    if startup_mode_changed && !(saved.launch_at_startup && saved.run_as_admin && !is_elevated()) {
+        autostart::sync(&app, saved.launch_at_startup, saved.run_as_admin)?;
     }
     if previous.locale != saved.locale {
         crate::tray::refresh_locale(&app);
     }
     Ok(saved)
+}
+
+#[tauri::command]
+pub fn take_autostart_error() -> Option<String> {
+    autostart::take_last_error()
 }
 
 #[tauri::command]

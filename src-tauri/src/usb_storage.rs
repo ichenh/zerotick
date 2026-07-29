@@ -3,12 +3,15 @@
 use crate::services::{self, ServicesReport, USB};
 use crate::utils::{powershell, wmi_runner};
 use serde::{Deserialize, Serialize};
+use std::os::windows::ffi::OsStrExt;
+use std::path::PathBuf;
 use std::sync::{Condvar, Mutex, OnceLock};
-use std::time::{Duration, Instant};
-use windows::core::PCWSTR;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use windows::core::{GUID, PCWSTR};
 use windows::Win32::Devices::DeviceAndDriverInstallation::{
-    CM_Get_DevNode_Registry_PropertyW, CM_Get_Parent, CM_Locate_DevNodeW, CM_Request_Device_EjectW,
-    CM_DEVCAP_REMOVABLE, CM_DRP_CAPABILITIES, CM_LOCATE_DEVNODE_NORMAL, CR_SUCCESS, PNP_VETO_TYPE,
+    CM_Get_DevNode_Registry_PropertyW, CM_Get_Device_IDW, CM_Get_Parent, CM_Locate_DevNodeW,
+    CM_Request_Device_EjectW, CM_DEVCAP_REMOVABLE, CM_DRP_CAPABILITIES, CM_LOCATE_DEVNODE_NORMAL,
+    CR_SUCCESS, PNP_VETO_TYPE,
 };
 use windows::Win32::Foundation::{CloseHandle, GENERIC_READ, GENERIC_WRITE, HANDLE};
 use windows::Win32::Storage::FileSystem::{
@@ -20,6 +23,8 @@ use windows::Win32::System::Ioctl::{
     FSCTL_DISMOUNT_VOLUME, FSCTL_LOCK_VOLUME, FSCTL_UNLOCK_VOLUME,
 };
 use windows::Win32::System::IO::DeviceIoControl;
+use windows::Win32::UI::Shell::ShellExecuteW;
+use windows::Win32::UI::WindowsAndMessaging::SW_HIDE;
 use wmi::WMIConnection;
 
 #[derive(Debug, Clone, Serialize)]
@@ -313,7 +318,7 @@ fn wide_buffer_string(buffer: &[u16]) -> Option<String> {
 
 #[derive(Debug, Serialize)]
 pub struct UsbEjectResult {
-    /// ejected | busy | permission_required | vetoed | failed
+    /// ejected | volume_ejected | busy | permission_required | vetoed | failed
     pub status: String,
     /// flush | lock | dismount | pnp
     pub stage: String,
@@ -331,18 +336,77 @@ pub struct UsbCloseProcessResult {
 #[derive(Debug, Deserialize)]
 struct EjectTarget {
     pnp_device_id: String,
+    storage_device_id: String,
+    #[serde(default)]
+    auxiliary_device_ids: Vec<String>,
     volume_letters: Vec<String>,
+}
+
+#[repr(C)]
+struct RawDeviceInterfaceData {
+    cb_size: u32,
+    interface_class_guid: GUID,
+    flags: u32,
+    reserved: usize,
+}
+
+#[repr(C)]
+struct RawDevInfoData {
+    cb_size: u32,
+    class_guid: GUID,
+    dev_inst: u32,
+    reserved: usize,
+}
+
+#[repr(C)]
+#[derive(Default)]
+struct StorageDeviceNumber {
+    device_type: u32,
+    device_number: u32,
+    partition_number: u32,
 }
 
 struct VolumeHandle(HANDLE);
 
 impl Drop for VolumeHandle {
     fn drop(&mut self) {
-        // SAFETY: this type is only constructed from a successful CreateFileW call.
         unsafe {
             let _ = CloseHandle(self.0);
         }
     }
+}
+
+#[link(name = "setupapi")]
+unsafe extern "system" {
+    fn SetupDiGetClassDevsW(
+        class_guid: *const GUID,
+        enumerator: *const u16,
+        hwnd_parent: *mut std::ffi::c_void,
+        flags: u32,
+    ) -> *mut std::ffi::c_void;
+    fn SetupDiEnumDeviceInterfaces(
+        device_info_set: *mut std::ffi::c_void,
+        device_info_data: *const RawDevInfoData,
+        interface_class_guid: *const GUID,
+        member_index: u32,
+        device_interface_data: *mut RawDeviceInterfaceData,
+    ) -> i32;
+    fn SetupDiGetDeviceInterfaceDetailW(
+        device_info_set: *mut std::ffi::c_void,
+        device_interface_data: *const RawDeviceInterfaceData,
+        device_interface_detail_data: *mut u8,
+        device_interface_detail_data_size: u32,
+        required_size: *mut u32,
+        device_info_data: *mut RawDevInfoData,
+    ) -> i32;
+    fn SetupDiGetDeviceInstanceIdW(
+        device_info_set: *mut std::ffi::c_void,
+        device_info_data: *const RawDevInfoData,
+        device_instance_id: *mut u16,
+        device_instance_id_size: u32,
+        required_size: *mut u32,
+    ) -> i32;
+    fn SetupDiDestroyDeviceInfoList(device_info_set: *mut std::ffi::c_void) -> i32;
 }
 
 fn list_storage_devices() -> Result<Vec<UsbStorageDevice>, String> {
@@ -938,6 +1002,31 @@ fn powershell_literal(value: &str) -> String {
     value.replace('\'', "''")
 }
 
+fn read_volume_format_state(letter: &str) -> Result<(String, String), String> {
+    let root = format!("{letter}:\\");
+    let wide = root
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect::<Vec<_>>();
+    let mut label_buffer = [0_u16; 261];
+    let mut filesystem_buffer = [0_u16; 64];
+    unsafe {
+        GetVolumeInformationW(
+            PCWSTR(wide.as_ptr()),
+            Some(&mut label_buffer),
+            None,
+            None,
+            None,
+            Some(&mut filesystem_buffer),
+        )
+        .map_err(|error| format!("usb_format:verification_read_failed:{error}"))?;
+    }
+    Ok((
+        wide_buffer_string(&filesystem_buffer).unwrap_or_default(),
+        wide_buffer_string(&label_buffer).unwrap_or_default(),
+    ))
+}
+
 /// Format one mounted volume, never an entire physical disk. The USB and system-volume
 /// checks are repeated immediately before the destructive operation so a stale scan or
 /// reassigned drive letter cannot redirect the request to another disk.
@@ -953,12 +1042,13 @@ pub fn format_volume(
     if label.chars().count() > 32 || label.contains(['\r', '\n', '\0']) {
         return Err("invalid_volume_label".into());
     }
-    let label = powershell_literal(label);
+    let expected_label = label.to_string();
+    let escaped_label = powershell_literal(label);
     let full = if full { "$true" } else { "$false" };
     let script = format!(
         r#"$letter = '{letter}'
 $fileSystem = '{filesystem}'
-$label = '{label}'
+$label = '{escaped_label}'
 $partition = Get-Partition -DriveLetter $letter -ErrorAction SilentlyContinue
 if (-not $partition) {{ throw 'volume_not_found' }}
 $disk = Get-Disk -Number $partition.DiskNumber -ErrorAction SilentlyContinue
@@ -974,7 +1064,26 @@ Format-Volume -DriveLetter $letter -FileSystem $fileSystem -NewFileSystemLabel $
     // Full formatting of a large external disk may legitimately take many hours. It runs
     // on a blocking worker, so the WebView remains responsive while this timeout guards
     // against a permanently stuck provider.
-    powershell::run_void_with_timeout(&script, Duration::from_secs(24 * 60 * 60))
+    powershell::run_void_with_timeout(&script, Duration::from_secs(24 * 60 * 60))?;
+    invalidate_diagnostic_cache();
+
+    let mut last_state = None;
+    for attempt in 0..20 {
+        if let Ok(state) = read_volume_format_state(&letter) {
+            let filesystem_matches = state.0.eq_ignore_ascii_case(filesystem);
+            let label_matches = state.1.eq_ignore_ascii_case(&expected_label);
+            if filesystem_matches && label_matches {
+                return Ok(());
+            }
+            last_state = Some(state);
+        }
+        if attempt < 19 {
+            std::thread::sleep(Duration::from_millis(250));
+        }
+    }
+    Err(format!(
+        "usb_format:verification_failed: expected filesystem={filesystem}, label={expected_label:?}; actual={last_state:?}"
+    ))
 }
 
 fn locking_process_script(letter: &str) -> String {
@@ -1049,62 +1158,11 @@ pub fn open_volume(drive_letter: &str) -> Result<(), String> {
 pub fn eject_drive(drive_letter: &str) -> Result<UsbEjectResult, String> {
     let letter = normalize_drive_letter(drive_letter)?;
     let target = resolve_eject_target(&letter)?;
-    let mut handles = Vec::with_capacity(target.volume_letters.len());
-
-    // Lock every mounted volume in the same physical enclosure before dismounting any of them.
-    // Multi-LUN external disks are one eject unit; card-reader slots remain independent.
-    for volume in &target.volume_letters {
-        match open_flush_and_lock(volume) {
-            Ok(handle) => handles.push(handle),
-            Err((status, stage)) => {
-                unlock_all(&handles);
-                drop(handles);
-                // Direct volume access normally requires elevation. The interactive PnP API
-                // still performs Windows' own safe-removal checks, so use it as the safe
-                // non-elevated path instead of making quick eject administrator-only.
-                if status == "permission_required" {
-                    return request_pnp_eject(&target.pnp_device_id, &target.volume_letters);
-                }
-                return Ok(UsbEjectResult {
-                    status: status.into(),
-                    stage: stage.into(),
-                    blockers: find_locking_processes(&format!("{letter}:")).unwrap_or_default(),
-                    veto_type: None,
-                    veto_name: None,
-                });
-            }
-        }
-    }
-
-    for handle in &handles {
-        if unsafe {
-            DeviceIoControl(
-                handle.0,
-                FSCTL_DISMOUNT_VOLUME,
-                None,
-                0,
-                None,
-                0,
-                None,
-                None,
-            )
-        }
-        .is_err()
-        {
-            unlock_all(&handles);
-            return Ok(UsbEjectResult {
-                status: "failed".into(),
-                stage: "dismount".into(),
-                blockers: Vec::new(),
-                veto_type: None,
-                veto_name: None,
-            });
-        }
-    }
-
-    // Closing the volume handles releases our own locks before the PnP manager checks for vetoes.
-    drop(handles);
-    request_pnp_eject(&target.pnp_device_id, &target.volume_letters)
+    // CM_Request_Device_Eject performs Windows' authoritative flush, open-handle check,
+    // query-remove notification, and safe-removal transition. ZeroTick must not pre-lock or
+    // dismount the volume: doing so can leave a drive letter present but unreadable when a
+    // sibling interface (for example a virtual CD) later vetoes removal.
+    request_target_eject(&target)
 }
 
 fn normalize_drive_letter(value: &str) -> Result<String, String> {
@@ -1137,6 +1195,7 @@ $identityText = "$($diskDrive.Model) $($diskDrive.Caption)"
 $isCardReader = $identityText -match '(?i)card\s*reader|multi[ -]?card|sd\s*reader|mmc|memory\s*stick|compact\s*flash|smart\s*media|xd[ -]?picture|ms[/ -]?ms-pro|读卡器'
 $targetDisks = @($diskDrive)
 $pnpTargetId = [string]$diskDrive.PNPDeviceID
+$auxiliaryDeviceIds = @()
 if (-not $isCardReader -and $diskDrive.PNPDeviceID) {{
   $container = Get-PnpDeviceProperty -InstanceId $diskDrive.PNPDeviceID -KeyName 'DEVPKEY_Device_ContainerId' -ErrorAction SilentlyContinue
   if ($container -and $container.Data) {{
@@ -1147,6 +1206,11 @@ if (-not $isCardReader -and $diskDrive.PNPDeviceID) {{
       $candidateContainer -and [string]$candidateContainer.Data -eq $containerId
     }})
     if ($sameContainer.Count) {{ $targetDisks = $sameContainer }}
+    $auxiliaryDeviceIds = @(Get-CimInstance Win32_CDROMDrive -ErrorAction SilentlyContinue | Where-Object {{
+      if (-not $_.PNPDeviceID) {{ return $false }}
+      $candidateContainer = Get-PnpDeviceProperty -InstanceId $_.PNPDeviceID -KeyName 'DEVPKEY_Device_ContainerId' -ErrorAction SilentlyContinue
+      $candidateContainer -and [string]$candidateContainer.Data -eq $containerId
+    }} | ForEach-Object {{ [string]$_.PNPDeviceID }})
 
     # A hardware-encrypted external disk can expose both a data LUN and a virtual unlock CD.
     # Walk to the highest parent that remains in the same physical container so PnP ejects
@@ -1173,25 +1237,73 @@ if (-not $letters.Count) {{ $letters = @("${{letter}}:") }}
 
 [pscustomobject]@{{
   pnp_device_id = $pnpTargetId
+  storage_device_id = [string]$diskDrive.PNPDeviceID
+  auxiliary_device_ids = @($auxiliaryDeviceIds)
   volume_letters = @($letters)
 }}"#
     );
-    let value = powershell::run_json(&script)?;
-    let target: EjectTarget = serde_json::from_value(value)
-        .map_err(|error| format!("Invalid USB eject target: {error}"))?;
-    if target.pnp_device_id.trim().is_empty() || target.volume_letters.is_empty() {
-        return Err("USB eject target is incomplete".into());
+    if let Ok(value) = powershell::run_json(&script) {
+        if let Ok(target) = serde_json::from_value::<EjectTarget>(value) {
+            if !target.pnp_device_id.trim().is_empty()
+                && !target.storage_device_id.trim().is_empty()
+                && !target.volume_letters.is_empty()
+            {
+                return Ok(target);
+            }
+        }
     }
-    Ok(target)
+    resolve_eject_target_native(letter)
 }
 
-fn open_flush_and_lock(volume: &str) -> Result<VolumeHandle, (&'static str, &'static str)> {
-    let path = format!(r"\\.\{}", volume.trim_end_matches('\\'));
+fn resolve_eject_target_native(letter: &str) -> Result<EjectTarget, String> {
+    let volume_path = format!(r"\\.\{letter}:");
+    let disk_number = storage_device_number(&volume_path)
+        .ok_or_else(|| "Cannot map the drive letter to a physical disk.".to_string())?;
+    let storage_device_id = disk_instance_id(disk_number)
+        .ok_or_else(|| "Cannot find the disk device instance.".to_string())?;
+
+    let wide: Vec<u16> = storage_device_id
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
+    let mut dev_inst = 0u32;
+    let mut pnp_device_id = storage_device_id.clone();
+    if unsafe {
+        CM_Locate_DevNodeW(
+            &mut dev_inst,
+            PCWSTR(wide.as_ptr()),
+            CM_LOCATE_DEVNODE_NORMAL,
+        )
+    } == CR_SUCCESS
+    {
+        let mut parent = 0u32;
+        if unsafe { CM_Get_Parent(&mut parent, dev_inst, 0) } == CR_SUCCESS {
+            let mut parent_id = vec![0u16; 512];
+            if unsafe { CM_Get_Device_IDW(parent, &mut parent_id, 0) } == CR_SUCCESS {
+                let length = parent_id
+                    .iter()
+                    .position(|value| *value == 0)
+                    .unwrap_or(parent_id.len());
+                pnp_device_id = String::from_utf16_lossy(&parent_id[..length]);
+            }
+        }
+    }
+
+    Ok(EjectTarget {
+        pnp_device_id,
+        storage_device_id,
+        auxiliary_device_ids: Vec::new(),
+        volume_letters: vec![format!("{letter}:")],
+    })
+}
+
+fn storage_device_number(path: &str) -> Option<u32> {
+    const IOCTL_STORAGE_GET_DEVICE_NUMBER: u32 = 0x002d_1080;
     let wide: Vec<u16> = path.encode_utf16().chain(std::iter::once(0)).collect();
     let handle = unsafe {
         CreateFileW(
             PCWSTR(wide.as_ptr()),
-            GENERIC_READ.0 | GENERIC_WRITE.0,
+            0,
             FILE_SHARE_READ | FILE_SHARE_WRITE,
             None,
             OPEN_EXISTING,
@@ -1199,38 +1311,664 @@ fn open_flush_and_lock(volume: &str) -> Result<VolumeHandle, (&'static str, &'st
             None,
         )
     }
-    .map_err(|error| classify_volume_error(&error, "flush"))?;
-    let handle = VolumeHandle(handle);
-
-    unsafe { FlushFileBuffers(handle.0) }
-        .map_err(|error| classify_volume_error(&error, "flush"))?;
-    unsafe { DeviceIoControl(handle.0, FSCTL_LOCK_VOLUME, None, 0, None, 0, None, None) }
-        .map_err(|error| classify_volume_error(&error, "lock"))?;
-    Ok(handle)
-}
-
-fn classify_volume_error(
-    error: &windows::core::Error,
-    stage: &'static str,
-) -> (&'static str, &'static str) {
-    // HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED) = 0x80070005.
-    if error.code().0 as u32 == 0x8007_0005 {
-        ("permission_required", stage)
-    } else {
-        // An unsuccessful lock is authoritative evidence that the volume still has open files.
-        ("busy", stage)
+    .ok()?;
+    let mut number = StorageDeviceNumber::default();
+    let mut returned = 0u32;
+    let result = unsafe {
+        DeviceIoControl(
+            handle,
+            IOCTL_STORAGE_GET_DEVICE_NUMBER,
+            None,
+            0,
+            Some((&mut number as *mut StorageDeviceNumber).cast()),
+            std::mem::size_of::<StorageDeviceNumber>() as u32,
+            Some(&mut returned),
+            None,
+        )
+    };
+    unsafe {
+        let _ = CloseHandle(handle);
     }
+    result.ok().map(|_| number.device_number)
 }
 
-fn unlock_all(handles: &[VolumeHandle]) {
-    for handle in handles {
+fn disk_instance_id(target_disk_number: u32) -> Option<String> {
+    const DIGCF_PRESENT: u32 = 0x2;
+    const DIGCF_DEVICEINTERFACE: u32 = 0x10;
+    const GUID_DEVINTERFACE_DISK: GUID = GUID::from_u128(0x53f56307_b6bf_11d0_94f2_00a0c91efb8b);
+    let info_set = unsafe {
+        SetupDiGetClassDevsW(
+            &GUID_DEVINTERFACE_DISK,
+            std::ptr::null(),
+            std::ptr::null_mut(),
+            DIGCF_PRESENT | DIGCF_DEVICEINTERFACE,
+        )
+    };
+    if info_set as isize == -1 {
+        return None;
+    }
+
+    let mut found = None;
+    for index in 0..256 {
+        let mut interface_data = RawDeviceInterfaceData {
+            cb_size: std::mem::size_of::<RawDeviceInterfaceData>() as u32,
+            interface_class_guid: GUID::zeroed(),
+            flags: 0,
+            reserved: 0,
+        };
+        if unsafe {
+            SetupDiEnumDeviceInterfaces(
+                info_set,
+                std::ptr::null(),
+                &GUID_DEVINTERFACE_DISK,
+                index,
+                &mut interface_data,
+            )
+        } == 0
+        {
+            break;
+        }
+
+        let mut required = 0u32;
+        let mut dev_info = RawDevInfoData {
+            cb_size: std::mem::size_of::<RawDevInfoData>() as u32,
+            class_guid: GUID::zeroed(),
+            dev_inst: 0,
+            reserved: 0,
+        };
         unsafe {
-            let _ = DeviceIoControl(handle.0, FSCTL_UNLOCK_VOLUME, None, 0, None, 0, None, None);
+            SetupDiGetDeviceInterfaceDetailW(
+                info_set,
+                &interface_data,
+                std::ptr::null_mut(),
+                0,
+                &mut required,
+                &mut dev_info,
+            );
+        }
+        if required < 8 {
+            continue;
+        }
+        let mut detail = vec![0u8; required as usize];
+        unsafe {
+            *(detail.as_mut_ptr() as *mut u32) = if cfg!(target_pointer_width = "64") {
+                8
+            } else {
+                6
+            };
+        }
+        if unsafe {
+            SetupDiGetDeviceInterfaceDetailW(
+                info_set,
+                &interface_data,
+                detail.as_mut_ptr(),
+                required,
+                &mut required,
+                &mut dev_info,
+            )
+        } == 0
+        {
+            continue;
+        }
+        let path_ptr = unsafe { detail.as_ptr().add(4) as *const u16 };
+        let mut path_length = 0usize;
+        while unsafe { *path_ptr.add(path_length) } != 0 {
+            path_length += 1;
+        }
+        let path =
+            String::from_utf16_lossy(unsafe { std::slice::from_raw_parts(path_ptr, path_length) });
+        if storage_device_number(&path) != Some(target_disk_number) {
+            continue;
+        }
+
+        let mut instance_id = vec![0u16; 512];
+        let mut instance_length = 0u32;
+        if unsafe {
+            SetupDiGetDeviceInstanceIdW(
+                info_set,
+                &dev_info,
+                instance_id.as_mut_ptr(),
+                instance_id.len() as u32,
+                &mut instance_length,
+            )
+        } != 0
+        {
+            let length = instance_id
+                .iter()
+                .position(|value| *value == 0)
+                .unwrap_or(instance_id.len());
+            found = Some(String::from_utf16_lossy(&instance_id[..length]));
+        }
+        break;
+    }
+    unsafe {
+        SetupDiDestroyDeviceInfoList(info_set);
+    }
+    found
+}
+
+fn eject_optical_media(device_id: &str) -> bool {
+    const GUID_DEVINTERFACE_CDROM: GUID = GUID::from_u128(0x53f56308_b6bf_11d0_94f2_00a0c91efb8b);
+    const IOCTL_STORAGE_EJECT_MEDIA: u32 = 0x002d_4808;
+    let Some(path) = device_interface_path(&GUID_DEVINTERFACE_CDROM, device_id) else {
+        return false;
+    };
+    let wide: Vec<u16> = path.encode_utf16().chain(std::iter::once(0)).collect();
+    let Ok(handle) = (unsafe {
+        CreateFileW(
+            PCWSTR(wide.as_ptr()),
+            GENERIC_READ.0,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            None,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            None,
+        )
+    }) else {
+        return false;
+    };
+    let mut returned = 0u32;
+    let result = unsafe {
+        DeviceIoControl(
+            handle,
+            IOCTL_STORAGE_EJECT_MEDIA,
+            None,
+            0,
+            None,
+            0,
+            Some(&mut returned),
+            None,
+        )
+    }
+    .is_ok();
+    unsafe {
+        let _ = CloseHandle(handle);
+    }
+    result
+}
+
+fn device_interface_path(class_guid: &GUID, target_device_id: &str) -> Option<String> {
+    const DIGCF_PRESENT: u32 = 0x2;
+    const DIGCF_DEVICEINTERFACE: u32 = 0x10;
+    let info_set = unsafe {
+        SetupDiGetClassDevsW(
+            class_guid,
+            std::ptr::null(),
+            std::ptr::null_mut(),
+            DIGCF_PRESENT | DIGCF_DEVICEINTERFACE,
+        )
+    };
+    if info_set as isize == -1 {
+        return None;
+    }
+
+    let mut found = None;
+    for index in 0..256 {
+        let mut interface_data = RawDeviceInterfaceData {
+            cb_size: std::mem::size_of::<RawDeviceInterfaceData>() as u32,
+            interface_class_guid: GUID::zeroed(),
+            flags: 0,
+            reserved: 0,
+        };
+        if unsafe {
+            SetupDiEnumDeviceInterfaces(
+                info_set,
+                std::ptr::null(),
+                class_guid,
+                index,
+                &mut interface_data,
+            )
+        } == 0
+        {
+            break;
+        }
+        let mut required = 0u32;
+        let mut dev_info = RawDevInfoData {
+            cb_size: std::mem::size_of::<RawDevInfoData>() as u32,
+            class_guid: GUID::zeroed(),
+            dev_inst: 0,
+            reserved: 0,
+        };
+        unsafe {
+            SetupDiGetDeviceInterfaceDetailW(
+                info_set,
+                &interface_data,
+                std::ptr::null_mut(),
+                0,
+                &mut required,
+                &mut dev_info,
+            );
+        }
+        if required < 8 {
+            continue;
+        }
+        let mut detail = vec![0u8; required as usize];
+        unsafe {
+            *(detail.as_mut_ptr() as *mut u32) = if cfg!(target_pointer_width = "64") {
+                8
+            } else {
+                6
+            };
+        }
+        if unsafe {
+            SetupDiGetDeviceInterfaceDetailW(
+                info_set,
+                &interface_data,
+                detail.as_mut_ptr(),
+                required,
+                &mut required,
+                &mut dev_info,
+            )
+        } == 0
+        {
+            continue;
+        }
+        let mut instance_id = vec![0u16; 512];
+        let mut instance_length = 0u32;
+        if unsafe {
+            SetupDiGetDeviceInstanceIdW(
+                info_set,
+                &dev_info,
+                instance_id.as_mut_ptr(),
+                instance_id.len() as u32,
+                &mut instance_length,
+            )
+        } == 0
+        {
+            continue;
+        }
+        let instance_length = instance_id
+            .iter()
+            .position(|value| *value == 0)
+            .unwrap_or(instance_id.len());
+        let instance_id = String::from_utf16_lossy(&instance_id[..instance_length]);
+        if !instance_id.eq_ignore_ascii_case(target_device_id) {
+            continue;
+        }
+        let path_ptr = unsafe { detail.as_ptr().add(4) as *const u16 };
+        let mut path_length = 0usize;
+        while unsafe { *path_ptr.add(path_length) } != 0 {
+            path_length += 1;
+        }
+        found = Some(String::from_utf16_lossy(unsafe {
+            std::slice::from_raw_parts(path_ptr, path_length)
+        }));
+        break;
+    }
+    unsafe {
+        SetupDiDestroyDeviceInfoList(info_set);
+    }
+    found
+}
+
+fn request_target_eject(target: &EjectTarget) -> Result<UsbEjectResult, String> {
+    let enclosure_result = request_pnp_eject(&target.pnp_device_id, &target.volume_letters)?;
+    let dependent_volume_veto = enclosure_result.veto_type.as_deref() == Some("device")
+        && enclosure_result
+            .veto_name
+            .as_deref()
+            .is_some_and(is_storage_volume_device_id);
+    if target
+        .pnp_device_id
+        .eq_ignore_ascii_case(&target.storage_device_id)
+        || (!is_auxiliary_optical_veto(&enclosure_result) && !dependent_volume_veto)
+    {
+        return Ok(enclosure_result);
+    }
+
+    // Explorer's Eject verb is the standard interactive shell path and can release shell-owned
+    // references that are not attributable to a user process. This is a compatibility fallback
+    // for encrypted composite disks; CM_Request_Device_Eject remains the authoritative result.
+    invoke_shell_eject(target.volume_letters.first().map(String::as_str));
+    for _ in 0..10 {
+        if logical_volumes_are_gone(&target.volume_letters) {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    let shell_retry = request_pnp_eject(&target.pnp_device_id, &target.volume_letters)?;
+    if shell_retry.status == "ejected" {
+        return Ok(shell_retry);
+    }
+    let virtual_cd_blocked =
+        is_auxiliary_optical_veto(&enclosure_result) || is_auxiliary_optical_veto(&shell_retry);
+    if shell_retry.veto_type.as_deref() == Some("device") {
+        if let Some(volume_device_id) = shell_retry
+            .veto_name
+            .as_ref()
+            .filter(|value| is_storage_volume_device_id(value))
+        {
+            let volume_result = request_exact_pnp_eject(volume_device_id, &target.volume_letters)?;
+            if volume_result.status == "ejected" {
+                let retry = request_pnp_eject(&target.pnp_device_id, &target.volume_letters)?;
+                if retry.status == "ejected" {
+                    return Ok(retry);
+                }
+            }
         }
     }
+
+    // A password-protected WD-style disk can expose a read-only unlock CD in the same physical
+    // container. Request removal of those optical child nodes first, then retry the enclosure.
+    let mut auxiliary_ids = target.auxiliary_device_ids.clone();
+    for result in [&enclosure_result, &shell_retry] {
+        if let Some(veto_device_id) = result
+            .veto_name
+            .as_ref()
+            .filter(|value| is_virtual_optical_device_id(value))
+        {
+            if !auxiliary_ids
+                .iter()
+                .any(|value| value.eq_ignore_ascii_case(veto_device_id))
+            {
+                auxiliary_ids.push(veto_device_id.clone());
+            }
+        }
+    }
+    let mut auxiliary_removed = false;
+    for device_id in &auxiliary_ids {
+        let mut result = request_exact_pnp_eject(device_id, &target.volume_letters)?;
+        let media_ejected = result.status != "ejected" && eject_optical_media(device_id);
+        if media_ejected {
+            std::thread::sleep(Duration::from_millis(250));
+            result = request_exact_pnp_eject(device_id, &target.volume_letters)?;
+        }
+        auxiliary_removed |= result.status == "ejected" || media_ejected;
+    }
+    if auxiliary_removed {
+        let retry = request_pnp_eject(&target.pnp_device_id, &target.volume_letters)?;
+        if retry.status == "ejected" {
+            return Ok(retry);
+        }
+    }
+
+    // If the read-only companion still refuses removal, safely remove the writable data branch.
+    // Report this as partial success rather than telling the user that the whole enclosure left.
+    let mut data_result =
+        request_exact_pnp_eject(&target.storage_device_id, &target.volume_letters)?;
+    if data_result.veto_type.as_deref() == Some("device") {
+        if let Some(volume_device_id) = data_result
+            .veto_name
+            .as_ref()
+            .filter(|value| is_storage_volume_device_id(value))
+        {
+            let volume_result = request_exact_pnp_eject(volume_device_id, &target.volume_letters)?;
+            if volume_result.status == "ejected" {
+                data_result =
+                    request_exact_pnp_eject(&target.storage_device_id, &target.volume_letters)?;
+                if data_result.status == "ejected" {
+                    let enclosure_retry =
+                        request_pnp_eject(&target.pnp_device_id, &target.volume_letters)?;
+                    if enclosure_retry.status == "ejected" {
+                        return Ok(enclosure_retry);
+                    }
+                }
+            }
+        }
+    }
+    if data_result.status == "ejected" {
+        return Ok(UsbEjectResult {
+            status: "volume_ejected".into(),
+            stage: "pnp".into(),
+            blockers: Vec::new(),
+            veto_type: enclosure_result.veto_type,
+            veto_name: enclosure_result.veto_name,
+        });
+    }
+    if virtual_cd_blocked {
+        return match safely_dismount_with_elevation(&target.volume_letters) {
+            Ok(()) => Ok(UsbEjectResult {
+                status: "volume_ejected".into(),
+                stage: "dismount".into(),
+                blockers: Vec::new(),
+                veto_type: enclosure_result.veto_type,
+                veto_name: enclosure_result.veto_name,
+            }),
+            Err(stage) => Ok(UsbEjectResult {
+                status: if stage == "permission_required" {
+                    "permission_required".into()
+                } else {
+                    "busy".into()
+                },
+                stage: stage.into(),
+                blockers: target
+                    .volume_letters
+                    .first()
+                    .and_then(|letter| find_locking_processes(letter).ok())
+                    .unwrap_or_default(),
+                veto_type: None,
+                veto_name: None,
+            }),
+        };
+    }
+    // The enclosure veto only identifies the read-only companion interface. If the data
+    // branch also fails, its veto is the actionable result and may name the actual app,
+    // service, driver, or storage node that prevented removal.
+    Ok(data_result)
+}
+
+fn safely_dismount_with_elevation(volumes: &[String]) -> Result<(), &'static str> {
+    match safely_dismount_data_volumes(volumes) {
+        Ok(()) => return Ok(()),
+        Err(stage) if stage != "permission_required" => return Err(stage),
+        Err(_) => {}
+    }
+    let Some(first) = volumes.first() else {
+        return Err("dismount");
+    };
+    let letter = normalize_drive_letter(first).map_err(|_| "dismount")?;
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    let result_path = std::env::temp_dir().join(format!(
+        "zerotick-eject-{}-{nonce}.status",
+        std::process::id()
+    ));
+    let exe = std::env::current_exe().map_err(|_| "permission_required")?;
+    let parameters = format!(
+        "--safe-dismount {letter} --eject-result \"{}\"",
+        result_path.display()
+    );
+    let exe_wide: Vec<u16> = exe
+        .as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+    let parameters_wide: Vec<u16> = parameters
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
+    let launched = unsafe {
+        ShellExecuteW(
+            None,
+            windows::core::w!("runas"),
+            PCWSTR(exe_wide.as_ptr()),
+            PCWSTR(parameters_wide.as_ptr()),
+            PCWSTR::null(),
+            SW_HIDE,
+        )
+    };
+    if launched.0 as isize <= 32 {
+        return Err("permission_required");
+    }
+    for _ in 0..120 {
+        if let Ok(status) = std::fs::read_to_string(&result_path) {
+            let _ = std::fs::remove_file(&result_path);
+            return if status.trim() == "ok" {
+                Ok(())
+            } else {
+                Err(match status.trim() {
+                    "flush" => "flush",
+                    "lock" => "lock",
+                    "dismount" => "dismount",
+                    _ => "permission_required",
+                })
+            };
+        }
+        std::thread::sleep(Duration::from_millis(250));
+    }
+    Err("permission_required")
+}
+
+pub fn run_safe_dismount_helper_if_requested() -> bool {
+    let args: Vec<String> = std::env::args().collect();
+    let Some(command_index) = args.iter().position(|arg| arg == "--safe-dismount") else {
+        return false;
+    };
+    let Some(result_index) = args.iter().position(|arg| arg == "--eject-result") else {
+        return true;
+    };
+    let Some(letter) = args.get(command_index + 1) else {
+        return true;
+    };
+    let Some(result_value) = args.get(result_index + 1) else {
+        return true;
+    };
+    let result_path = PathBuf::from(result_value);
+    let temp_dir = std::env::temp_dir();
+    let valid_result_path = result_path.parent() == Some(temp_dir.as_path())
+        && result_path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .is_some_and(|value| {
+                value.starts_with("zerotick-eject-") && value.ends_with(".status")
+            });
+    if !valid_result_path {
+        return true;
+    }
+    let status = match normalize_drive_letter(letter)
+        .ok()
+        .and_then(|letter| resolve_eject_target_native(&letter).ok())
+        .filter(|target| {
+            target
+                .storage_device_id
+                .to_ascii_uppercase()
+                .starts_with("USBSTOR\\DISK")
+        }) {
+        Some(target) => safely_dismount_data_volumes(&target.volume_letters)
+            .err()
+            .unwrap_or("ok"),
+        None => "invalid_target",
+    };
+    let _ = std::fs::write(result_path, status);
+    true
+}
+
+fn safely_dismount_data_volumes(volumes: &[String]) -> Result<(), &'static str> {
+    let mut handles = Vec::with_capacity(volumes.len());
+    for volume in volumes {
+        let path = format!(r"\\.\{}", volume.trim_end_matches('\\'));
+        let wide: Vec<u16> = path.encode_utf16().chain(std::iter::once(0)).collect();
+        let handle = unsafe {
+            CreateFileW(
+                PCWSTR(wide.as_ptr()),
+                GENERIC_READ.0 | GENERIC_WRITE.0,
+                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                None,
+                OPEN_EXISTING,
+                FILE_ATTRIBUTE_NORMAL,
+                None,
+            )
+        }
+        .map_err(|error| {
+            if error.code().0 as u32 == 0x8007_0005 {
+                "permission_required"
+            } else {
+                "flush"
+            }
+        })?;
+        let handle = VolumeHandle(handle);
+        unsafe { FlushFileBuffers(handle.0) }.map_err(|_| "flush")?;
+        unsafe { DeviceIoControl(handle.0, FSCTL_LOCK_VOLUME, None, 0, None, 0, None, None) }
+            .map_err(|_| "lock")?;
+        handles.push(handle);
+    }
+    for handle in &handles {
+        if unsafe {
+            DeviceIoControl(
+                handle.0,
+                FSCTL_DISMOUNT_VOLUME,
+                None,
+                0,
+                None,
+                0,
+                None,
+                None,
+            )
+        }
+        .is_err()
+        {
+            for locked in &handles {
+                unsafe {
+                    let _ = DeviceIoControl(
+                        locked.0,
+                        FSCTL_UNLOCK_VOLUME,
+                        None,
+                        0,
+                        None,
+                        0,
+                        None,
+                        None,
+                    );
+                }
+            }
+            return Err("dismount");
+        }
+    }
+    drop(handles);
+    Ok(())
+}
+
+fn invoke_shell_eject(drive_letter: Option<&str>) {
+    let Some(letter) = drive_letter.and_then(|value| normalize_drive_letter(value).ok()) else {
+        return;
+    };
+    let script = format!(
+        r#"$shell = New-Object -ComObject Shell.Application
+$drive = $shell.Namespace(17).ParseName('{letter}:')
+if ($drive) {{ $drive.InvokeVerb('Eject') }}"#
+    );
+    // This is deliberately best-effort: Shell extensions vary by Windows and vendor.
+    // The following CM_Request_Device_Eject calls and observable volume state decide success.
+    let _ = powershell::run_void_with_timeout(&script, Duration::from_secs(5));
+}
+
+fn is_auxiliary_optical_veto(result: &UsbEjectResult) -> bool {
+    if result.status != "vetoed" {
+        return false;
+    }
+    is_virtual_optical_device_id(result.veto_name.as_deref().unwrap_or_default())
+}
+
+fn is_virtual_optical_device_id(value: &str) -> bool {
+    let value = value.to_ascii_lowercase();
+    value.contains("usbstor\\cdrom") || value.contains("virtual_cd") || value.contains("virtual cd")
+}
+
+fn is_storage_volume_device_id(value: &str) -> bool {
+    value
+        .trim()
+        .to_ascii_lowercase()
+        .starts_with("storage\\volume\\")
 }
 
 fn request_pnp_eject(device_id: &str, drive_letters: &[String]) -> Result<UsbEjectResult, String> {
+    request_pnp_eject_impl(device_id, drive_letters, true)
+}
+
+fn request_exact_pnp_eject(
+    device_id: &str,
+    drive_letters: &[String],
+) -> Result<UsbEjectResult, String> {
+    request_pnp_eject_impl(device_id, drive_letters, false)
+}
+
+fn request_pnp_eject_impl(
+    device_id: &str,
+    drive_letters: &[String],
+    climb_to_removable: bool,
+) -> Result<UsbEjectResult, String> {
     let wide: Vec<u16> = device_id.encode_utf16().chain(std::iter::once(0)).collect();
     let mut dev_inst = 0u32;
     let located = unsafe {
@@ -1241,35 +1979,46 @@ fn request_pnp_eject(device_id: &str, drive_letters: &[String]) -> Result<UsbEje
         )
     };
     if located != CR_SUCCESS {
+        if logical_volumes_are_gone(drive_letters) {
+            return Ok(UsbEjectResult {
+                status: "ejected".into(),
+                stage: "pnp".into(),
+                blockers: Vec::new(),
+                veto_type: None,
+                veto_name: None,
+            });
+        }
         return Ok(eject_failure("failed", "pnp", None, None));
     }
 
-    // The disk PDO is often below the removable USB device node. Walk upward to the first
-    // removable ancestor, without ever climbing past it to a hub/controller.
     let mut eject_node = dev_inst;
-    let mut current = dev_inst;
-    for _ in 0..8 {
-        let mut capabilities = 0u32;
-        let mut size = std::mem::size_of::<u32>() as u32;
-        let result = unsafe {
-            CM_Get_DevNode_Registry_PropertyW(
-                current,
-                CM_DRP_CAPABILITIES,
-                None,
-                Some((&mut capabilities as *mut u32).cast()),
-                &mut size,
-                0,
-            )
-        };
-        if result == CR_SUCCESS && capabilities & CM_DEVCAP_REMOVABLE.0 != 0 {
-            eject_node = current;
-            break;
+    if climb_to_removable {
+        // The disk PDO is often below the removable USB device node. Walk upward to the first
+        // removable ancestor, without ever climbing past it to a hub/controller.
+        let mut current = dev_inst;
+        for _ in 0..8 {
+            let mut capabilities = 0u32;
+            let mut size = std::mem::size_of::<u32>() as u32;
+            let result = unsafe {
+                CM_Get_DevNode_Registry_PropertyW(
+                    current,
+                    CM_DRP_CAPABILITIES,
+                    None,
+                    Some((&mut capabilities as *mut u32).cast()),
+                    &mut size,
+                    0,
+                )
+            };
+            if result == CR_SUCCESS && capabilities & CM_DEVCAP_REMOVABLE.0 != 0 {
+                eject_node = current;
+                break;
+            }
+            let mut parent = 0u32;
+            if unsafe { CM_Get_Parent(&mut parent, current, 0) } != CR_SUCCESS {
+                break;
+            }
+            current = parent;
         }
-        let mut parent = 0u32;
-        if unsafe { CM_Get_Parent(&mut parent, current, 0) } != CR_SUCCESS {
-            break;
-        }
-        current = parent;
     }
 
     let mut veto = PNP_VETO_TYPE(0);
@@ -1491,6 +2240,23 @@ mod tests {
         assert_eq!(veto_type_name(PNP_VETO_TYPE(5)), "outstanding_open");
         assert_eq!(veto_type_name(PNP_VETO_TYPE(12)), "insufficient_rights");
         assert_eq!(veto_type_name(PNP_VETO_TYPE(999)), "unknown");
+    }
+
+    #[test]
+    fn only_virtual_optical_companions_enable_partial_eject_fallback() {
+        let mut result = eject_failure(
+            "vetoed",
+            "pnp",
+            Some("outstanding_open".into()),
+            Some(r"USBSTOR\CdRom&Ven_WD&Prod_Virtual_CD\123".into()),
+        );
+        assert!(is_auxiliary_optical_veto(&result));
+
+        result.veto_name = Some(r"USBSTOR\Disk&Ven_WD&Prod_My_Passport\123".into());
+        assert!(!is_auxiliary_optical_veto(&result));
+        result.status = "ejected".into();
+        result.veto_name = Some(r"USBSTOR\CdRom&Ven_WD&Prod_Virtual_CD\123".into());
+        assert!(!is_auxiliary_optical_veto(&result));
     }
 
     #[test]

@@ -1,7 +1,7 @@
 {
   "name": "zerotick",
   "private": true,
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Approachable Windows diagnostics and repair for network, audio, removable storage, Bluetooth, drivers, BSODs, and ports",
   "homepage": "https://github.com/ichenh/zerotick#readme",
   "repository": {
