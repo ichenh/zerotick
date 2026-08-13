@@ -63,7 +63,7 @@ jobs:
 
       - name: Rust cache
         if: steps.gate.outputs.skip != 'true'
-        uses: swatinem/rust-cache@v2.9.1
+        uses: swatinem/rust-cache@v2.9.2
         with:
           workspaces: src-tauri
 
