@@ -1,19 +1,25 @@
 //! 网络诊断 — 服务、网速测试、连通性、VPN
 
+mod adapters;
+mod icmp;
+pub mod probe;
+pub use adapters::NetworkAdapter;
+
 use crate::services::{self, ServicesReport, NETWORK};
 use crate::utils::logging;
 use crate::utils::powershell;
 use crate::utils::process::CommandExt;
 use serde::{Deserialize, Serialize};
-use std::process::Command;
-use std::time::Instant;
+use std::process::{Command, ExitStatus, Stdio};
+use std::sync::{Arc, Condvar, Mutex};
+use std::time::{Duration, Instant};
 use windows::Win32::Foundation::RPC_E_CHANGED_MODE;
 use windows::Win32::Networking::NetworkListManager::{INetworkListManager, NetworkListManager};
 use windows::Win32::System::Com::{
     CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_ALL, COINIT_MULTITHREADED,
 };
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct VpnAdapterInfo {
     pub name: String,
     pub description: String,
@@ -21,14 +27,14 @@ pub struct VpnAdapterInfo {
     pub detection: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct VpnConnectionInfo {
     pub name: String,
     pub server: Option<String>,
     pub status: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct VpnReport {
     pub active: bool,
     pub tunnel_active: bool,
@@ -37,7 +43,7 @@ pub struct VpnReport {
     pub proxy: ProxyInfo,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct ProxyInfo {
     pub active: bool,
     /// manual | pac | environment | combined | none
@@ -48,7 +54,7 @@ pub struct ProxyInfo {
     pub providers: Vec<ProxyProviderInfo>,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct ProxySourceInfo {
     /// manual | pac | environment
     pub kind: String,
@@ -56,7 +62,7 @@ pub struct ProxySourceInfo {
     pub address: String,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct ProxyProviderInfo {
     pub name: String,
     pub pid: Option<u32>,
@@ -65,21 +71,32 @@ pub struct ProxyProviderInfo {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct NetworkDiagReport {
     pub services: ServicesReport,
+    pub service_error: Option<String>,
+    pub adapters: Vec<NetworkAdapter>,
+    pub adapter_error: Option<String>,
     /// Windows Network List Manager currently sees a network connection.
     pub network_connected: Option<bool>,
     /// Windows NCSI currently reports IPv4 or IPv6 Internet access.
     pub internet_reachable: Option<bool>,
     pub gateway: Option<String>,
     pub gateway_reachable: Option<bool>,
+    pub gateway_checks: Vec<GatewayCheck>,
     /// Adapters currently present in Windows, including disconnected or disabled adapters.
     pub adapter_present_count: usize,
     /// Adapters whose current operational status is Up.
     pub adapter_count: usize,
-    pub vpn: VpnReport,
-    pub dns_flush_ok: bool,
+    pub vpn: Option<VpnReport>,
+    pub vpn_error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct GatewayCheck {
+    pub gateway: String,
+    /// ICMP response evidence only. No reply does not establish a broken router.
+    pub reachable: Option<bool>,
 }
 
 #[derive(Debug, Serialize)]
@@ -91,70 +108,153 @@ pub struct SpeedTestResult {
     pub vpn_active: Option<bool>,
 }
 
+#[derive(Default)]
+struct DiagnosticFlight {
+    result: Mutex<Option<Result<NetworkDiagReport, String>>>,
+    completed: Condvar,
+}
+
+static ACTIVE_DIAGNOSIS: Mutex<Option<Arc<DiagnosticFlight>>> = Mutex::new(None);
+
 pub fn diagnose() -> Result<NetworkDiagReport, String> {
-    let (
-        services,
-        network_connected,
-        internet_reachable,
-        gateway,
-        gateway_reachable,
-        adapter_counts,
-        vpn,
-    ) = std::thread::scope(|scope| {
+    diagnose_with_freshness(false)
+}
+
+fn diagnose_with_freshness(require_fresh: bool) -> Result<NetworkDiagReport, String> {
+    loop {
+        let (flight, leader) = {
+            let mut active = ACTIVE_DIAGNOSIS
+                .lock()
+                .map_err(|_| "network_scan:lock_failed")?;
+            match active.as_ref() {
+                Some(flight) => (flight.clone(), false),
+                None => {
+                    if require_fresh {
+                        // Reserve this new flight and invalidate under the same lock:
+                        // another caller cannot publish an older snapshot between them.
+                        services::invalidate_diagnostic_cache();
+                    }
+                    let flight = Arc::new(DiagnosticFlight::default());
+                    *active = Some(flight.clone());
+                    (flight, true)
+                }
+            }
+        };
+        if leader {
+            let result = std::panic::catch_unwind(diagnose_uncached)
+                .unwrap_or_else(|_| Err("network_scan:worker_failed".into()));
+            *flight
+                .result
+                .lock()
+                .map_err(|_| "network_scan:lock_failed")? = Some(result);
+            // Only overlapping scans share this result. A later scan starts fresh.
+            *ACTIVE_DIAGNOSIS
+                .lock()
+                .map_err(|_| "network_scan:lock_failed")? = None;
+            flight.completed.notify_all();
+        }
+        let mut result = flight
+            .result
+            .lock()
+            .map_err(|_| "network_scan:lock_failed")?;
+        while result.is_none() {
+            result = flight
+                .completed
+                .wait(result)
+                .map_err(|_| "network_scan:lock_failed")?;
+        }
+        if require_fresh && !leader {
+            // An overlapping scan may have started before the repair. Wait for it,
+            // then reserve a new generation rather than returning its evidence.
+            drop(result);
+            continue;
+        }
+        return result
+            .as_ref()
+            .expect("completed network scan has a result")
+            .clone();
+    }
+}
+
+/// A repair must observe a new snapshot, never join a scan started before it.
+pub fn diagnose_after_repair() -> Result<NetworkDiagReport, String> {
+    diagnose_with_freshness(true)
+}
+
+fn diagnose_uncached() -> Result<NetworkDiagReport, String> {
+    let (services, connectivity, adapters, vpn) = std::thread::scope(|scope| {
         let services_task = scope.spawn(|| services::diagnose_group(NETWORK));
         let connectivity_task = scope.spawn(detect_windows_connectivity);
-        let gateway_task = scope.spawn(|| {
-            let gateway = detect_gateway()?;
-            let reachable = gateway.as_ref().and_then(|value| ping_once(value));
-            Ok::<_, String>((gateway, reachable))
-        });
-        let adapters_task = scope.spawn(count_adapters);
+        let adapters_task = scope.spawn(adapters::snapshot);
         let vpn_task = scope.spawn(detect_vpn);
         let services = services_task
             .join()
-            .map_err(|_| "网络服务扫描异常终止".to_string())??;
-        // NLM/NCSI is live user-facing connectivity evidence. If Windows cannot
-        // provide it, retain unknown instead of silently claiming Internet access.
-        let (network_connected, internet_reachable) = match connectivity_task.join() {
-            Ok(Ok(status)) => (Some(status.connected), Some(status.internet)),
-            Ok(Err(error)) => {
-                logging::warn(format!("Windows 网络连通性读取失败: {error}"));
-                (None, None)
-            }
-            Err(_) => {
-                logging::warn("Windows 网络连通性检测线程异常终止");
-                (None, None)
-            }
-        };
-        let (gateway, gateway_reachable) = gateway_task
+            .unwrap_or_else(|_| Err("网络服务扫描异常终止".into()));
+        let connectivity = connectivity_task
             .join()
-            .map_err(|_| "网关扫描异常终止".to_string())??;
-        let adapter_counts = adapters_task
+            .unwrap_or_else(|_| Err("网络连通性扫描异常终止".into()));
+        let adapters = adapters_task
             .join()
-            .map_err(|_| "网络适配器扫描异常终止".to_string())??;
+            .unwrap_or_else(|_| Err("网络适配器扫描异常终止".into()));
         let vpn = vpn_task
             .join()
-            .map_err(|_| "VPN 扫描异常终止".to_string())??;
-        Ok::<_, String>((
-            services,
-            network_connected,
-            internet_reachable,
-            gateway,
-            gateway_reachable,
-            adapter_counts,
-            vpn,
-        ))
-    })?;
+            .unwrap_or_else(|_| Err("VPN 扫描异常终止".into()));
+        (services, connectivity, adapters, vpn)
+    });
+    let (services, service_error) = match services {
+        Ok(report) => (report, None),
+        Err(error) => (ServicesReport::default(), Some(error)),
+    };
+    let (adapters, adapter_error) = match adapters {
+        Ok(adapters) => (adapters, None),
+        Err(error) => (Vec::new(), Some(error)),
+    };
+    let (vpn, vpn_error) = match vpn {
+        Ok(report) => (Some(report), None),
+        Err(error) => (None, Some(error)),
+    };
+    let (network_connected, internet_reachable) = match connectivity {
+        Ok(status) => (Some(status.connected), Some(status.internet)),
+        Err(error) => {
+            logging::warn(format!("Windows 网络连通性读取失败: {error}"));
+            (None, None)
+        }
+    };
+    for error in [&service_error, &adapter_error, &vpn_error]
+        .into_iter()
+        .flatten()
+    {
+        logging::warn(error);
+    }
+    let gateway_checks = check_gateways(&adapters);
+    // Multiple interfaces/VPNs can have different valid gateways. Do not pick
+    // an arbitrary first route and present its failure as the whole network.
+    let gateway = (gateway_checks.len() == 1).then(|| gateway_checks[0].gateway.clone());
+    let gateway_reachable = if gateway_checks.len() == 1 {
+        gateway_checks[0].reachable
+    } else {
+        None
+    };
     Ok(NetworkDiagReport {
         services,
+        service_error,
         network_connected,
         internet_reachable,
         gateway,
         gateway_reachable,
-        adapter_present_count: adapter_counts.present,
-        adapter_count: adapter_counts.active,
+        gateway_checks,
+        adapter_present_count: adapters
+            .iter()
+            .filter(|adapter| adapter.oper_status != "not_present")
+            .count(),
+        adapter_count: adapters
+            .iter()
+            .filter(|adapter| adapter.oper_status == "up")
+            .count(),
+        adapters,
+        adapter_error,
         vpn,
-        dns_flush_ok: false,
+        vpn_error,
     })
 }
 
@@ -201,15 +301,51 @@ fn detect_windows_connectivity() -> Result<WindowsConnectivity, String> {
 }
 
 pub fn flush_dns() -> Result<(), String> {
-    let output = Command::new("ipconfig")
-        .hide_window()
-        .args(["/flushdns"])
-        .output()
-        .map_err(|e| format!("ipconfig 失败: {e}"))?;
-    if output.status.success() {
+    // ipconfig /flushdns is the documented Windows cache-management operation;
+    // use it only for explicit repairs, with no shell and a bounded lifetime.
+    let status = run_system_command("ipconfig.exe", &["/flushdns"], Duration::from_secs(10))
+        .map_err(|error| format!("network_dns_flush:{error}"))?;
+    if status.success() {
         Ok(())
     } else {
-        Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
+        Err(format!("network_dns_flush:exit_code:{:?}", status.code()))
+    }
+}
+
+fn run_system_command(name: &str, args: &[&str], timeout: Duration) -> Result<ExitStatus, String> {
+    let mut system_directory = [0u16; 32768];
+    let length = unsafe {
+        windows::Win32::System::SystemInformation::GetSystemDirectoryW(Some(&mut system_directory))
+    } as usize;
+    if length == 0 || length >= system_directory.len() {
+        return Err("system_directory_unavailable".into());
+    }
+    let executable =
+        std::path::PathBuf::from(String::from_utf16_lossy(&system_directory[..length])).join(name);
+    let mut child = Command::new(executable)
+        .hide_window()
+        .args(args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|error| format!("start_failed:{error}"))?;
+    let started = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => return Ok(status),
+            Ok(None) if started.elapsed() < timeout => {
+                std::thread::sleep(Duration::from_millis(50))
+            }
+            result => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(match result {
+                    Err(error) => format!("wait_failed:{error}"),
+                    _ => "timeout".into(),
+                });
+            }
+        }
     }
 }
 
@@ -591,66 +727,36 @@ impl Default for VpnReport {
     }
 }
 
-fn detect_gateway() -> Result<Option<String>, String> {
-    let output = Command::new("powershell")
-        .hide_window()
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-Command",
-            "$ErrorActionPreference='Stop'; @(Get-NetRoute -AddressFamily IPv4 | Where-Object DestinationPrefix -eq '0.0.0.0/0' | Sort-Object RouteMetric | Select-Object -First 1 -ExpandProperty NextHop)",
-        ])
-        .output()
-        .map_err(|error| format!("network_gateway:start_failed:{error}"))?;
-    if !output.status.success() {
-        let detail = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        return Err(format!("network_gateway:query_failed:{detail}"));
-    }
-    let ip = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    if ip.is_empty() || ip == "0.0.0.0" {
-        Ok(None)
-    } else {
-        Ok(Some(ip))
-    }
-}
-
 fn ping_once(host: &str) -> Option<bool> {
-    Command::new("ping")
-        .hide_window()
-        .args(["-n", "1", "-w", "1500", host])
-        .output()
-        .map(|o| o.status.success())
-        .ok()
+    icmp::ping(host)
 }
 
-#[derive(Debug, Deserialize)]
-struct AdapterCounts {
-    present: usize,
-    active: usize,
-}
-
-fn count_adapters() -> Result<AdapterCounts, String> {
-    let script = r#"
-try {
-  $adapters = @(Get-NetAdapter -ErrorAction Stop)
-  $present = @($adapters | Where-Object Status -ne 'Not Present').Count
-  $active = @($adapters | Where-Object Status -eq 'Up').Count
-} catch {
-  # Standard users can receive WBEM_E_ACCESS_DENIED from MSFT_NetAdapter.
-  # NetworkInterface is less detailed but still gives live presence and operational state.
-  $adapters = @([System.Net.NetworkInformation.NetworkInterface]::GetAllNetworkInterfaces() |
-    Where-Object { [string]$_.NetworkInterfaceType -notin @('Loopback', 'Tunnel') })
-  $present = $adapters.Count
-  $active = @($adapters | Where-Object { [string]$_.OperationalStatus -eq 'Up' }).Count
-}
-[pscustomobject]@{
-  present = $present
-  active = $active
-}"#;
-    powershell::run_json(script).and_then(|value| {
-        serde_json::from_value(value)
-            .map_err(|error| format!("network_adapters:invalid_response:{error}"))
-    })
+fn check_gateways(adapters: &[NetworkAdapter]) -> Vec<GatewayCheck> {
+    let gateways = adapters
+        .iter()
+        .filter(|adapter| adapter.oper_status == "up")
+        .flat_map(|adapter| adapter.gateways.iter().cloned())
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let mut results = Vec::new();
+    // Preserve gateway tests for all candidate routes, with at most two probes
+    // active at once. Each child has its own timeout and no unbounded output pipe.
+    for batch in gateways.chunks(2) {
+        std::thread::scope(|scope| {
+            let tasks = batch
+                .iter()
+                .map(|gateway| (gateway, scope.spawn(move || ping_once(gateway))))
+                .collect::<Vec<_>>();
+            for (gateway, task) in tasks {
+                results.push(GatewayCheck {
+                    gateway: gateway.clone(),
+                    reachable: task.join().unwrap_or(None),
+                });
+            }
+        });
+    }
+    results
 }
 
 #[cfg(test)]

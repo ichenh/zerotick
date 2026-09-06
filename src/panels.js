@@ -66,6 +66,7 @@ function rawErrorText(error) {
 
 function userErrorMessage(error, fallbackKey = "errors.operationFailed") {
   const raw = rawErrorText(error).toLowerCase();
+  if (raw.includes("service_repair_busy")) return t("errors.serviceRepairBusy");
   if (
     raw.includes("admin_required") ||
     raw.includes("permissiondenied") ||
@@ -119,7 +120,7 @@ async function runButtonTask(button, task) {
   }
 }
 
-function renderServicesBlock(services, titleKey) {
+function renderServicesBlock(services, titleKey, queryFailed = false) {
   const rows = (services?.services ?? [])
     .map((svc) => {
       const badge = svc.state === "Running" || svc.expected_stopped ? "ok" : svc.state ? "crit" : "warn";
@@ -131,7 +132,7 @@ function renderServicesBlock(services, titleKey) {
     .join("");
   const issues = renderList(
     (services?.issues ?? []).map(formatServiceIssue),
-    t("toolkit.services.noIssues"),
+    t(queryFailed ? "toolkit.unknown" : "toolkit.services.noIssues"),
   );
   return `<details class="technical-details advanced-only">
     <summary>${escapeHtml(t("toolkit.technicalDetails"))}</summary>
@@ -198,10 +199,10 @@ function renderVpnBlock(vpn) {
     ? t("toolkit.network.vpnActive")
     : vpn?.proxy?.active
       ? t("toolkit.network.proxyActive")
-      : t("toolkit.network.vpnInactive");
-  const badge = "ok";
+      : t(vpn ? "toolkit.network.vpnInactive" : "toolkit.unknown");
+  const badge = vpn ? "ok" : "warn";
   const connItems = (vpn?.connections ?? []).map(
-    (c) => `${c.name}${c.server ? ` → ${c.server}` : ""} (${c.status})`,
+    (c) => `${c.name}${c.server ? ` → ${c.server}` : ""}`,
   );
   const adapterItems = (vpn?.adapters ?? []).map((a) => `${a.name} — ${a.description}`);
   const proxyMode = vpn?.proxy?.active
@@ -303,56 +304,79 @@ export function renderNetworkSpeedResult(result) {
 }
 
 function networkDiagnosisKeys(report) {
-  if ((report.adapter_present_count ?? report.adapter_count ?? 0) === 0) {
-    return ["toolkit.network.diagnosis.noAdapter"];
-  }
-  if (report.network_connected === false) {
-    return ["toolkit.network.diagnosis.linkDisconnected"];
-  }
-
   const reasons = [];
-  if (report.gateway_reachable === false) {
-    reasons.push("toolkit.network.diagnosis.gatewayUnreachable");
-  } else if (report.internet_reachable === false) {
-    reasons.push("toolkit.network.diagnosis.upstreamUnavailable");
-  }
+  if (networkAdapterCount(report) === 0) reasons.push("toolkit.network.diagnosis.noAdapter");
+  if (report.network_connected === false) reasons.push("toolkit.network.diagnosis.linkDisconnected");
+  if (report.internet_reachable === false) reasons.push("toolkit.network.evidence.internetUnavailable");
   if (report.internet_reachable === false && report.vpn?.active) {
     reasons.push("toolkit.network.diagnosis.vpnOrProxy");
   }
   if (report.services?.issues?.length) {
     reasons.push("toolkit.network.diagnosis.serviceIssue");
   }
-  if (report.network_connected == null || report.internet_reachable == null) {
+  if (report.network_connected == null || report.internet_reachable == null
+    || report.adapter_error || report.service_error || report.vpn_error || !report.vpn) {
     reasons.push("toolkit.network.diagnosis.statusUnknown");
   }
   return reasons.length ? reasons : ["toolkit.network.diagnosis.snapshotHealthy"];
 }
 
+function networkAdapterCount(report) {
+  return report.adapter_error ? null
+    : report.adapter_present_count
+      ?? report.adapters?.filter((adapter) => adapter.oper_status !== "not_present").length
+      ?? report.adapter_count ?? null;
+}
+
+function renderNetworkAdapters(report) {
+  const adapters = report.adapters ?? [];
+  const kinds = new Set(["ethernet", "wifi", "tunnel", "other"]);
+  const statuses = new Set(["up", "down", "dormant", "not_present", "lower_layer_down", "testing", "unknown"]);
+  const rows = adapters.map((adapter) => {
+    const kind = kinds.has(adapter.kind) ? adapter.kind : "other";
+    const status = statuses.has(adapter.oper_status) ? adapter.oper_status : "unknown";
+    const row = (key, values, advanced = false) => `<div class="result-row${advanced ? " advanced-only" : ""}"><span class="result-label">${escapeHtml(t(`toolkit.network.evidence.${key}`))}</span><span class="result-value">${escapeHtml(values?.length ? values.join(" · ") : t("toolkit.network.evidence.noneReported"))}</span></div>`;
+    const gateways = (adapter.gateways ?? []).map((gateway) => {
+      const check = (report.gateway_checks ?? []).find((item) => item.gateway === gateway);
+      const state = check?.reachable === true ? "icmpReply" : check?.reachable === false ? "icmpNoReply" : "icmpUnknown";
+      return `${gateway} · ${t(`toolkit.network.evidence.${state}`)}`;
+    });
+    return `<section class="result-section">
+      <div class="result-section-title">${escapeHtml(adapter.name)}</div>
+      <p>${escapeHtml(t(`toolkit.network.evidence.kind.${kind}`))} · ${escapeHtml(t(`toolkit.network.evidence.status.${status}`))}</p>
+      ${adapter.has_apipa ? `<p class="result-msg warn">${escapeHtml(t("toolkit.network.evidence.apipa"))}</p>` : ""}
+      ${row("ipv4", adapter.ipv4_addresses)}
+      ${row("gateways", gateways)}
+      ${row("dns", adapter.dns_servers)}
+      ${row("ipv6", adapter.ipv6_addresses, (adapter.ipv4_addresses?.length ?? 0) > 0)}
+      ${row("assignment", [t(adapter.dhcp_enabled === true ? "toolkit.network.evidence.automatic" : adapter.dhcp_enabled === false ? "toolkit.network.evidence.manual" : "toolkit.unknown")], true)}
+      <div class="result-muted mono advanced-only">${escapeHtml(adapter.description)} · ${escapeHtml(adapter.id)} · ${escapeHtml(adapter.if_index)}</div>
+    </section>`;
+  }).join("");
+  return `<div class="result-section"><div class="result-section-title">${escapeHtml(t("toolkit.network.evidence.adaptersTitle"))}</div>
+    ${rows || `<p class="result-muted">${escapeHtml(t(report.adapter_error ? "toolkit.network.evidence.adaptersFailed" : "toolkit.network.evidence.noAdapters"))}</p>`}
+    ${adapters.some((adapter) => adapter.gateways?.length) ? `<p class="result-muted">${escapeHtml(t("toolkit.network.evidence.icmpScope"))}</p>` : ""}
+  </div>`;
+}
+
 export function renderNetworkReport(report) {
   const el = $("network-result");
-  const healthy = !(report.services?.issues?.length);
+  const healthy = !report.service_error && !(report.services?.issues?.length);
   const connected = report.network_connected;
   const internet = report.internet_reachable;
-  const gw = report.gateway ?? t("toolkit.unknown");
-  const reach = report.gateway_reachable;
-  const reachText =
-    reach === true ? t("toolkit.network.reachable") : reach === false ? t("toolkit.network.unreachable") : "—";
 
   let guide = renderGuidance("ok", "toolkit.network.guide.okTitle", "toolkit.network.guide.okSummary");
   let state = "ok";
-  if ((report.adapter_present_count ?? report.adapter_count ?? 0) === 0) {
+  if (networkAdapterCount(report) === 0) {
     state = "crit";
     guide = renderGuidance("crit", "toolkit.network.guide.noAdapterTitle", "toolkit.network.guide.noAdapterSummary", ["toolkit.network.guide.noAdapterStep1", "toolkit.network.guide.noAdapterStep2", "toolkit.network.guide.noAdapterStep3"]);
   } else if (connected === false) {
     state = "crit";
     guide = renderGuidance("crit", "toolkit.network.guide.disconnectedTitle", "toolkit.network.guide.disconnectedSummary", ["toolkit.network.guide.disconnectedStep1", "toolkit.network.guide.disconnectedStep2"]);
-  } else if (reach === false) {
-    state = "warn";
-    guide = renderGuidance("warn", "toolkit.network.guide.gatewayTitle", "toolkit.network.guide.gatewaySummary", ["toolkit.network.guide.gatewayStep1", "toolkit.network.guide.gatewayStep2", "toolkit.network.guide.gatewayStep3"]);
   } else if (internet === false) {
     state = "warn";
     guide = renderGuidance("warn", "toolkit.network.guide.noInternetTitle", "toolkit.network.guide.noInternetSummary", ["toolkit.network.guide.noInternetStep1", "toolkit.network.guide.noInternetStep2", "toolkit.network.guide.noInternetStep3"]);
-  } else if (connected == null || internet == null) {
+  } else if (connected == null || internet == null || report.adapter_error || report.service_error || report.vpn_error || !report.vpn) {
     state = "warn";
     guide = renderGuidance("warn", "toolkit.network.guide.connectivityUnknownTitle", "toolkit.network.guide.connectivityUnknownSummary", ["toolkit.network.guide.connectivityUnknownStep1"]);
   } else if (!healthy) {
@@ -369,19 +393,140 @@ export function renderNetworkReport(report) {
       <span class="result-badge result-badge-${state}">${escapeHtml(t(`toolkit.verdict.${state}`))}</span>
       <span class="result-time">${formatTime(new Date().toISOString())}</span>
     </div>
-    <div class="result-row"><span class="result-label">${escapeHtml(t("toolkit.network.internetAccess"))}</span><span class="result-value">${escapeHtml(internet === true ? t("toolkit.network.available") : internet === false ? t("toolkit.network.unavailable") : t("toolkit.unknown"))}</span></div>
+    <div class="result-row"><span class="result-label">${escapeHtml(t("toolkit.network.evidence.windowsInternet"))}</span><span class="result-value">${escapeHtml(internet === true ? t("toolkit.network.available") : internet === false ? t("toolkit.network.unavailable") : t("toolkit.unknown"))}</span></div>
     <div class="result-row"><span class="result-label">${escapeHtml(t("toolkit.network.networkConnection"))}</span><span class="result-value">${escapeHtml(connected === true ? t("toolkit.network.connected") : connected === false ? t("toolkit.network.disconnected") : t("toolkit.unknown"))}</span></div>
-    <div class="result-row">
+    <div class="result-row network-diagnosis-summary">
       <span class="result-label">${escapeHtml(t("toolkit.network.diagnosisTitle"))}</span>
       <span class="result-value"><ul class="result-list">${networkDiagnosisKeys(report).map((key) => `<li>${escapeHtml(t(key))}</li>`).join("")}</ul></span>
     </div>
-    <div class="result-row advanced-only"><span class="result-label">${escapeHtml(t("toolkit.network.gateway"))}</span><span class="result-value network-gateway-value"><span class="mono">${escapeHtml(gw)}</span><span class="network-gateway-state">${escapeHtml(reachText)}</span></span></div>
-    <div class="result-row advanced-only"><span class="result-label">${escapeHtml(t("toolkit.network.adapters"))}</span><span class="result-value">${escapeHtml(String(report.adapter_count ?? 0))}</span></div>
-    <div class="result-row advanced-only"><span class="result-label">${escapeHtml(t("toolkit.network.adaptersPresent"))}</span><span class="result-value">${escapeHtml(String(report.adapter_present_count ?? report.adapter_count ?? 0))}</span></div>
+    <div class="result-row advanced-only"><span class="result-label">${escapeHtml(t("toolkit.network.adapters"))}</span><span class="result-value">${escapeHtml(report.adapter_error ? t("toolkit.unknown") : String(report.adapter_count ?? t("toolkit.unknown")))}</span></div>
+    <div class="result-row advanced-only"><span class="result-label">${escapeHtml(t("toolkit.network.adaptersPresent"))}</span><span class="result-value">${escapeHtml(String(networkAdapterCount(report) ?? t("toolkit.unknown")))}</span></div>
+    ${renderNetworkAdapters(report)}
+    ${report.adapter_error ? renderOperationError(report.adapter_error, "network_adapters", "toolkit.network.evidence.adaptersFailed") : ""}
     ${renderVpnBlock(report.vpn)}
-    ${renderServicesBlock(report.services, "toolkit.network.servicesTitle")}
+    ${report.vpn_error ? renderOperationError(report.vpn_error, "network_vpn", "toolkit.network.evidence.vpnFailed") : ""}
+    ${report.service_error ? renderOperationError(report.service_error, "network_services", "toolkit.network.evidence.servicesFailed") : ""}
+    ${renderServicesBlock(report.services, "toolkit.network.servicesTitle", Boolean(report.service_error))}
   `,
   );
+}
+
+function networkTarget() {
+  try {
+    const url = new URL($("network-target").value.trim());
+    if (!["https:", "http:"].includes(url.protocol) || url.username || url.password) throw new Error();
+    return url.href;
+  } catch {
+    throw new Error("network_probe:invalid_target");
+  }
+}
+
+function networkActionErrorMessage(error) {
+  return rawErrorText(error).includes("invalid_target")
+    ? t("toolkit.network.target.invalid") : userErrorMessage(error);
+}
+
+function renderConnectionProbe(probe, titleKey) {
+  if (!probe) return "";
+  const dnsStatuses = new Set(["resolved", "failed", "timeout", "busy", "not_required"]);
+  const dns = dnsStatuses.has(probe.dns_status) ? probe.dns_status : "unknown";
+  const responded = Number.isInteger(probe.http_status) && probe.http_status >= 100 && probe.http_status <= 599;
+  const errors = new Set(["timeout", "tls", "connect", "response", "dns_unavailable"]);
+  const error = errors.has(probe.http_error) ? probe.http_error : "unknown";
+  const httpMessage = responded ? t("toolkit.network.target.responded")
+    : ["resolved", "not_required"].includes(dns) ? t(`toolkit.network.target.httpError.${error}`)
+      : t("toolkit.network.target.httpSkipped");
+  return `<div class="result-section">
+    <div class="result-section-title">${escapeHtml(t(titleKey))}</div>
+    <p>${escapeHtml(probe.target)}</p>
+    <div class="result-row"><span class="result-label">${escapeHtml(t("toolkit.network.target.dnsLabel"))}</span><span class="result-value">${escapeHtml(t(`toolkit.network.target.dns.${dns}`))}</span></div>
+    <p class="result-msg ${responded ? "ok" : "warn"}">${escapeHtml(httpMessage)}</p>
+    ${responded && probe.http_status >= 400 ? `<p class="result-muted">${escapeHtml(t("toolkit.network.target.serverIssue"))}</p>` : ""}
+    <div class="result-muted advanced-only">${escapeHtml(t("toolkit.network.target.addresses"))}: ${escapeHtml((probe.addresses ?? []).join(" · ") || t("toolkit.network.evidence.noneReported"))}</div>
+    ${responded ? `<div class="result-muted advanced-only">${escapeHtml(t("toolkit.network.target.httpStatus", { status: probe.http_status }))}</div>` : ""}
+    <p class="result-muted">${escapeHtml(t("toolkit.network.target.duration", { duration: formatDuration(probe.elapsed_ms) }))}</p>
+  </div>`;
+}
+
+function networkRepairOutcome(result) {
+  return ["target_recovered", "target_responded", "needs_attention", "unverified"].includes(result.outcome)
+    ? result.outcome : "unverified";
+}
+
+function networkRepairWarning(result) {
+  return !["target_recovered", "target_responded"].includes(networkRepairOutcome(result))
+    || result.needs_admin || result.service_errors?.length || result.refresh_error || result.verification_error
+    || result.after?.adapter_error || result.after?.service_error || result.after?.vpn_error
+    || result.after?.services?.issues?.length;
+}
+
+function renderNetworkRepairResult(result, flushOnly) {
+  const outcome = networkRepairOutcome(result);
+  const labels = { Dnscache: "dns", Dhcp: "dhcp", NlaSvc: "network" };
+  const completed = (result.services_restarted ?? []).map((name) => labels[name]
+    ? formatServiceLabel(labels[name]) : t("toolkit.network.target.networkService"));
+  const errorBlock = (error, label, context) => error
+    ? `<div class="result-section"><div class="result-section-title">${escapeHtml(t(`toolkit.network.target.${label}`))}</div>${renderOperationError(error, context)}</div>` : "";
+  return `<section class="network-action-result" aria-live="polite">
+    <h3 class="repair-verdict ${networkRepairWarning(result) ? "warn" : "ok"}">${escapeHtml(t(`toolkit.network.target.outcome.${outcome}`))}</h3>
+    <p>${escapeHtml(t(`toolkit.network.target.summary.${outcome}`))}</p>
+    <p class="result-muted">${escapeHtml(t("toolkit.network.target.scope"))}</p>
+    ${result.needs_admin ? `<p class="info-banner">${escapeHtml(t("toolkit.repairResult.adminBanner"))}</p>` : ""}
+    ${!flushOnly ? `<div class="result-section"><div class="result-section-title">${escapeHtml(t("toolkit.network.target.servicesDone"))}</div>${renderList(completed, t("toolkit.network.target.noServicesDone"))}</div>` : ""}
+    <p>${escapeHtml(t(result.dns_cache_cleared ? "toolkit.network.target.dnsCleared" : result.dns_flush_attempted ? "toolkit.network.target.dnsNotCleared" : "toolkit.network.target.dnsNotAttempted"))}</p>
+    ${result.service_errors?.length ? `<div class="result-section"><div class="result-section-title">${escapeHtml(t("toolkit.network.target.operationErrors"))}</div>${result.service_errors.map((error) => renderOperationError(error, "network_repair", "toolkit.network.target.operationFailed")).join("")}</div>` : ""}
+    ${renderConnectionProbe(result.before_test, "toolkit.network.target.before")}
+    ${errorBlock(result.before_error, "beforeFailed", "network_before_test")}
+    ${renderConnectionProbe(result.after_test, "toolkit.network.target.after")}
+    ${errorBlock(result.verification_error, "verificationFailed", "network_after_test")}
+    ${errorBlock(result.refresh_error, "refreshFailed", "network_refresh")}
+    ${!result.after ? `<p class="result-msg warn">${escapeHtml(t("toolkit.network.target.previousSnapshot"))}</p>` : ""}
+  </section>`;
+}
+
+function clearNetworkConclusion() {
+  const el = $("network-result");
+  el.querySelectorAll(":scope > .network-action-result, :scope > .diagnosis-guide, :scope > .network-diagnosis-summary, :scope > .result-head, :scope > .result-empty").forEach((node) => node.remove());
+  return el;
+}
+
+function showNetworkActionError(error, context, showToast) {
+  const el = clearNetworkConclusion();
+  el.className = "result-panel result-warn";
+  el.insertAdjacentHTML("afterbegin", `<section class="network-action-result">${renderOperationError(error, context, "errors.operationFailed", networkActionErrorMessage(error))}<p class="result-muted">${escapeHtml(t("toolkit.network.target.previousSnapshot"))}</p></section>`);
+  showToast(networkActionErrorMessage(error), true);
+}
+
+function showNetworkPending(messageKey) {
+  const el = clearNetworkConclusion();
+  el.className = "result-panel result-loading";
+  el.insertAdjacentHTML("afterbegin", `<section class="network-action-result" aria-live="polite"><p>${escapeHtml(t(messageKey))}</p><p class="result-muted">${escapeHtml(t("toolkit.network.target.previousSnapshot"))}</p></section>`);
+}
+
+function confirmNetworkRepair(flushOnly) {
+  return new Promise((resolve) => {
+    const dialog = document.createElement("dialog");
+    dialog.className = "format-dialog";
+    dialog.setAttribute("aria-labelledby", "network-repair-title");
+    dialog.innerHTML = `<form class="format-dialog-form">
+      <div class="format-dialog-header"><h2 id="network-repair-title">${escapeHtml(t(flushOnly ? "toolkit.network.target.confirmFlushTitle" : "toolkit.network.target.confirmTitle"))}</h2></div>
+      <p>${escapeHtml(t(flushOnly ? "toolkit.network.target.confirmFlushSummary" : "toolkit.network.target.confirmSummary"))}</p>
+      <p class="result-muted">${escapeHtml(t("toolkit.network.target.confirmScope"))}</p>
+      <div class="format-dialog-actions"><button type="button" class="btn btn-default network-repair-cancel" autofocus>${escapeHtml(t("toolkit.network.target.cancel"))}</button><button type="submit" class="btn btn-accent">${escapeHtml(t("toolkit.network.target.confirmRun"))}</button></div>
+    </form>`;
+    document.body.appendChild(dialog);
+    let settled = false;
+    const finish = (confirmed) => {
+      if (settled) return;
+      settled = true;
+      resolve(confirmed);
+      dialog.close();
+    };
+    dialog.querySelector("form").addEventListener("submit", (event) => { event.preventDefault(); finish(true); });
+    dialog.querySelector(".network-repair-cancel").addEventListener("click", () => finish(false));
+    dialog.addEventListener("close", () => { if (!settled) resolve(false); dialog.remove(); });
+    dialog.showModal();
+  });
 }
 
 const PLAYBACK_CATEGORY_ORDER = ["speakers", "headphones", "digital", "line", "other"];
@@ -420,8 +565,9 @@ function renderAudioDeviceRow(d) {
   const mode = d.mode || "shared";
   const allowsExclusive = mode === "exclusive" || mode === "exclusive_priority";
   const prioritizesExclusive = mode === "exclusive_priority";
-  const volume = Number.isFinite(Number(d.volume_percent)) ? Math.min(100, Math.max(0, Number(d.volume_percent))) : null;
-  const muted = Boolean(d.is_muted);
+  const volume = d.volume_percent != null && Number.isFinite(Number(d.volume_percent))
+    ? Math.min(100, Math.max(0, Number(d.volume_percent))) : null;
+  const muted = typeof d.is_muted === "boolean" ? d.is_muted : null;
   const modeControl = isPlayback
     ? `<details class="audio-advanced">
         <summary>${escapeHtml(t("toolkit.audio.advanced"))}</summary>
@@ -444,7 +590,9 @@ function renderAudioDeviceRow(d) {
         <span class="audio-control-label">${escapeHtml(t("toolkit.audio.volume"))}</span>
         <input class="audio-volume-slider" type="range" min="0" max="100" step="1" value="${volume}" data-id="${escapeHtml(d.id)}" aria-label="${escapeHtml(t("toolkit.audio.volume"))}" />
         <output class="audio-volume-value">${volume}%</output>
-        <button type="button" class="btn btn-default btn-sm btn-audio-mute${muted ? " is-active" : ""}" data-id="${escapeHtml(d.id)}" data-muted="${muted}" aria-pressed="${muted}">${escapeHtml(t(muted ? "toolkit.audio.unmute" : "toolkit.audio.mute"))}</button>
+        ${muted === null
+          ? `<span class="result-muted">${escapeHtml(t("toolkit.audio.muteUnavailable"))}</span>`
+          : `<button type="button" class="btn btn-default btn-sm btn-audio-mute${muted ? " is-active" : ""}" data-id="${escapeHtml(d.id)}" data-muted="${muted}" aria-pressed="${muted}">${escapeHtml(t(muted ? "toolkit.audio.unmute" : "toolkit.audio.mute"))}</button>`}
       </div>`;
   return `
     <li class="device-row audio-device-row" data-device-id="${escapeHtml(d.id)}">
@@ -511,6 +659,84 @@ export function renderAudioReport(report) {
     <div class="audio-services">${renderServicesBlock(report.services, "toolkit.audio.servicesTitle")}</div>
   `,
   );
+}
+
+function confirmAudioRepair() {
+  return new Promise((resolve) => {
+    const dialog = document.createElement("dialog");
+    dialog.className = "format-dialog";
+    dialog.setAttribute("aria-labelledby", "audio-repair-title");
+    dialog.setAttribute("aria-describedby", "audio-repair-risk");
+    dialog.innerHTML = `
+      <form class="format-dialog-form">
+        <div class="format-dialog-header">
+          <h2 id="audio-repair-title">${escapeHtml(t("toolkit.audio.repair.confirmTitle"))}</h2>
+          <p>${escapeHtml(t("toolkit.audio.repair.confirmSummary"))}</p>
+        </div>
+        <div id="audio-repair-risk" class="format-danger-notice">${escapeHtml(t("toolkit.audio.repair.confirmRisk"))}</div>
+        <div class="format-dialog-actions">
+          <button type="button" class="btn btn-default audio-repair-cancel" autofocus>${escapeHtml(t("toolkit.audio.repair.cancel"))}</button>
+          <button type="submit" class="btn btn-accent">${escapeHtml(t("toolkit.audio.repair.confirmRun"))}</button>
+        </div>
+      </form>`;
+    document.body.appendChild(dialog);
+    let settled = false;
+    const finish = (confirmed) => {
+      if (settled) return;
+      settled = true;
+      resolve(confirmed);
+      dialog.close();
+    };
+    dialog.querySelector("form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      finish(true);
+    });
+    dialog.querySelector(".audio-repair-cancel").addEventListener("click", () => finish(false));
+    dialog.addEventListener("close", () => {
+      if (!settled) resolve(false);
+      dialog.remove();
+    });
+    dialog.showModal();
+  });
+}
+
+function audioRepairOutcome(result) {
+  return result.after && !result.verification_error
+    && ["recovered", "ready", "needs_attention"].includes(result.outcome)
+    ? result.outcome : "unverified";
+}
+
+function renderAudioRepairResult(result) {
+  const outcome = audioRepairOutcome(result);
+  const errors = result.service_errors ?? [];
+  const warning = outcome === "needs_attention" || outcome === "unverified"
+    || result.needs_admin || errors.length > 0;
+  const serviceLabels = { Audiosrv: "audio", AudioEndpointBuilder: "audio_endpoint" };
+  const completed = (result.services_restarted ?? []).map((name) => {
+    const labelId = serviceLabels[name];
+    return labelId ? formatServiceLabel(labelId) : t("toolkit.audio.repair.audioService");
+  });
+  const findingIds = new Set(["service_issue", "no_playback", "no_default_playback", "muted", "zero_volume", "volume_unknown"]);
+  const findings = (result.findings ?? [])
+    .filter((finding) => findingIds.has(finding))
+    .map((finding) => t(`toolkit.audio.repair.finding.${finding}`));
+  return `<section class="audio-repair-result" aria-live="polite">
+    <h3 class="repair-verdict ${warning ? "warn" : "ok"}">${escapeHtml(t(`toolkit.audio.repair.outcome.${outcome}`))}</h3>
+    <p>${escapeHtml(t(`toolkit.audio.repair.summary.${outcome}`))}</p>
+    ${result.needs_admin ? `<p class="info-banner">${escapeHtml(t("toolkit.audio.repair.needsAdmin"))}</p>` : ""}
+    <div class="result-section">
+      <div class="result-section-title">${escapeHtml(t("toolkit.audio.repair.actionsTitle"))}</div>
+      ${renderList(completed, t("toolkit.audio.repair.noActions"))}
+    </div>
+    ${findings.length ? renderList(findings, "") : ""}
+    ${errors.length ? `<div class="result-section">
+      <div class="result-section-title">${escapeHtml(t("toolkit.audio.repair.errorsTitle", { n: errors.length }))}</div>
+      ${errors.map((error) => renderOperationError(error, "restart_audio_services", "toolkit.audio.repair.serviceFailed")).join("")}
+    </div>` : ""}
+    ${result.before_error ? renderOperationError(result.before_error, "audio_before_repair", "toolkit.audio.repair.beforeFailed") : ""}
+    ${result.verification_error ? renderOperationError(result.verification_error, "audio_after_repair", "toolkit.audio.repair.verificationFailed") : ""}
+    ${!result.after ? `<p class="result-msg warn">${escapeHtml(t("toolkit.audio.repair.previousSnapshot"))}</p>` : ""}
+  </section>`;
 }
 
 function usbSlotForVolume(device, volume) {
@@ -1269,11 +1495,11 @@ function summarizeFullScanItem(id, command, scanItem) {
 
   const report = scanItem.result;
   if (id === "network") {
-    if ((report.adapter_present_count ?? report.adapter_count ?? 0) === 0) return { id, state: "crit", detail: t("overview.health.networkMissing") };
+    if (networkAdapterCount(report) === 0) return { id, state: "crit", detail: t("overview.health.networkMissing") };
     if (report.network_connected === false) return { id, state: "crit", detail: t("overview.health.networkDisconnected") };
     if (report.internet_reachable === false) return { id, state: "warn", detail: t("overview.health.internetUnavailable") };
-    if (report.network_connected == null || report.internet_reachable == null) return { id, state: "warn", detail: t("overview.health.connectivityUnknown") };
-    if (report.gateway_reachable === false || report.services?.issues?.length) return { id, state: "warn", detail: t("overview.health.networkIssue") };
+    if (report.network_connected == null || report.internet_reachable == null || report.adapter_error || report.service_error || report.vpn_error || !report.vpn) return { id, state: "warn", detail: t("overview.health.connectivityUnknown") };
+    if (report.services?.issues?.length) return { id, state: "warn", detail: t("overview.health.networkIssue") };
   } else if (id === "audio") {
     const count = (report.playback?.length ?? 0) + (report.capture?.length ?? 0);
     if (count === 0) return { id, state: "crit", detail: t("overview.health.audioMissing") };
@@ -1633,16 +1859,33 @@ export function bindToolkitHandlers({ showToast }) {
 
   });
 
-  $("btn-network-scan")?.addEventListener("click", async () => {
-    setPanel($("network-result"), "loading", `<p class="result-empty">${escapeHtml(t("toolkit.loading"))}</p>`);
-    try {
-      renderNetworkReport(await invoke("diagnose_network"));
-    } catch (err) {
-      setPanel($("network-result"), "crit", renderOperationError(err, "diagnose_network"));
-    }
+  let networkBusy = false;
+  const runNetworkAction = (button, task) => {
+    if (networkBusy || !button || button.disabled) return;
+    networkBusy = true;
+    const controls = ["btn-network-scan", "btn-network-speed", "btn-network-test", "btn-network-flush", "btn-network-repair", "network-target"]
+      .map($).filter((control) => control && control !== button)
+      .map((control) => ({ control, disabled: control.disabled }));
+    controls.forEach(({ control }) => { control.disabled = true; });
+    return runButtonTask(button, task).finally(() => {
+      controls.forEach(({ control, disabled }) => { control.disabled = disabled; });
+      networkBusy = false;
+    });
+  };
+
+  $("btn-network-scan")?.addEventListener("click", (event) => {
+    runNetworkAction(event.currentTarget, async () => {
+      try {
+        showNetworkPending("toolkit.loading");
+        renderNetworkReport(await invoke("diagnose_network"));
+      } catch (err) {
+        showNetworkActionError(err, "diagnose_network", showToast);
+      }
+    });
   });
 
-  $("btn-network-speed")?.addEventListener("click", async () => {
+  $("btn-network-speed")?.addEventListener("click", (event) => {
+    runNetworkAction(event.currentTarget, async () => {
     const el = $("network-result");
     setPanel(el, "loading", `<p class="result-empty">${escapeHtml(t("toolkit.network.speedTesting"))}</p>`);
     try {
@@ -1663,38 +1906,46 @@ export function bindToolkitHandlers({ showToast }) {
       console.error("[ZeroTick:network_speed_test]", err);
       showToast(toastMessage, true);
     }
+    });
   });
 
-  $("btn-network-flush")?.addEventListener("click", async () => {
-    try {
-      await invoke("network_flush_dns");
-      showToast(t("toast.dnsFlushed"), false);
-    } catch (err) {
-      notifyOperationError(showToast, err, "network_flush_dns");
-    }
-  });
-
-  $("btn-network-repair")?.addEventListener("click", (event) => {
-    runButtonTask(event.currentTarget, async () => {
+  $("btn-network-test")?.addEventListener("click", (event) => {
+    runNetworkAction(event.currentTarget, async () => {
       try {
-        const r = await invoke("repair_network");
-        const report = await invoke("diagnose_network");
-        renderNetworkReport(report);
-        const remainingIssue = (report.adapter_present_count ?? report.adapter_count ?? 0) === 0
-          || report.network_connected === false
-          || report.internet_reachable === false
-          || report.network_connected == null
-          || report.internet_reachable == null
-          || report.gateway_reachable === false
-          || (report.services?.issues?.length ?? 0) > 0;
-        const el = $("network-result");
-        el.insertAdjacentHTML("beforeend", renderRepairBlock(r, remainingIssue));
-        showRepairOutcome(showToast, r, remainingIssue);
+        const target = networkTarget();
+        showNetworkPending("toolkit.network.target.testing");
+        const probe = await invoke("network_test_connection", { target });
+        const el = clearNetworkConclusion();
+        el.className = `result-panel result-${probe.http_status != null ? "ok" : "warn"}`;
+        el.insertAdjacentHTML("afterbegin", `<section class="network-action-result" aria-live="polite">${renderConnectionProbe(probe, "toolkit.network.target.resultTitle")}<p class="result-muted">${escapeHtml(t("toolkit.network.target.scope"))}</p><p class="result-muted">${escapeHtml(t("toolkit.network.target.previousSnapshot"))}</p></section>`);
       } catch (err) {
-        notifyOperationError(showToast, err, "repair_network");
+        showNetworkActionError(err, "network_test_connection", showToast);
       }
     });
   });
+
+  for (const [buttonId, command, flushOnly] of [
+    ["btn-network-repair", "repair_network", false],
+    ["btn-network-flush", "network_flush_dns", true],
+  ]) {
+    $(buttonId)?.addEventListener("click", (event) => {
+      runNetworkAction(event.currentTarget, async () => {
+        try {
+          const target = networkTarget();
+          if (!(await confirmNetworkRepair(flushOnly))) return;
+          showNetworkPending("toolkit.network.target.running");
+          const result = await invoke(command, { target });
+          if (result.after) renderNetworkReport(result.after);
+          const el = clearNetworkConclusion();
+          el.className = `result-panel result-${networkRepairWarning(result) ? "warn" : "ok"}`;
+          el.insertAdjacentHTML("afterbegin", renderNetworkRepairResult(result, flushOnly));
+          showToast(t(`toolkit.network.target.outcome.${networkRepairOutcome(result)}`), Boolean(networkRepairWarning(result)));
+        } catch (err) {
+          showNetworkActionError(err, command, showToast);
+        }
+      });
+    });
+  }
 
   $("btn-audio-scan")?.addEventListener("click", async () => {
     setPanel($("audio-result"), "loading", `<p class="result-empty">${escapeHtml(t("toolkit.loading"))}</p>`);
@@ -1708,14 +1959,22 @@ export function bindToolkitHandlers({ showToast }) {
   $("btn-audio-repair")?.addEventListener("click", (event) => {
     runButtonTask(event.currentTarget, async () => {
       try {
+        if (!(await confirmAudioRepair())) return;
         const r = await invoke("repair_audio");
-        const report = await invoke("diagnose_audio");
-        renderAudioReport(report);
-        const remainingIssue = (report.services?.issues?.length ?? 0) > 0
-          || (report.playback?.length ?? 0) + (report.capture?.length ?? 0) === 0;
-        $("audio-result").insertAdjacentHTML("beforeend", renderRepairBlock(r, remainingIssue));
-        showRepairOutcome(showToast, r, remainingIssue);
+        if (r.after) renderAudioReport(r.after);
+        const el = $("audio-result");
+        el.querySelectorAll(":scope > .audio-repair-result, :scope > .diagnosis-guide, :scope > .result-head").forEach((node) => node.remove());
+        const outcome = audioRepairOutcome(r);
+        const warning = outcome === "needs_attention" || outcome === "unverified"
+          || r.needs_admin || (r.service_errors?.length ?? 0) > 0;
+        el.className = `result-panel result-${warning ? "warn" : "ok"}`;
+        el.insertAdjacentHTML("afterbegin", renderAudioRepairResult(r));
+        showToast(t(`toolkit.audio.repair.outcome.${outcome}`), warning);
       } catch (err) {
+        const el = $("audio-result");
+        el.querySelectorAll(":scope > .audio-repair-result, :scope > .diagnosis-guide, :scope > .result-head").forEach((node) => node.remove());
+        el.className = "result-panel result-warn";
+        el.insertAdjacentHTML("afterbegin", `<section class="audio-repair-result">${renderOperationError(err, "repair_audio", "toolkit.audio.repair.serviceFailed")}</section>`);
         notifyOperationError(showToast, err, "repair_audio");
       }
     });

@@ -75,6 +75,19 @@ export function assembleLocaleBundle(definition) {
   for (const key of ["batteryRefreshing", "batteryUnavailable"]) {
     base.toolkit.bluetooth[key] ??= en.toolkit.bluetooth[key];
   }
+  // These audio repair messages use explicit English fallback until a locale
+  // supplies translations; do not present missing keys as successful recovery.
+  base.toolkit.audio.repair = deepMerge(en.toolkit.audio.repair, base.toolkit.audio.repair);
+  base.toolkit.audio.muteUnavailable ??= en.toolkit.audio.muteUnavailable;
+  for (const key of ["scopeNotice", "noChanges"]) {
+    base.diag.repair[key] ??= en.diag.repair[key];
+  }
+  base.errors.serviceRepairBusy ??= en.errors.serviceRepairBusy;
+  // New network evidence and target tests use English fallback until the
+  // corresponding locale provides reviewed translations.
+  for (const key of ["evidence", "target"]) {
+    base.toolkit.network[key] = deepMerge(en.toolkit.network[key], base.toolkit.network[key]);
+  }
   // Connectivity verdicts must remain readable in every bundled locale while
   // translation packs catch up with the new live Network List Manager evidence.
   for (const key of [

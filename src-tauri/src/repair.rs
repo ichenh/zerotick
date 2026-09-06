@@ -9,11 +9,13 @@ use windows::Win32::System::Registry::{
     RegCloseKey, RegEnumKeyExW, RegOpenKeyExW, RegQueryValueExW, HKEY, HKEY_LOCAL_MACHINE, KEY_READ,
 };
 use windows::Win32::System::Services::{
-    CloseServiceHandle, OpenSCManagerW, OpenServiceW, QueryServiceStatusEx, StartServiceW,
-    SC_MANAGER_CONNECT, SC_STATUS_PROCESS_INFO, SERVICE_CONTINUE_PENDING, SERVICE_PAUSED,
-    SERVICE_PAUSE_PENDING, SERVICE_QUERY_STATUS, SERVICE_RUNNING, SERVICE_START,
-    SERVICE_START_PENDING, SERVICE_STATUS_CURRENT_STATE, SERVICE_STATUS_PROCESS, SERVICE_STOPPED,
-    SERVICE_STOP_PENDING,
+    CloseServiceHandle, ControlService, OpenSCManagerW, OpenServiceW, QueryServiceConfigW,
+    QueryServiceStatusEx, StartServiceW, QUERY_SERVICE_CONFIGW, SC_MANAGER_CONNECT,
+    SC_STATUS_PROCESS_INFO, SERVICE_CONTINUE_PENDING, SERVICE_CONTROL_CONTINUE,
+    SERVICE_CONTROL_STOP, SERVICE_DISABLED, SERVICE_PAUSED, SERVICE_PAUSE_CONTINUE,
+    SERVICE_PAUSE_PENDING, SERVICE_QUERY_CONFIG, SERVICE_QUERY_STATUS, SERVICE_RUNNING,
+    SERVICE_START, SERVICE_START_PENDING, SERVICE_STATUS, SERVICE_STATUS_CURRENT_STATE,
+    SERVICE_STATUS_PROCESS, SERVICE_STOP, SERVICE_STOPPED, SERVICE_STOP_PENDING,
 };
 
 use crate::services;
@@ -92,7 +94,7 @@ pub fn run_auto_repair() -> windows::core::Result<RepairReport> {
     Ok(report)
 }
 
-/// 重启指定服务列表，返回 (成功, 失败消息)
+/// 恢复停止或暂停的服务，返回 (由本次操作恢复的服务, 失败消息)。
 pub fn restart_services(names: &[&str]) -> (Vec<String>, Vec<String>) {
     let result = repair_services(names);
     (result.repaired, result.errors)
@@ -166,6 +168,36 @@ pub fn build_summary_meta(
     ("service_errors".into(), Some(report.service_errors.len()))
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum ServiceRecoveryPlan {
+    Healthy,
+    WaitRunning,
+    WaitStopped,
+    WaitPaused,
+    Start,
+    Continue,
+    Unsupported,
+}
+
+fn service_recovery_plan(state: SERVICE_STATUS_CURRENT_STATE) -> ServiceRecoveryPlan {
+    match state {
+        SERVICE_RUNNING => ServiceRecoveryPlan::Healthy,
+        SERVICE_START_PENDING | SERVICE_CONTINUE_PENDING => ServiceRecoveryPlan::WaitRunning,
+        SERVICE_STOP_PENDING => ServiceRecoveryPlan::WaitStopped,
+        SERVICE_PAUSE_PENDING => ServiceRecoveryPlan::WaitPaused,
+        SERVICE_STOPPED => ServiceRecoveryPlan::Start,
+        SERVICE_PAUSED => ServiceRecoveryPlan::Continue,
+        _ => ServiceRecoveryPlan::Unsupported,
+    }
+}
+
+fn service_state_changed_error() -> windows::core::Error {
+    windows::core::Error::new(
+        windows::core::HRESULT::from_win32(windows::Win32::Foundation::ERROR_INVALID_STATE.0),
+        "服务状态已变化或不支持当前恢复操作，请重新检测",
+    )
+}
+
 fn ensure_service_running(service_name: &str) -> windows::core::Result<bool> {
     unsafe {
         let scm = OpenSCManagerW(None, None, SC_MANAGER_CONNECT)?;
@@ -181,69 +213,167 @@ fn ensure_service_running(service_name: &str) -> windows::core::Result<bool> {
                     return Err(error);
                 }
             };
-        let status_result = (|| {
-            let status = query_service_status(query_service)?;
-            if status.dwCurrentState == SERVICE_RUNNING {
-                return Ok(Some(false));
+        let result = (|| {
+            let mut plan =
+                service_recovery_plan(query_service_status(query_service)?.dwCurrentState);
+            match plan {
+                ServiceRecoveryPlan::Healthy => return Ok(false),
+                ServiceRecoveryPlan::WaitRunning => {
+                    wait_for_service_state(query_service, SERVICE_RUNNING)?;
+                    // Another process initiated this transition; do not claim a repair.
+                    return Ok(false);
+                }
+                ServiceRecoveryPlan::WaitStopped => {
+                    wait_for_service_state(query_service, SERVICE_STOPPED)?;
+                    plan = ServiceRecoveryPlan::Start;
+                }
+                ServiceRecoveryPlan::WaitPaused => {
+                    wait_for_service_state(query_service, SERVICE_PAUSED)?;
+                    plan = ServiceRecoveryPlan::Continue;
+                }
+                ServiceRecoveryPlan::Start | ServiceRecoveryPlan::Continue => {}
+                ServiceRecoveryPlan::Unsupported => return Err(service_state_changed_error()),
             }
-            if matches!(
-                status.dwCurrentState,
-                SERVICE_START_PENDING | SERVICE_CONTINUE_PENDING
-            ) {
-                wait_for_service_state(query_service, SERVICE_RUNNING)?;
-                return Ok(Some(true));
-            }
-            if matches!(
-                status.dwCurrentState,
-                SERVICE_STOP_PENDING | SERVICE_PAUSE_PENDING
-            ) {
-                wait_for_service_state(query_service, SERVICE_STOPPED)?;
-            } else if status.dwCurrentState == SERVICE_PAUSED {
-                return Err(windows::core::Error::new(
-                    windows::core::HRESULT::from_win32(
-                        windows::Win32::Foundation::ERROR_INVALID_STATE.0,
-                    ),
-                    "服务处于暂停状态，未执行破坏性重启",
-                ));
-            }
-            Ok(None)
+            let access = if plan == ServiceRecoveryPlan::Continue {
+                SERVICE_PAUSE_CONTINUE
+            } else {
+                SERVICE_START
+            };
+            let service = OpenServiceW(
+                scm,
+                PCWSTR(wide_name.as_ptr()),
+                access | SERVICE_QUERY_STATUS,
+            )?;
+            let operation = (|| {
+                let current = service_recovery_plan(query_service_status(service)?.dwCurrentState);
+                if current == ServiceRecoveryPlan::Healthy {
+                    return Ok(false);
+                }
+                if current == ServiceRecoveryPlan::WaitRunning {
+                    wait_for_service_state(service, SERVICE_RUNNING)?;
+                    return Ok(false);
+                }
+                if current != plan {
+                    return Err(service_state_changed_error());
+                }
+                if plan == ServiceRecoveryPlan::Continue {
+                    let mut status = SERVICE_STATUS::default();
+                    ControlService(service, SERVICE_CONTROL_CONTINUE, &mut status)?;
+                } else if let Err(error) = StartServiceW(service, None) {
+                    if error.code()
+                        == windows::core::HRESULT::from_win32(
+                            windows::Win32::Foundation::ERROR_SERVICE_ALREADY_RUNNING.0,
+                        )
+                    {
+                        wait_for_service_state(service, SERVICE_RUNNING)?;
+                        return Ok(false);
+                    }
+                    return Err(error);
+                }
+                wait_for_service_state(service, SERVICE_RUNNING)?;
+                Ok(true)
+            })();
+            let _ = CloseServiceHandle(service);
+            operation
         })();
         let _ = CloseServiceHandle(query_service);
-        match status_result {
-            Ok(Some(done)) => {
-                let _ = CloseServiceHandle(scm);
-                return Ok(done);
-            }
-            Err(error) => {
-                let _ = CloseServiceHandle(scm);
-                return Err(error);
-            }
-            Ok(None) => {}
-        }
+        let _ = CloseServiceHandle(scm);
+        result
+    }
+}
 
+/// Explicit audio repair only: restart Windows Audio without stopping dependent
+/// services or changing configuration. SCM rejects STOP when dependents are running.
+pub fn restart_audio_service() -> Result<(), String> {
+    let result: windows::core::Result<()> = unsafe {
+        let scm = OpenSCManagerW(None, None, SC_MANAGER_CONNECT)
+            .map_err(|error| format!("Audiosrv: 打开服务管理器失败: {error}"))?;
         let service = match OpenServiceW(
             scm,
-            PCWSTR(wide_name.as_ptr()),
-            SERVICE_START | SERVICE_QUERY_STATUS,
+            windows::core::w!("Audiosrv"),
+            SERVICE_QUERY_CONFIG | SERVICE_QUERY_STATUS | SERVICE_STOP | SERVICE_START,
         ) {
             Ok(service) => service,
             Err(error) => {
                 let _ = CloseServiceHandle(scm);
-                return Err(error);
+                return Err(format!("Audiosrv: 打开服务失败: {error}"));
             }
         };
-        let result = (|| {
-            if query_service_status(service)?.dwCurrentState == SERVICE_RUNNING {
-                return Ok(true);
+        let operation = (|| {
+            // A disabled service may still be running. Check before STOP so a
+            // restart cannot knowingly leave an otherwise running engine stopped.
+            let mut bytes_needed = 0u32;
+            if let Err(error) = QueryServiceConfigW(service, None, 0, &mut bytes_needed) {
+                if error.code()
+                    != windows::core::HRESULT::from_win32(
+                        windows::Win32::Foundation::ERROR_INSUFFICIENT_BUFFER.0,
+                    )
+                {
+                    return Err(audio_service_error("读取启动配置", error));
+                }
             }
-            StartServiceW(service, None)?;
-            wait_for_service_state(service, SERVICE_RUNNING)?;
-            Ok(true)
+            if bytes_needed < std::mem::size_of::<QUERY_SERVICE_CONFIGW>() as u32 {
+                return Err(service_state_changed_error());
+            }
+            let mut config_buffer =
+                vec![0usize; (bytes_needed as usize).div_ceil(std::mem::size_of::<usize>())];
+            let config = config_buffer.as_mut_ptr().cast::<QUERY_SERVICE_CONFIGW>();
+            QueryServiceConfigW(service, Some(config), bytes_needed, &mut bytes_needed)
+                .map_err(|error| audio_service_error("读取启动配置", error))?;
+            if (*config).dwStartType == SERVICE_DISABLED {
+                return Err(windows::core::Error::new(
+                    windows::core::HRESULT::from_win32(
+                        windows::Win32::Foundation::ERROR_SERVICE_DISABLED.0,
+                    ),
+                    "Windows Audio 已被禁用，未停止服务或更改其启动设置",
+                ));
+            }
+            let state = query_service_status(service)
+                .map_err(|error| audio_service_error("读取当前状态", error))?
+                .dwCurrentState;
+            match service_recovery_plan(state) {
+                ServiceRecoveryPlan::WaitRunning => {
+                    wait_for_service_state(service, SERVICE_RUNNING)
+                        .map_err(|error| audio_service_error("等待现有启动或恢复", error))?;
+                }
+                ServiceRecoveryPlan::WaitPaused => {
+                    wait_for_service_state(service, SERVICE_PAUSED)
+                        .map_err(|error| audio_service_error("等待现有暂停", error))?;
+                }
+                ServiceRecoveryPlan::WaitStopped => {
+                    wait_for_service_state(service, SERVICE_STOPPED)
+                        .map_err(|error| audio_service_error("等待现有停止", error))?;
+                }
+                ServiceRecoveryPlan::Unsupported => return Err(service_state_changed_error()),
+                _ => {}
+            }
+            let state = query_service_status(service)
+                .map_err(|error| audio_service_error("复查停止前状态", error))?
+                .dwCurrentState;
+            if matches!(state, SERVICE_RUNNING | SERVICE_PAUSED) {
+                let mut status = SERVICE_STATUS::default();
+                // Do not enumerate/stop dependents or broaden this operation on failure.
+                ControlService(service, SERVICE_CONTROL_STOP, &mut status)
+                    .map_err(|error| audio_service_error("停止", error))?;
+                wait_for_service_state(service, SERVICE_STOPPED)
+                    .map_err(|error| audio_service_error("等待停止", error))?;
+            } else if state != SERVICE_STOPPED {
+                return Err(service_state_changed_error());
+            }
+            // A competing start is not our successful restart; preserve its error.
+            StartServiceW(service, None).map_err(|error| audio_service_error("启动", error))?;
+            wait_for_service_state(service, SERVICE_RUNNING)
+                .map_err(|error| audio_service_error("等待最终运行", error))
         })();
         let _ = CloseServiceHandle(service);
         let _ = CloseServiceHandle(scm);
-        result
-    }
+        operation
+    };
+    result.map_err(|error| format!("Audiosrv: {error}"))
+}
+
+fn audio_service_error(stage: &str, error: windows::core::Error) -> windows::core::Error {
+    windows::core::Error::new(error.code(), format!("{stage} Windows Audio 失败: {error}"))
 }
 
 unsafe fn query_service_status(
@@ -418,7 +548,41 @@ unsafe fn read_dword_value(key: HKEY, sub_path: &str) -> Option<u32> {
 
 #[cfg(test)]
 mod tests {
-    use super::group_usb_power_nodes;
+    use super::{group_usb_power_nodes, service_recovery_plan, ServiceRecoveryPlan};
+    use windows::Win32::System::Services::{
+        SERVICE_CONTINUE_PENDING, SERVICE_PAUSED, SERVICE_PAUSE_PENDING, SERVICE_RUNNING,
+        SERVICE_START_PENDING, SERVICE_STOPPED, SERVICE_STOP_PENDING,
+    };
+
+    #[test]
+    fn service_recovery_distinguishes_external_transitions_from_required_actions() {
+        assert_eq!(
+            service_recovery_plan(SERVICE_RUNNING),
+            ServiceRecoveryPlan::Healthy
+        );
+        for state in [SERVICE_START_PENDING, SERVICE_CONTINUE_PENDING] {
+            assert_eq!(
+                service_recovery_plan(state),
+                ServiceRecoveryPlan::WaitRunning
+            );
+        }
+        assert_eq!(
+            service_recovery_plan(SERVICE_STOPPED),
+            ServiceRecoveryPlan::Start
+        );
+        assert_eq!(
+            service_recovery_plan(SERVICE_PAUSED),
+            ServiceRecoveryPlan::Continue
+        );
+        assert_eq!(
+            service_recovery_plan(SERVICE_STOP_PENDING),
+            ServiceRecoveryPlan::WaitStopped
+        );
+        assert_eq!(
+            service_recovery_plan(SERVICE_PAUSE_PENDING),
+            ServiceRecoveryPlan::WaitPaused
+        );
+    }
 
     #[test]
     fn groups_composite_usb_interfaces_by_device_instance() {

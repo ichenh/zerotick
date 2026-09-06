@@ -67,9 +67,25 @@ pub struct AudioDiagReport {
 }
 
 pub fn diagnose() -> Result<AudioDiagReport, String> {
+    diagnose_with(|| services::diagnose_group(AUDIO), list_devices)
+}
+
+/// Repair verification must use current SCM and Core Audio evidence. Registry
+/// endpoint records cannot confirm that the audio engine recovered.
+pub fn diagnose_live() -> Result<AudioDiagReport, String> {
+    diagnose_with(
+        || services::diagnose_group_native(AUDIO),
+        list_devices_native,
+    )
+}
+
+fn diagnose_with(
+    service_query: fn() -> Result<ServicesReport, String>,
+    device_query: fn() -> Result<Vec<AudioDevice>, String>,
+) -> Result<AudioDiagReport, String> {
     let (services, devices) = std::thread::scope(|scope| {
-        let services_task = scope.spawn(|| services::diagnose_group(AUDIO));
-        let devices_task = scope.spawn(list_devices);
+        let services_task = scope.spawn(service_query);
+        let devices_task = scope.spawn(device_query);
         let services = services_task
             .join()
             .map_err(|_| "音频服务扫描异常终止".to_string())??;
@@ -650,7 +666,43 @@ fn audio_mode_write_error(error: windows::core::Error) -> String {
 }
 
 pub fn repair() -> (Vec<String>, Vec<String>) {
-    services::repair_group(AUDIO)
+    // Keep Endpoint Builder running: stopping it would also disrupt dependent services.
+    let (mut attempted, mut errors) = crate::repair::restart_services(&["AudioEndpointBuilder"]);
+    if !errors.is_empty() {
+        services::invalidate_diagnostic_cache();
+        return (Vec::new(), errors);
+    }
+    match crate::repair::restart_audio_service() {
+        Ok(()) => attempted.push("Audiosrv".into()),
+        Err(error) => errors.push(error),
+    }
+    services::invalidate_diagnostic_cache();
+    let completed = match services::diagnose_group_native(AUDIO) {
+        Ok(report) => attempted
+            .into_iter()
+            .filter(|name| {
+                if service_recovery_verified(&report, name) {
+                    true
+                } else {
+                    errors.push(format!("{name}: 操作后未确认服务恢复运行"));
+                    false
+                }
+            })
+            .collect(),
+        Err(error) => {
+            errors.push(format!("音频服务恢复验证失败: {error}"));
+            Vec::new()
+        }
+    };
+    (completed, errors)
+}
+
+fn service_recovery_verified(report: &ServicesReport, name: &str) -> bool {
+    report
+        .services
+        .iter()
+        .any(|service| service.name == name && service.state.as_deref() == Some("Running"))
+        && !report.issues.iter().any(|issue| issue.service_name == name)
 }
 
 fn sort_devices(mut devices: Vec<AudioDevice>) -> Vec<AudioDevice> {
@@ -741,10 +793,35 @@ fn parse_devices(val: serde_json::Value) -> Result<Vec<AudioDevice>, String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        audio_category, mode_property_values, sort_devices, AudioDevice,
+        audio_category, mode_property_values, service_recovery_verified, sort_devices, AudioDevice,
         AUDIO_ENDPOINT_PROPERTY_SET, PKEY_AUDIO_ENDPOINT_ALLOW_EXCLUSIVE,
         PKEY_AUDIO_ENDPOINT_EXCLUSIVE_PRIORITY,
     };
+    use crate::events::{ServiceEntry, ServiceIssue};
+    use crate::services::ServicesReport;
+
+    #[test]
+    fn audio_service_recovery_requires_current_running_evidence_without_issues() {
+        let mut report = ServicesReport::default();
+        assert!(!service_recovery_verified(&report, "Audiosrv"));
+        report.services.push(ServiceEntry {
+            name: "Audiosrv".into(),
+            label_id: "audio".into(),
+            state: Some("Stopped".into()),
+            start_mode: Some("Auto".into()),
+            expected_stopped: false,
+        });
+        assert!(!service_recovery_verified(&report, "Audiosrv"));
+        report.services[0].state = Some("Running".into());
+        assert!(service_recovery_verified(&report, "Audiosrv"));
+        report.issues.push(ServiceIssue {
+            id: "disabled".into(),
+            service_name: "Audiosrv".into(),
+            label_id: "audio".into(),
+            state: Some("Running".into()),
+        });
+        assert!(!service_recovery_verified(&report, "Audiosrv"));
+    }
 
     #[test]
     fn exclusive_modes_map_to_windows_endpoint_values() {

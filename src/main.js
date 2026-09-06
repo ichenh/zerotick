@@ -358,8 +358,16 @@ function renderRepairCard(ev) {
   let state = "ok";
   if (!ev.success) state = ev.needs_admin ? "warn" : "crit";
 
-  const repaired = renderList(ev.services_restarted, t("diag.repair.noneRepaired"));
-  const healthy = renderList(ev.services_healthy, t("diag.repair.noneHealthy"));
+  const serviceLabels = {
+    Dnscache: "dns", Dhcp: "dhcp", NlaSvc: "network",
+    AudioEndpointBuilder: "audio_endpoint", Audiosrv: "audio",
+    bthserv: "bluetooth", PlugPlay: "plugplay",
+  };
+  const labelServices = (names) => (names ?? []).map((name) =>
+    serviceLabels[name] ? t(`toolkit.services.label.${serviceLabels[name]}`) : name,
+  );
+  const repaired = renderList(labelServices(ev.services_restarted), t("diag.repair.noneRepaired"));
+  const healthy = renderList(labelServices(ev.services_healthy), t("diag.repair.noneHealthy"));
   const errors = ev.service_errors?.length ? renderList(ev.service_errors, "") : "";
   const usbConfigs = (ev.usb_power_configs ?? []).map((config) =>
     t("diag.repair.usbConfigItem", {
@@ -378,6 +386,8 @@ function renderRepairCard(ev) {
       <span class="result-badge result-badge-${state}">${escapeHtml(formatRepairSummary(ev))}</span>
       <span class="result-time">${formatTime(ev.timestamp ?? new Date().toISOString())}</span>
     </div>
+    <p class="info-banner">${escapeHtml(t("diag.repair.scopeNotice"))}</p>
+    ${!(ev.services_restarted?.length) && !ev.service_errors?.length ? `<p class="result-muted">${escapeHtml(t("diag.repair.noChanges"))}</p>` : ""}
     ${ev.needs_admin ? `<p class="info-banner">${escapeHtml(t("diag.repair.adminBanner"))}</p>` : ""}
     <div class="result-section">
       <div class="result-section-title">${escapeHtml(t("diag.repair.repaired"))}</div>
