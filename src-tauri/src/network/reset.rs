@@ -229,7 +229,7 @@ mod tests {
         .unwrap();
         assert!(!non_admin.needs_admin);
         assert!(non_admin.started);
-        assert_eq!(non_admin.requires_restart, false);
+        assert!(!non_admin.requires_restart);
         assert_eq!(ResetKind::RegisterDns.args(), &["/registerdns"]);
         assert_eq!(ResetKind::IpRelease.args(), &["/release"]);
         assert_eq!(ResetKind::IpRenew.args(), &["/renew"]);
