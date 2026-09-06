@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 网络面板修复入口新增“重置 Winsock”与“重置 TCP/IP”选项（均需管理员权限），用于处理可能的套接字目录损坏与 TCP/IP 配置损坏场景。
 - 网络修复弹窗改为可选场景（服务恢复、DNS 刷新、Winsock 重置、TCP/IP 重置），并补充执行风险提醒与命令输出展示。
+- 新增“重新注册 DNS”、“释放 IP 地址”、“续租 IP 地址”选项（`ipconfig /registerdns`、`ipconfig /release`、`ipconfig /renew`），用于处理 DHCP 租约、DNS 注册状态异常导致的常见网络异常场景。
 
 ### Changed
 

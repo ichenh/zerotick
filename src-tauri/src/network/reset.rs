@@ -1,5 +1,7 @@
-//! Explicit, administrator-only stack resets. Windows documents netsh for
-//! these operations; there is no equivalent supported single-call reset API.
+//! Explicit stack maintenance commands for network recovery.
+//! Windows documents netsh for heavy reset operations; some commands (for example
+//! `ipconfig /registerdns`, `/release`, `/renew`) are executed without admin
+//! requirements.
 //! A zero exit code is command evidence, never proof of restored connectivity.
 
 use crate::utils::{elevated, process::CommandExt};
@@ -14,14 +16,35 @@ use std::time::{Duration, Instant};
 pub enum ResetKind {
     Winsock,
     Tcpip,
+    RegisterDns,
+    IpRelease,
+    IpRenew,
 }
 
 impl ResetKind {
+    fn command(self) -> &'static str {
+        match self {
+            Self::RegisterDns | Self::IpRelease | Self::IpRenew => "ipconfig.exe",
+            Self::Winsock | Self::Tcpip => "netsh.exe",
+        }
+    }
+
     fn args(self) -> &'static [&'static str] {
         match self {
             Self::Winsock => &["winsock", "reset"],
             Self::Tcpip => &["int", "ip", "reset"],
+            Self::RegisterDns => &["/registerdns"],
+            Self::IpRelease => &["/release"],
+            Self::IpRenew => &["/renew"],
         }
+    }
+
+    fn requires_admin(self) -> bool {
+        matches!(self, Self::Winsock | Self::Tcpip)
+    }
+
+    fn requires_restart(self) -> bool {
+        matches!(self, Self::Winsock | Self::Tcpip)
     }
 }
 
@@ -29,6 +52,7 @@ impl ResetKind {
 pub struct ResetResult {
     pub kind: ResetKind,
     pub needs_admin: bool,
+    pub requires_restart: bool,
     pub started: bool,
     pub exit_code: Option<i32>,
     pub timed_out: bool,
@@ -53,6 +77,7 @@ fn perform(
     let mut result = ResetResult {
         kind,
         needs_admin: !elevated,
+        requires_restart: kind.requires_restart(),
         started: false,
         exit_code: None,
         timed_out: false,
@@ -60,7 +85,12 @@ fn perform(
         output_truncated: false,
         error: None,
     };
-    if elevated {
+    if kind.requires_admin() && !elevated {
+        result.needs_admin = true;
+        return Ok(result);
+    }
+
+    if elevated || !kind.requires_admin() {
         result.error = execute(&mut result).err();
     }
     Ok(result)
@@ -82,8 +112,9 @@ fn execute(result: &mut ResetResult) -> Result<(), String> {
     if length == 0 || length >= directory.len() {
         return Err("system_directory_unavailable".into());
     }
-    let executable =
-        std::path::PathBuf::from(String::from_utf16_lossy(&directory[..length])).join("netsh.exe");
+    let system_directory = std::path::PathBuf::from(String::from_utf16_lossy(&directory[..length]));
+    let executable = system_directory.join(result.kind.command());
+    let args = result.kind.args();
     // A private create_new file avoids pipe backpressure and keeps stdout/stderr
     // together, including netsh's per-component failures on a zero exit code.
     static NEXT_ID: AtomicU64 = AtomicU64::new(0);
@@ -101,7 +132,7 @@ fn execute(result: &mut ResetResult) -> Result<(), String> {
     let stderr = file.try_clone().map_err(|error| error.to_string())?;
     let mut child = Command::new(executable)
         .hide_window()
-        .args(result.kind.args())
+        .args(args)
         .stdin(Stdio::null())
         .stdout(file)
         .stderr(stderr)
@@ -191,5 +222,15 @@ mod tests {
         assert!(serde_json::from_str::<ResetKind>("\"winsock & whoami\"").is_err());
         assert_eq!(ResetKind::Winsock.args(), &["winsock", "reset"]);
         assert_eq!(ResetKind::Tcpip.args(), &["int", "ip", "reset"]);
+        assert_eq!(ResetKind::RegisterDns.args(), &["/registerdns"]);
+        assert_eq!(ResetKind::IpRelease.args(), &["/release"]);
+        assert_eq!(ResetKind::IpRenew.args(), &["/renew"]);
+        assert_eq!(ResetKind::RegisterDns.command(), "ipconfig.exe");
+        assert_eq!(ResetKind::IpRelease.command(), "ipconfig.exe");
+        assert_eq!(ResetKind::IpRenew.command(), "ipconfig.exe");
+        assert!(!ResetKind::RegisterDns.requires_admin());
+        assert!(!ResetKind::IpRelease.requires_admin());
+        assert!(!ResetKind::IpRenew.requires_admin());
+        assert!(ResetKind::Tcpip.requires_admin());
     }
 }

@@ -516,6 +516,9 @@ function confirmNetworkRepair(flushOnly) {
           ["dns", "toolkit.network.flushDns", "toolkit.network.reset.dnsHint"],
           ["winsock", "toolkit.network.reset.winsock", "toolkit.network.reset.winsockHint"],
           ["tcpip", "toolkit.network.reset.tcpip", "toolkit.network.reset.tcpipHint"],
+          ["register_dns", "toolkit.network.reset.registerDns", "toolkit.network.reset.registerDnsHint"],
+          ["ip_release", "toolkit.network.reset.ipRelease", "toolkit.network.reset.ipReleaseHint"],
+          ["ip_renew", "toolkit.network.reset.ipRenew", "toolkit.network.reset.ipRenewHint"],
         ].map(([value, label, hint]) => `<label class="format-mode-card ${value === "services" ? "is-selected" : ""} ${["winsock", "tcpip"].includes(value) ? "format-mode-card-danger" : ""}">
           <input type="radio" name="network-action" value="${value}" ${value === "services" ? "checked autofocus" : ""} required />
           <span><strong>${escapeHtml(t(label))}</strong><small>${escapeHtml(t(hint))}</small></span>
@@ -535,14 +538,14 @@ function confirmNetworkRepair(flushOnly) {
     };
     dialog.addEventListener("change", () => {
       const action = dialog.querySelector("input:checked")?.value;
-      const resetting = ["winsock", "tcpip"].includes(action);
-      dialog.querySelectorAll(".format-mode-card").forEach((card) => card.classList.toggle("is-selected", card.querySelector("input").checked));
-      dialog.querySelector(".network-repair-scope").classList.toggle("hidden", resetting);
-      dialog.querySelector(".network-reset-notice").classList.toggle("hidden", !resetting);
-      const submit = dialog.querySelector('[type="submit"]');
-      submit.classList.toggle("btn-danger", resetting);
-      submit.classList.toggle("btn-accent", !resetting);
-    });
+        const resetRequiresSystemNotice = ["winsock", "tcpip"].includes(action);
+        dialog.querySelectorAll(".format-mode-card").forEach((card) => card.classList.toggle("is-selected", card.querySelector("input").checked));
+        dialog.querySelector(".network-repair-scope").classList.toggle("hidden", resetRequiresSystemNotice);
+        dialog.querySelector(".network-reset-notice").classList.toggle("hidden", !resetRequiresSystemNotice);
+        const submit = dialog.querySelector('[type="submit"]');
+        submit.classList.toggle("btn-danger", resetRequiresSystemNotice);
+        submit.classList.toggle("btn-accent", !resetRequiresSystemNotice);
+      });
     dialog.querySelector("form").addEventListener("submit", (event) => {
       event.preventDefault();
       finish(flushOnly ? "dns" : dialog.querySelector("input:checked")?.value);
@@ -563,7 +566,7 @@ function renderNetworkResetResult(result) {
   el.className = "result-panel result-warn";
   el.insertAdjacentHTML("afterbegin", `<section class="network-action-result" aria-live="polite">
     <h3 class="repair-verdict warn">${escapeHtml(t(key))}</h3>
-    ${result.started ? `<p class="info-banner">${escapeHtml(t("toolkit.network.reset.restart"))}</p><p>${escapeHtml(t("toolkit.network.reset.partialNotice"))}</p><p class="result-muted">${escapeHtml(t("toolkit.network.target.previousSnapshot"))}</p>` : ""}
+    ${result.started ? `<p class="result-muted">${escapeHtml(t("toolkit.network.target.previousSnapshot"))}</p>${result.requires_restart ? `<p class="info-banner">${escapeHtml(t("toolkit.network.reset.restart"))}</p>` : `<p>${escapeHtml(t("toolkit.network.reset.partialNotice"))}</p>`} ` : ""}
     ${result.output ? `<div class="result-section"><div class="result-section-title">${escapeHtml(t("toolkit.network.reset.output"))}</div><pre class="network-reset-output">${escapeHtml(result.output)}</pre></div>` : ""}
     ${result.output_truncated ? `<p class="result-muted">${escapeHtml(t("toolkit.network.reset.truncated"))}</p>` : ""}
     ${result.error ? renderOperationError(result.error, "network_reset_stack", "toolkit.network.target.operationFailed") : ""}
@@ -1975,9 +1978,10 @@ export function bindToolkitHandlers({ showToast }) {
         try {
           const action = await confirmNetworkRepair(flushOnly);
           if (!action) return;
-          if (["winsock", "tcpip"].includes(action)) {
+          if (["winsock", "tcpip", "register_dns", "ip_release", "ip_renew"].includes(action)) {
             showNetworkPending("toolkit.network.target.running");
-            const result = await invoke("network_reset_stack", { kind: action, confirmed: true });
+            const kind = action;
+            const result = await invoke("network_reset_stack", { kind, confirmed: true });
             showToast(t(renderNetworkResetResult(result)), true);
             return;
           }
@@ -1990,7 +1994,12 @@ export function bindToolkitHandlers({ showToast }) {
           el.insertAdjacentHTML("afterbegin", renderNetworkRepairResult(result, action === "dns"));
           showToast(t(`toolkit.network.target.outcome.${networkRepairOutcome(result)}`), Boolean(networkRepairWarning(result)));
         } catch (err) {
-          const errorContext = action === "dns" ? "network_flush_dns" : command;
+          const stackActions = ["winsock", "tcpip", "register_dns", "ip_release", "ip_renew"];
+          const errorContext = action === "dns"
+            ? "network_flush_dns"
+            : stackActions.includes(action)
+              ? "network_reset_stack"
+              : command;
           showNetworkActionError(err, errorContext, showToast);
         }
       });
