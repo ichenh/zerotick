@@ -359,6 +359,19 @@ input {
   gap: 12px;
 }
 
+.network-reset-output {
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.network-repair-dialog .format-dialog-header {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .network-actions {
   display: flex;
   align-items: center;

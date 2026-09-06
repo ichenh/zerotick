@@ -565,6 +565,14 @@ pub async fn repair_network(target: String) -> Result<NetworkRepairResult, Strin
 }
 
 #[tauri::command]
+pub async fn network_reset_stack(
+    kind: network::reset::ResetKind,
+    confirmed: bool,
+) -> Result<network::reset::ResetResult, String> {
+    run_service_repair(move || network::reset::run(kind, confirmed)).await
+}
+
+#[tauri::command]
 pub async fn network_test_connection(
     target: String,
 ) -> Result<network::probe::ConnectionProbe, String> {

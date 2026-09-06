@@ -3,6 +3,7 @@
 mod adapters;
 mod icmp;
 pub mod probe;
+pub mod reset;
 pub use adapters::NetworkAdapter;
 
 use crate::services::{self, ServicesReport, NETWORK};

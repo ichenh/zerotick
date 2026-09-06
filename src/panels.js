@@ -506,13 +506,24 @@ function showNetworkPending(messageKey) {
 function confirmNetworkRepair(flushOnly) {
   return new Promise((resolve) => {
     const dialog = document.createElement("dialog");
-    dialog.className = "format-dialog";
+    dialog.className = "format-dialog network-repair-dialog";
     dialog.setAttribute("aria-labelledby", "network-repair-title");
     dialog.innerHTML = `<form class="format-dialog-form">
-      <div class="format-dialog-header"><h2 id="network-repair-title">${escapeHtml(t(flushOnly ? "toolkit.network.target.confirmFlushTitle" : "toolkit.network.target.confirmTitle"))}</h2></div>
-      <p>${escapeHtml(t(flushOnly ? "toolkit.network.target.confirmFlushSummary" : "toolkit.network.target.confirmSummary"))}</p>
-      <p class="result-muted">${escapeHtml(t("toolkit.network.target.confirmScope"))}</p>
-      <div class="format-dialog-actions"><button type="button" class="btn btn-default network-repair-cancel" autofocus>${escapeHtml(t("toolkit.network.target.cancel"))}</button><button type="submit" class="btn btn-accent">${escapeHtml(t("toolkit.network.target.confirmRun"))}</button></div>
+      <div class="format-dialog-header"><h2 id="network-repair-title">${escapeHtml(t(flushOnly ? "toolkit.network.target.confirmFlushTitle" : "toolkit.network.reset.chooseTitle"))}</h2></div>
+      ${flushOnly ? `<p>${escapeHtml(t("toolkit.network.target.confirmFlushSummary"))}</p>` : `<div class="format-mode-group">
+        ${[
+          ["services", "toolkit.network.reset.services", "toolkit.network.target.confirmSummary"],
+          ["dns", "toolkit.network.flushDns", "toolkit.network.reset.dnsHint"],
+          ["winsock", "toolkit.network.reset.winsock", "toolkit.network.reset.winsockHint"],
+          ["tcpip", "toolkit.network.reset.tcpip", "toolkit.network.reset.tcpipHint"],
+        ].map(([value, label, hint]) => `<label class="format-mode-card ${value === "services" ? "is-selected" : ""} ${["winsock", "tcpip"].includes(value) ? "format-mode-card-danger" : ""}">
+          <input type="radio" name="network-action" value="${value}" ${value === "services" ? "checked autofocus" : ""} required />
+          <span><strong>${escapeHtml(t(label))}</strong><small>${escapeHtml(t(hint))}</small></span>
+        </label>`).join("")}
+      </div>`}
+      <p class="result-muted network-repair-scope">${escapeHtml(t("toolkit.network.target.confirmScope"))}</p>
+      <p class="info-banner network-reset-notice hidden">${escapeHtml(t("toolkit.network.reset.notice"))}</p>
+      <div class="format-dialog-actions"><button type="button" class="btn btn-default network-repair-cancel" ${flushOnly ? "autofocus" : ""}>${escapeHtml(t("toolkit.network.target.cancel"))}</button><button type="submit" class="btn btn-accent">${escapeHtml(t("toolkit.network.target.confirmRun"))}</button></div>
     </form>`;
     document.body.appendChild(dialog);
     let settled = false;
@@ -522,11 +533,42 @@ function confirmNetworkRepair(flushOnly) {
       resolve(confirmed);
       dialog.close();
     };
-    dialog.querySelector("form").addEventListener("submit", (event) => { event.preventDefault(); finish(true); });
+    dialog.addEventListener("change", () => {
+      const action = dialog.querySelector("input:checked")?.value;
+      const resetting = ["winsock", "tcpip"].includes(action);
+      dialog.querySelectorAll(".format-mode-card").forEach((card) => card.classList.toggle("is-selected", card.querySelector("input").checked));
+      dialog.querySelector(".network-repair-scope").classList.toggle("hidden", resetting);
+      dialog.querySelector(".network-reset-notice").classList.toggle("hidden", !resetting);
+      const submit = dialog.querySelector('[type="submit"]');
+      submit.classList.toggle("btn-danger", resetting);
+      submit.classList.toggle("btn-accent", !resetting);
+    });
+    dialog.querySelector("form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      finish(flushOnly ? "dns" : dialog.querySelector("input:checked")?.value);
+    });
     dialog.querySelector(".network-repair-cancel").addEventListener("click", () => finish(false));
     dialog.addEventListener("close", () => { if (!settled) resolve(false); dialog.remove(); });
     dialog.showModal();
   });
+}
+
+function renderNetworkResetResult(result) {
+  const key = result.needs_admin ? "toolkit.repairResult.adminBanner"
+    : !result.started ? "toolkit.network.reset.notStarted"
+      : result.timed_out ? "toolkit.network.reset.timeout"
+        : result.error || result.exit_code !== 0 ? "toolkit.network.reset.failed"
+          : "toolkit.network.reset.submitted";
+  const el = clearNetworkConclusion();
+  el.className = "result-panel result-warn";
+  el.insertAdjacentHTML("afterbegin", `<section class="network-action-result" aria-live="polite">
+    <h3 class="repair-verdict warn">${escapeHtml(t(key))}</h3>
+    ${result.started ? `<p class="info-banner">${escapeHtml(t("toolkit.network.reset.restart"))}</p><p>${escapeHtml(t("toolkit.network.reset.partialNotice"))}</p><p class="result-muted">${escapeHtml(t("toolkit.network.target.previousSnapshot"))}</p>` : ""}
+    ${result.output ? `<div class="result-section"><div class="result-section-title">${escapeHtml(t("toolkit.network.reset.output"))}</div><pre class="network-reset-output">${escapeHtml(result.output)}</pre></div>` : ""}
+    ${result.output_truncated ? `<p class="result-muted">${escapeHtml(t("toolkit.network.reset.truncated"))}</p>` : ""}
+    ${result.error ? renderOperationError(result.error, "network_reset_stack", "toolkit.network.target.operationFailed") : ""}
+  </section>`);
+  return key;
 }
 
 const PLAYBACK_CATEGORY_ORDER = ["speakers", "headphones", "digital", "line", "other"];
@@ -1931,17 +1973,25 @@ export function bindToolkitHandlers({ showToast }) {
     $(buttonId)?.addEventListener("click", (event) => {
       runNetworkAction(event.currentTarget, async () => {
         try {
+          const action = await confirmNetworkRepair(flushOnly);
+          if (!action) return;
+          if (["winsock", "tcpip"].includes(action)) {
+            showNetworkPending("toolkit.network.target.running");
+            const result = await invoke("network_reset_stack", { kind: action, confirmed: true });
+            showToast(t(renderNetworkResetResult(result)), true);
+            return;
+          }
           const target = networkTarget();
-          if (!(await confirmNetworkRepair(flushOnly))) return;
           showNetworkPending("toolkit.network.target.running");
-          const result = await invoke(command, { target });
+          const result = await invoke(action === "dns" ? "network_flush_dns" : "repair_network", { target });
           if (result.after) renderNetworkReport(result.after);
           const el = clearNetworkConclusion();
           el.className = `result-panel result-${networkRepairWarning(result) ? "warn" : "ok"}`;
-          el.insertAdjacentHTML("afterbegin", renderNetworkRepairResult(result, flushOnly));
+          el.insertAdjacentHTML("afterbegin", renderNetworkRepairResult(result, action === "dns"));
           showToast(t(`toolkit.network.target.outcome.${networkRepairOutcome(result)}`), Boolean(networkRepairWarning(result)));
         } catch (err) {
-          showNetworkActionError(err, command, showToast);
+          const errorContext = action === "dns" ? "network_flush_dns" : command;
+          showNetworkActionError(err, errorContext, showToast);
         }
       });
     });

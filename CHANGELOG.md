@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.1] - 2026-09-07
+
+### Added
+
+- 网络面板修复入口新增“重置 Winsock”与“重置 TCP/IP”选项（均需管理员权限），用于处理可能的套接字目录损坏与 TCP/IP 配置损坏场景。
+- 网络修复弹窗改为可选场景（服务恢复、DNS 刷新、Winsock 重置、TCP/IP 重置），并补充执行风险提醒与命令输出展示。
+
+### Changed
+
+- 网络诊断修复命令统一纳入后台执行结果结构，新增 `network_reset_stack` 命令与前端回显，避免重置成功与否与“是否恢复联网”混淆。
+
 ## [0.2.11] - 2026-09-06
 
 ### Changed

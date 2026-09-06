@@ -85,7 +85,7 @@ export function assembleLocaleBundle(definition) {
   base.errors.serviceRepairBusy ??= en.errors.serviceRepairBusy;
   // New network evidence and target tests use English fallback until the
   // corresponding locale provides reviewed translations.
-  for (const key of ["evidence", "target"]) {
+  for (const key of ["evidence", "target", "reset"]) {
     base.toolkit.network[key] = deepMerge(en.toolkit.network[key], base.toolkit.network[key]);
   }
   // Connectivity verdicts must remain readable in every bundled locale while

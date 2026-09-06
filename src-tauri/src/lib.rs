@@ -121,6 +121,7 @@ fn run_inner() -> Result<(), Box<dyn std::error::Error>> {
             commands::network_speed_test,
             commands::network_test_connection,
             commands::network_flush_dns,
+            commands::network_reset_stack,
             commands::repair_network,
             commands::diagnose_audio,
             commands::set_default_audio_device,
