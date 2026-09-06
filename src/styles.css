@@ -352,6 +352,72 @@ input {
   min-width: 104px;
 }
 
+.network-toolbar {
+  display: grid;
+  align-items: stretch;
+  justify-content: stretch;
+  gap: 12px;
+}
+
+.network-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+
+.network-actions .toolbar-actions {
+  flex-wrap: wrap;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.network-toolbar .btn {
+  height: 32px;
+  min-height: 32px;
+  min-width: 96px;
+  padding-block: 0;
+  line-height: 18px;
+}
+
+.network-target-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.network-target-label {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.network-target-row .format-text-input {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  min-height: 32px;
+  padding-block: 0;
+  font-size: 13px;
+}
+
+.network-target-row .format-text-input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@container pages (max-width: 560px) {
+  .network-target-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .network-target-label {
+    grid-column: 1 / -1;
+  }
+}
+
 /* ── Cards ── */
 .card {
   background: var(--surface);

@@ -132,14 +132,21 @@
           </section>
 
           <section id="page-network" class="page">
-            <div class="toolbar toolbar-end">
-              <div class="toolbar-actions">
-                <button id="btn-network-scan" class="btn btn-default" type="button" data-i18n="toolkit.scan">Scan</button>
-                <button id="btn-network-speed" class="btn btn-default" type="button" data-i18n="toolkit.network.speedTest">Speed test</button>
-                <label class="format-field" for="network-target"><span data-i18n="toolkit.network.target.label">Target website</span><input id="network-target" class="format-text-input" type="url" value="https://www.microsoft.com" spellcheck="false" /></label>
+            <div class="toolbar network-toolbar">
+              <div class="network-actions">
+                <div class="toolbar-actions">
+                  <button id="btn-network-scan" class="btn btn-accent" type="button" data-i18n="toolkit.scan">Scan</button>
+                  <button id="btn-network-speed" class="btn btn-default" type="button" data-i18n="toolkit.network.speedTest">Speed test</button>
+                </div>
+                <div class="toolbar-actions">
+                  <button id="btn-network-flush" class="btn btn-subtle" type="button" data-i18n="toolkit.network.flushDns">Flush DNS</button>
+                  <button id="btn-network-repair" class="btn btn-default" type="button" data-i18n="toolkit.repair">Repair</button>
+                </div>
+              </div>
+              <div class="network-target-row">
+                <label class="network-target-label" for="network-target" data-i18n="toolkit.network.target.label">Target website</label>
+                <input id="network-target" class="format-text-input" type="url" dir="ltr" value="https://www.microsoft.com" spellcheck="false" />
                 <button id="btn-network-test" class="btn btn-default" type="button" data-i18n="toolkit.network.target.test">Test website</button>
-                <button id="btn-network-flush" class="btn btn-default" type="button" data-i18n="toolkit.network.flushDns">Flush DNS</button>
-                <button id="btn-network-repair" class="btn btn-accent" type="button" data-i18n="toolkit.repair">Repair</button>
               </div>
             </div>
             <div class="card card-fill">
