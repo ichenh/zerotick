@@ -76,7 +76,7 @@ fn perform(
     }
     let mut result = ResetResult {
         kind,
-        needs_admin: !elevated,
+        needs_admin: false,
         requires_restart: kind.requires_restart(),
         started: false,
         exit_code: None,
@@ -222,6 +222,14 @@ mod tests {
         assert!(serde_json::from_str::<ResetKind>("\"winsock & whoami\"").is_err());
         assert_eq!(ResetKind::Winsock.args(), &["winsock", "reset"]);
         assert_eq!(ResetKind::Tcpip.args(), &["int", "ip", "reset"]);
+        let non_admin = perform(ResetKind::RegisterDns, true, false, |result| {
+            result.started = true;
+            Ok(())
+        })
+        .unwrap();
+        assert!(!non_admin.needs_admin);
+        assert!(non_admin.started);
+        assert_eq!(non_admin.requires_restart, false);
         assert_eq!(ResetKind::RegisterDns.args(), &["/registerdns"]);
         assert_eq!(ResetKind::IpRelease.args(), &["/release"]);
         assert_eq!(ResetKind::IpRenew.args(), &["/renew"]);
